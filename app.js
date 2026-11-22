@@ -137,10 +137,6 @@ function showPage() {
   const key = location.hash.slice(1);
   const view = key === 'standings' ? 'standings' : COMING[key] ? 'page' : 'home';
   for (const v of ['home', 'standings', 'page']) document.getElementById('view-' + v).hidden = v !== view;
-  document.querySelectorAll('.topnav a').forEach(a => {
-    if (a.getAttribute('href') === '#' + key) a.setAttribute('aria-current', 'page');
-    else a.removeAttribute('aria-current');
-  });
 
   if (view === 'standings') {
     renderStandings();
