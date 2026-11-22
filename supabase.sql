@@ -10,6 +10,11 @@ create table if not exists public.league_docs (
   primary key (user_id, path)
 );
 
+-- Signed-in players may use the table (the policies below still limit them to their own rows).
+-- Signed-out visitors get no access at all.
+grant select, insert, update, delete on public.league_docs to authenticated;
+revoke all on public.league_docs from anon;
+
 -- Row level security: each person can only see and change their own rows.
 alter table public.league_docs enable row level security;
 
