@@ -2148,12 +2148,62 @@ const E = (() => {
   function dayGames(d, day) { return d.games.filter(g => g.day === day); }
   function currentRoundLabel() {
     const s = S.season;
-    if (s.phase === 'reg') return 'Day ' + s.day.cur + ' of ' + s.totalDays;
+    if (s.phase === 'reg') return 'Day ' + s.day.cur + ' of ' + seasonLastDay();
     if (s.phase === 'done') return 'Season complete';
     const open = s.post.series.filter(x => !seriesInfo(D, x).done);
     const r = open.length ? Math.max(...open.map(x => x.round)) : 0;
-    return roundName(r) + ' · Day ' + s.day.cur;
+    return roundName(r) + ' · Day ' + s.day.cur + ' of ' + seasonLastDay();
   }
+  // The latest day the season could end, playoffs included: every series that isn't over is counted as going
+  // the distance, one game every other day, at most 4 games a day, each round after the last one ends.
+  function postStages() {
+    const ln = L.lines();
+    if (!ln) return [];
+    const C = L.confCount(), st = [];
+    if (ln.playIn) st.push({ key: 'pia', n: 2 * C, bo: 1 }, { key: 'pib', n: C, bo: 1 });
+    if (ln.spots === 8) st.push({ key: 'r1', n: 4 * C, bo: L.seriesBo(1) }, { key: 'r2', n: 2 * C, bo: L.seriesBo(2) });
+    if (ln.spots === 6) st.push({ key: 'r1', n: 2 * C, bo: L.seriesBo(1) }, { key: 'r2', n: 2 * C, bo: L.seriesBo(2) });
+    if (ln.spots === 4) st.push({ key: 'r2', n: 2 * C, bo: L.seriesBo(2) });
+    st.push({ key: 'r3', n: C, bo: L.seriesBo(3) });
+    if (C > 1) st.push({ key: 'r4', n: 1, bo: L.seriesBo(4) });
+    return st;
+  }
+  const stageOf = x => (x.round === 0 ? (x.kind === 'pi8' ? 'pib' : 'pia') : 'r' + x.round);
+  const stageDays = (n, bo) => 2 * (bo - 1) + 1 + (n > 4 ? 1 : 0);
+  function seasonLastDay() {
+    const s = S.season, stages = postStages();
+    if (!stages.length) return s.totalDays;
+    let start = s.totalDays + 2, end = s.totalDays;
+    if (s.phase !== 'reg' && D) {
+      const series = s.post.series || [];
+      while (stages.length) {
+        const stg = stages[0], xs = series.filter(x => stageOf(x) === stg.key);
+        if (!xs.length) break;   // not started yet: counted from scratch below
+        const infos = xs.map(x => [x, seriesInfo(D, x)]);
+        const dayOf = inf => (inf.games.length ? Math.max(...inf.games.map(g => g.day)) : s.day.cur - 2);
+        if (xs.length >= stg.n && infos.every(([, inf]) => inf.done)) {   // finished: it ended on its last game
+          end = Math.max(...infos.map(([, inf]) => dayOf(inf))); start = end + 2; stages.shift(); continue;
+        }
+        // under way: each unfinished series plays out its remaining games, one every other day
+        let e = 0;
+        for (const [x, inf] of infos) {
+          const need = L.winsNeeded(x.bo);
+          if (inf.done) { e = Math.max(e, dayOf(inf)); continue; }
+          // games still possible after the one already on the schedule (if any)
+          const left = (need - inf.wh) + (need - inf.wl) - 1 - (inf.open ? 1 : 0);
+          // the next unscheduled game can't come before tomorrow, nor before a day of rest
+          const next = Math.max(dayOf(inf) + 2, s.day.cur + 1);
+          const last = inf.open ? dayOf(inf) + 2 * left : next + 2 * (left - 1);
+          e = Math.max(e, last + (xs.length > 4 && left > 0 ? 1 : 0));
+        }
+        end = Math.max(e, s.day.cur); start = end + 2; stages.shift();
+        break;
+      }
+    }
+    for (const stg of stages) { end = start + stageDays(stg.n, stg.bo) - 1; start = end + 2; }
+    return Math.max(end, s.day.cur);
+  }
+
   // If the current day is ahead of a game nobody played (a day that got skipped), step back to that day so it can be played.
   function healDay() {
     const s = S.season;
@@ -2294,7 +2344,10 @@ const E = (() => {
     refresh();
     const last = {};
     D.games.forEach(g => { if (g.st.final) [g.a, g.h].forEach(p => { last[p] = Math.max(last[p] || 0, g.day); }); });
-    const active = s.post.series.filter(x => { const inf = seriesInfo(D, x); return !inf.done && !inf.open; });
+    // a round starts only once the round before it is over, in every conference
+    const unfinished = s.post.series.filter(x => !seriesInfo(D, x).done);
+    const minRound = unfinished.length ? Math.min(...unfinished.map(x => x.round)) : 0;
+    const active = s.post.series.filter(x => { const inf = seriesInfo(D, x); return !inf.done && !inf.open && x.round === minRound; });
     const cap = Math.min(4, active.length <= 5 ? 5 : Math.ceil(active.length / 2));   // at most 4 postseason games a day
     const rested = (x, day) => (last[x.hi] || 0) < day - 1 && (last[x.lo] || 0) < day - 1;
     let day = ended + 1, ready = active.filter(x => rested(x, day));
