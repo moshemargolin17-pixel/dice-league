@@ -126,7 +126,8 @@ $('savedLeagues').addEventListener('click', e => {
 function openLeague(lg) {
   currentLeague = lg;
   markPlayed(lg);
-  location.hash = 'standings';
+  homeDay = null;
+  if (location.hash === '#league') showPage(); else location.hash = 'league';
 }
 $('continueBtn').addEventListener('click', () => openLeague(selectedLeague));
 
@@ -517,27 +518,36 @@ function playoffPicture(lg, rows, lines) {
     if (typeof x !== 'number') return `<span class="bk-slot bk-tbd">${esc(x)}</span>`;
     const p = seeds[x - 1];
     const viaPlayIn = lines.playIn && firstRound && (x === 7 || x === 8);
-    return `<span class="bk-slot"><span class="bk-seed">${x}</span>${viaPlayIn ? `<span class="bk-tbd">${x} seed from the play-in</span>` : esc(lg.players[p].name)}</span>`;
+    const pl = lg.players[p];
+    return `<span class="bk-slot"><span class="bk-seed">${x}</span>${viaPlayIn ? '<span class="bk-tbd">Play-in</span>' : `<span title="${esc(pl.name)}">${esc(pl.short)}</span>`}</span>`;
   };
-  const block = (title, seeds) => {
+  const post = postOf(lg);
+  // Days a round runs, from the postseason schedule. The play-in has two stages; both are shown.
+  const roundDays = (name, conf) => {
+    const xs = post.series.filter(x => x.round === name && x.conf === conf);
+    if (!xs.length) return '';
+    const a = Math.min(...xs.map(x => x.firstDay)), b = Math.max(...xs.map(x => x.lastDay));
+    return a === b ? ` · Day ${a}` : ` · Days ${a}–${b}`;
+  };
+  const block = (title, seeds, conf) => {
     const rounds = confRounds(lines, confs ? 'Conference final' : 'Final');
     return `<div class="bk-conf">
       ${title ? `<h3 class="bk-title">${esc(title)}</h3>` : ''}
       <div class="bk-rounds">${rounds.map(rd => `<div class="bk-round">
-        <p class="bk-name">${rd.name} <span class="bk-bo">${boText(rd.bestOf)}</span></p>
+        <p class="bk-name">${rd.name} <span class="bk-bo">${boText(rd.bestOf)}${roundDays(rd.name, conf)}</span></p>
         ${rd.games.map(([a, b]) => `<div class="bk-game">${side(a, seeds, rd.name === 'First round')}${side(b, seeds, rd.name === 'First round')}</div>`).join('')}
       </div>`).join('')}</div>
     </div>`;
   };
   const groups = seedGroups(lg).map(ids => seedOrder(lg, rows, ids).map(r => r.p));
   const blocks = confs
-    ? lg.conferences.map((c, ci) => block(`${c} Conference`, groups[ci])).join('') +
-      `<div class="bk-conf"><h3 class="bk-title">Finals <span class="bk-bo">${boText(FINALS_LENGTH)}</span></h3><div class="bk-rounds"><div class="bk-round"><div class="bk-game">
+    ? lg.conferences.map((c, ci) => block(`${c} Conference`, groups[ci], ci)).join('') +
+      `<div class="bk-conf"><h3 class="bk-title">Finals <span class="bk-bo">${boText(FINALS_LENGTH)}${roundDays('Finals', null)}</span></h3><div class="bk-rounds"><div class="bk-round"><div class="bk-game">
         <span class="bk-slot bk-tbd">${esc(lg.conferences[0])} champion</span><span class="bk-slot bk-tbd">${esc(lg.conferences[1])} champion</span>
       </div></div></div></div>`
-    : block('', groups[0]);
+    : block('', groups[0], null);
   return `<section class="panel bk">
-    <h2 class="panel-title">Playoff picture <span class="panel-sub">If the season ended today</span></h2>
+    <h2 class="panel-title">Playoff picture <span class="panel-sub">${seasonDone(lg) ? 'Final seeds' : 'If the season ended today'}</span></h2>
     <p class="bk-summary">${esc(playoffSummary(lines.spots, lines.playIn, confs, hasDivs(lg)))}</p>
     ${blocks}
   </section>`;
@@ -569,7 +579,6 @@ function renderStandings() {
   }
   $('standSample').hidden = !lg.sample;
   document.querySelectorAll('#standTabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === view)));
-  $('standLeague').textContent = lg.name;
   $('standMeta').textContent = finals.length
     ? `Through day ${Math.max(...finals.map(g => g.day))} · ${finals.length} of ${lg.games.length} games played`
     : `Not started · ${lg.games.length} games on the schedule`;
@@ -596,6 +605,225 @@ $('standTabs').addEventListener('click', e => {
   renderStandings();
 });
 
+// ---------- League home ----------
+// The day shown on the league home. null means today: the first day that still has unplayed games.
+let homeDay = null;
+
+const seasonDays = lg => Math.max(1, ...lg.games.map(g => g.day)); // last day of the regular season
+const seasonDone = lg => lg.games.length > 0 && lg.games.every(g => g.final);
+
+// The postseason schedule, built from seeds (cached per league and schedule).
+const postCache = new Map();
+function postOf(lg) {
+  const key = `${lg.id}:${lg.games.length}:${JSON.stringify(lg.playoffs || null)}`;
+  if (!postCache.has(key)) postCache.set(key, buildPostseason(lg, seasonDays(lg)));
+  return postCache.get(key);
+}
+const lastDayOf = lg => Math.max(seasonDays(lg), ...postOf(lg).games.map(g => g.day));
+
+// Who fills a postseason slot: a player once seeds are known, otherwise a description.
+function slotInfo(lg, post, slot, seeds) {
+  const confName = c => (c == null ? '' : lg.conferences[c] + ' ');
+  if (slot.seed) {
+    const p = seeds ? seeds[slot.conf == null ? 0 : slot.conf][slot.seed - 1] : null;
+    return p != null ? { p, text: lg.players[p].name, seed: slot.seed } : { text: `${confName(slot.conf)}${slot.seed} seed`, seed: slot.seed };
+  }
+  const x = post.series.find(z => z.id === (slot.winnerOf || slot.loserOf));
+  if (slot.winnerOf && /final$/i.test(x.round) && x.round !== 'Finals' && x.conf != null) return { text: `${lg.conferences[x.conf]} champion` };
+  const what = x.round === 'Play-in' ? `play-in ${x.short}` : x.round === 'Wild card' || x.round === 'First round' ? x.short : `${x.round.toLowerCase()} ${x.short}`;
+  return { text: `${slot.winnerOf ? 'Winner' : 'Loser'} of ${confName(x.conf)}${what}`.replace('of the', 'of') };
+}
+
+function seedsIfKnown(lg) {
+  if (!seasonDone(lg) || !playoffLines(lg)) return null;
+  const rows = computeStandings(lg);
+  return seedGroups(lg).map(ids => seedOrder(lg, rows, ids).map(r => r.p));
+}
+
+function postGameCard(lg, post, g, seeds) {
+  const x = post.series.find(z => z.id === g.series);
+  const hi = slotInfo(lg, post, x.hi, seeds), lo = slotInfo(lg, post, x.lo, seeds);
+  const [away, home] = g.hiHome ? [lo, hi] : [hi, lo];
+  const row = (t, isHome) => `<div class="gteam">
+      <div class="gc-name"><b class="${t.p == null ? 'tbd' : ''}">${esc(t.text)}</b><small>${isHome ? 'Home' : 'Away'}</small></div>
+      <span class="gsc">–</span>
+    </div>`;
+  const label = `${x.round}${x.bestOf > 1 ? ` · Game ${g.no}` : ''}`;
+  return `<article class="gcard is-post${g.ifNecessary ? ' is-maybe' : ''}">
+    <div class="gtop"><span class="gst">${esc(label)}</span><span class="gmeta">${g.ifNecessary ? 'If necessary' : x.conf != null ? esc(lg.conferences[x.conf]) : ''}</span></div>
+    <div class="gbody">${row(away, false)}${row(home, true)}</div>
+  </article>`;
+}
+function todayOf(lg) {
+  const open = lg.games.filter(g => !g.final);
+  if (open.length) return Math.min(...open.map(g => g.day));
+  const post = postOf(lg).games;
+  return post.length ? Math.min(...post.map(g => g.day)) : seasonDays(lg);
+}
+
+function renderLeagueHeader(lg, tab) {
+  $('lgName').textContent = lg.name;
+  const post = postOf(lg);
+  const postText = post.games.length
+    ? ` · Postseason days ${Math.min(...post.games.map(g => g.day))}–${lastDayOf(lg)}`
+    : '';
+  $('lgSub').textContent = seasonDone(lg)
+    ? `Season 1 · Regular season complete${postText}`
+    : `Season 1 · Day ${todayOf(lg)} of ${seasonDays(lg)}${postText}`;
+  $('tabHome').toggleAttribute('aria-current', tab === 'home');
+  $('tabStandings').toggleAttribute('aria-current', tab === 'standings');
+  if (tab === 'home') $('tabHome').setAttribute('aria-current', 'page');
+  if (tab === 'standings') $('tabStandings').setAttribute('aria-current', 'page');
+}
+
+// A player's record going into a game, or right after it once it's final.
+function recordAt(lg, p, g) {
+  let w = 0, l = 0, hw = 0, hl = 0, aw = 0, al = 0;
+  for (const x of lg.games) {
+    if (!x.final || (x.away !== p && x.home !== p)) continue;
+    if (x.day > g.day || (x.day === g.day && x !== g)) continue;
+    if (!g.final && x.day >= g.day) continue;
+    const won = (x.home === p) === (x.homePts > x.awayPts);
+    if (won) w++; else l++;
+    if (x.home === p) { if (won) hw++; else hl++; } else if (won) aw++; else al++;
+  }
+  return { w, l, hw, hl, aw, al };
+}
+
+function gameKind(lg, g) {
+  if (hasDivs(lg) && divOf(lg, g.away) === divOf(lg, g.home)) return 'Division';
+  if (hasConfs(lg)) return confOf(lg, g.away) === confOf(lg, g.home) ? 'Conference' : 'Interconference';
+  return '';
+}
+
+function gameCard(lg, g) {
+  const side = (p, isHome) => {
+    const r = recordAt(lg, p, g);
+    const pts = isHome ? g.homePts : g.awayPts, opp = isHome ? g.awayPts : g.homePts;
+    const won = g.final && pts > opp;
+    const where = isHome ? `${rec(r.hw, r.hl)} home` : `${rec(r.aw, r.al)} away`;
+    return `<div class="gteam${won ? ' won' : ''}">
+      <div class="gc-name"><b>${esc(lg.players[p].name)}</b><small>${rec(r.w, r.l)} · ${where}</small></div>
+      <span class="gsc${g.final ? (won ? ' win' : ' lose') : ''}">${g.final ? pts : '–'}</span>
+    </div>`;
+  };
+  return `<article class="gcard${g.final ? ' is-final' : ''}">
+    <div class="gtop"><span class="gst">${g.final ? 'Final' : 'Not started'}</span><span class="gmeta">${gameKind(lg, g)}</span></div>
+    <div class="gbody">${side(g.away, false)}${side(g.home, true)}</div>
+  </article>`;
+}
+
+// Who can clinch something, or be eliminated, depending on how their game goes today.
+function scenarios(lg, games) {
+  const rows = computeStandings(lg);
+  const base = raceMarks(lg, rows);
+  if (!Object.keys(base).length) return [];
+  const rank = ['z', 'y', 'X', 'PS'];
+  const goal = { z: 'clinches the #1 seed', y: 'clinches the division', X: 'clinches a playoff spot', PS: 'clinches a postseason spot' };
+  const withResult = (p, o, pWins) => {
+    const r2 = rows.map(r => ({ ...r }));
+    r2[p].left--; r2[o].left--;
+    if (pWins) { r2[p].w++; r2[o].l++; } else { r2[p].l++; r2[o].w++; }
+    return raceMarks(lg, r2);
+  };
+  const out = [];
+  for (const g of games) {
+    if (g.final) continue;
+    for (const [p, o] of [[g.away, g.home], [g.home, g.away]]) {
+      const name = esc(lg.players[p].name);
+      const now = base[p];
+      const ifWin = withResult(p, o, true)[p];
+      if (ifWin && rank.includes(ifWin) && (!rank.includes(now) || rank.indexOf(ifWin) < rank.indexOf(now))) {
+        out.push(`<b>${name}</b> ${goal[ifWin]} with a win.`);
+      }
+      if (now !== 'E' && withResult(p, o, false)[p] === 'E') out.push(`<b>${name}</b> is eliminated with a loss.`);
+    }
+  }
+  return out;
+}
+
+function recordsPanel(title, items, empty) {
+  return `<h2 class="panel-title">${esc(title)}</h2>` + (items.length
+    ? items.map(it => `<div class="rrow"><div class="rrow-text"><p class="rlab">${esc(it.label)}</p><p class="rwho">${esc(it.who)}</p></div><p class="rval">${esc(it.value)}</p></div>`).join('')
+    : `<p class="rempty">${esc(empty)}</p>`);
+}
+
+function dayRecords(lg, games) {
+  const fin = games.filter(g => g.final);
+  if (!fin.length) return [];
+  const pick = f => fin.reduce((b, g) => (b == null || f(g) > f(b) ? g : b), null);
+  const name = p => lg.players[p].name;
+  const winner = g => (g.homePts > g.awayPts ? g.home : g.away);
+  const loser = g => (g.homePts > g.awayPts ? g.away : g.home);
+  const top = pick(g => Math.max(g.homePts, g.awayPts));
+  const big = pick(g => Math.abs(g.homePts - g.awayPts));
+  const close = pick(g => -Math.abs(g.homePts - g.awayPts));
+  return [
+    { label: 'Top score', who: name(winner(top)), value: String(Math.max(top.homePts, top.awayPts)) },
+    { label: 'Biggest win', who: `${name(winner(big))} over ${name(loser(big))}`, value: '+' + Math.abs(big.homePts - big.awayPts) },
+    { label: 'Closest game', who: `${name(close.away)} vs ${name(close.home)}`, value: String(Math.abs(close.homePts - close.awayPts)) },
+  ];
+}
+
+function seasonLeaders(lg) {
+  const rows = computeStandings(lg).filter(r => r.gp);
+  if (!rows.length) return [];
+  const best = f => rows.reduce((b, r) => (b == null || f(r) > f(b) ? r : b), null);
+  const name = r => lg.players[r.p].name;
+  const rec1 = best(r => r.pct + r.w / 1000);
+  const ppg = best(r => r.pf / r.gp);
+  const diff = best(r => r.diff / r.gp);
+  const streak = best(r => (r.streak[0] === 'W' ? Number(r.streak.slice(1)) : 0));
+  const out = [
+    { label: 'Best record', who: name(rec1), value: rec(rec1.w, rec1.l) },
+    { label: 'Most points per game', who: name(ppg), value: (ppg.pf / ppg.gp).toFixed(1) },
+    { label: 'Best point differential', who: name(diff), value: (diff.diff >= 0 ? '+' : '') + (diff.diff / diff.gp).toFixed(1) },
+  ];
+  if (streak.streak[0] === 'W') out.push({ label: 'Longest win streak going', who: name(streak), value: streak.streak });
+  return out;
+}
+
+function renderLeagueHome() {
+  const lg = currentLeague;
+  const today = todayOf(lg), last = lastDayOf(lg);
+  const day = Math.min(Math.max(homeDay == null ? today : homeDay, 1), last);
+  const games = lg.games.filter(g => g.day === day).sort((x, y) => x.id - y.id);
+  const post = postOf(lg);
+  const postGames = post.games.filter(g => g.day === day);
+  const nFin = games.filter(g => g.final).length;
+  const isToday = day === today;
+  const isPost = day > seasonDays(lg);
+
+  $('homeSample').hidden = !lg.sample;
+  $('dayTitle').textContent = `${isToday ? 'Up next · ' : ''}Day ${day}${isPost ? ' · Postseason' : ''}`;
+  const n = games.length + postGames.length;
+  const maybe = postGames.filter(g => g.ifNecessary).length;
+  $('daySummary').textContent = `${n} ${n === 1 ? 'game' : 'games'}${nFin ? ` · ${nFin} final` : ''}${maybe ? ` · ${maybe} if necessary` : ''}`;
+  $('dayPrev').disabled = day <= 1;
+  $('dayNext').disabled = day >= last;
+  $('dayToday').disabled = day === today;
+  const seeds = postGames.length ? seedsIfKnown(lg) : null;
+  $('dayGames').innerHTML = games.map(g => gameCard(lg, g)).join('') +
+    postGames.map(g => postGameCard(lg, post, g, seeds)).join('') || '<p class="rempty">No games on this day.</p>';
+
+  const sc = isToday && !isPost ? scenarios(lg, games) : [];
+  $('dayScen').hidden = !sc.length;
+  $('dayScen').innerHTML = sc.length ? `<h2 class="panel-title">On the line today</h2>${sc.map(t => `<p class="scl">${t}</p>`).join('')}` : '';
+
+  $('dayRecords').innerHTML = recordsPanel(`Day ${day}`, dayRecords(lg, games), 'Top score, biggest win and closest game show up here once games are final.');
+  $('seasonLeaders').innerHTML = recordsPanel('Season leaders', seasonLeaders(lg), 'Leaders show up here once games are played.');
+}
+
+function stepDay(delta) {
+  const lg = currentLeague;
+  const cur = homeDay == null ? todayOf(lg) : homeDay;
+  homeDay = Math.min(Math.max(cur + delta, 1), lastDayOf(lg));
+  renderLeagueHome();
+}
+$('dayPrev').addEventListener('click', () => stepDay(-1));
+$('dayNext').addEventListener('click', () => stepDay(1));
+$('dayToday').addEventListener('click', () => { homeDay = null; renderLeagueHome(); });
+
 // ---------- Page switching ----------
 // Pages that aren't built yet show a "Coming soon" page.
 const COMING = {
@@ -607,17 +835,23 @@ const COMING = {
   '4v4': { title: '4 vs 4', text: 'Teams of four.' },
   '5v5': { title: '5 vs 5', text: 'Full teams of five.' },
 };
-const VIEWS = { '1v1': '1v1', 'new-league': 'new', 'standings': 'standings' };
-const TITLES = { '1v1': '1 vs 1', new: 'New league', standings: 'Standings' };
+const VIEWS = { '1v1': '1v1', 'new-league': 'new', 'league': 'league', 'standings': 'league' };
+const TITLES = { '1v1': '1 vs 1', new: 'New league' };
 
 function showPage() {
   const key = location.hash.slice(1);
   const view = VIEWS[key] || (COMING[key] ? 'page' : 'home');
-  for (const v of ['home', '1v1', 'new', 'standings', 'page']) $('view-' + v).hidden = v !== view;
+  for (const v of ['home', '1v1', 'new', 'league', 'page']) $('view-' + v).hidden = v !== view;
 
-  if (view === 'standings') {
+  let title = view === 'page' ? COMING[key].title : TITLES[view];
+  if (view === 'league') {
     currentLeague = findLeague(currentLeague.id) || byLastPlayed()[0];
-    renderStandings();
+    const tab = key === 'standings' ? 'standings' : 'home';
+    renderLeagueHeader(currentLeague, tab);
+    $('lgHome').hidden = tab !== 'home';
+    $('lgStandings').hidden = tab !== 'standings';
+    if (tab === 'home') renderLeagueHome(); else renderStandings();
+    title = `${tab === 'home' ? currentLeague.name : 'Standings'}`;
   } else if (view === '1v1') {
     selectedLeague = byLastPlayed()[0]; // start on the league played last
     renderSavedLeagues();
@@ -627,7 +861,6 @@ function showPage() {
     $('pageTitle').textContent = COMING[key].title;
     $('pageText').textContent = COMING[key].text;
   }
-  const title = view === 'page' ? COMING[key].title : TITLES[view];
   document.title = title ? `${title} · Dice League` : 'Dice League';
   window.scrollTo(0, 0);
 }

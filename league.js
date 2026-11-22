@@ -96,9 +96,14 @@ function autoShort(name) {
 }
 
 // ---------- Schedule ----------
+const MAX_GAMES_PER_DAY = 8;            // regular season
+const MAX_POSTSEASON_GAMES_PER_DAY = 4; // play-in and playoffs (used once the postseason is scheduled)
+
 // Each pair of players meets timesFor(a, b) times. Rules:
 //  - nobody plays two days in a row (at most every other day)
 //  - the same two players meeting in back-to-back games is avoided, but allowed when there's no other choice
+//  - about a quarter of the players' games happen each day (never more than 8), so roughly half the
+//    league plays on any day and the rest are resting, instead of everyone playing on the same days
 // Each day, the available players with the most games left are paired first.
 function makePairSchedule(playerCount, timesFor, seed = 1) {
   const rand = seededRandom(seed);
@@ -113,13 +118,16 @@ function makePairSchedule(playerCount, timesFor, seed = 1) {
   const lastDay = new Array(playerCount).fill(-9);
   const lastOpp = new Array(playerCount).fill(-1);
   const games = [];
+  const perDay = Math.min(MAX_GAMES_PER_DAY, Math.max(1, Math.round(playerCount / 4)));
   for (let day = 1; remaining > 0 && day < 10000; day++) {
     const avail = [];
     for (let p = 0; p < playerCount; p++) if (left[p] > 0 && day - lastDay[p] >= 2) avail.push(p);
     const tie = new Map(avail.map(p => [p, rand()]));
     avail.sort((x, y) => left[y] - left[x] || tie.get(x) - tie.get(y));
     const used = new Set();
+    let today = 0;
     for (const p of avail) {
+      if (today >= perDay) break;
       if (used.has(p)) continue;
       let best = -1, bestScore = -Infinity;
       for (const q of avail) {
@@ -131,6 +139,8 @@ function makePairSchedule(playerCount, timesFor, seed = 1) {
         if (score > bestScore) { bestScore = score; best = q; }
       }
       if (best < 0) continue;
+      // A rematch only happens if the player has already sat out a few days waiting for someone else.
+      if (bestScore < -500 && day - lastDay[p] < 5) continue;
       const q = best;
       used.add(p); used.add(q);
       need.set(key(p, q), need.get(key(p, q)) - 1);
@@ -138,6 +148,7 @@ function makePairSchedule(playerCount, timesFor, seed = 1) {
       lastDay[p] = lastDay[q] = day;
       lastOpp[p] = q; lastOpp[q] = p;
       games.push({ id: games.length, day, away: p, home: q, final: false });
+      today++;
     }
   }
   assignHomeAway(games, playerCount);
@@ -319,6 +330,94 @@ const PLAY_IN_SIZES = [15]; // only 15-player conferences can add a play-in (wit
 const SERIES_LENGTHS = { 4: [3, 5], 6: [3, 5, 7], 8: [7, 7, 7] };
 const FINALS_LENGTH = 7;
 const boText = n => (n === 1 ? 'Single game' : `Best of ${n}`);
+
+// ---------- Postseason schedule ----------
+// Built from seeds, so it exists before anyone knows who the seeds are. Rules:
+//  - a round starts only after every game of the round before could have finished ("if necessary" games
+//    are scheduled too); the play-in's 8-seed game waits for the first two play-in games
+//  - at most 4 postseason games a day, and nobody plays two days in a row
+//  - the higher seed hosts games 1, 2, 5, 7 of a best of 7; 1, 2, 5 of a best of 5; 1 and 3 of a best of 3.
+//    In the play-in the higher seed hosts, and the 7–8 loser hosts the game for the 8 seed.
+const HOME_GAMES = { 1: [1], 3: [1, 3], 5: [1, 2, 5], 7: [1, 2, 5, 7] };
+
+// The series of each stage, in the order they're played. A slot is { seed, conf }, { winnerOf } or { loserOf }.
+function postseasonSeries(lg) {
+  const lines = playoffLines(lg);
+  if (!lines) return [];
+  const bo = SERIES_LENGTHS[lines.spots];
+  const confs = hasConfs(lg) ? lg.conferences.map((_, i) => i) : [null];
+  const finalName = confs.length > 1 ? 'Conference final' : 'Final';
+  const series = [];
+  const add = (stage, round, conf, hi, lo, bestOf, short) => {
+    const id = `${conf == null ? 'L' : 'C' + conf}-${round}-${short}`;
+    series.push({ id, stage, round, conf, hi, lo, bestOf, short });
+    return id;
+  };
+  const W = id => ({ winnerOf: id }), Lo = id => ({ loserOf: id });
+  for (const c of confs) {
+    const seed = k => ({ seed: k, conf: c });
+    const slot = {};
+    for (let k = 1; k <= 10; k++) slot[k] = seed(k);
+    if (lines.playIn) {
+      const a = add(0, 'Play-in', c, seed(7), seed(8), 1, '7–8');
+      const b = add(0, 'Play-in', c, seed(9), seed(10), 1, '9–10');
+      const e = add(1, 'Play-in', c, Lo(a), W(b), 1, 'for the 8 seed');
+      slot[7] = W(a); slot[8] = W(e);
+    }
+    const st = lines.playIn ? 2 : 0;
+    if (lines.spots === 4) {
+      const a = add(st, 'Semifinals', c, slot[1], slot[4], bo[0], '1–4');
+      const b = add(st, 'Semifinals', c, slot[2], slot[3], bo[0], '2–3');
+      add(st + 1, finalName, c, W(a), W(b), bo[1], 'final');
+    } else if (lines.spots === 6) {
+      const a = add(st, 'Wild card', c, slot[3], slot[6], bo[0], '3–6');
+      const b = add(st, 'Wild card', c, slot[4], slot[5], bo[0], '4–5');
+      const s1 = add(st + 1, 'Semifinals', c, slot[1], W(b), bo[1], '1 vs 4–5');
+      const s2 = add(st + 1, 'Semifinals', c, slot[2], W(a), bo[1], '2 vs 3–6');
+      add(st + 2, finalName, c, W(s1), W(s2), bo[2], 'final');
+    } else {
+      const a = add(st, 'First round', c, slot[1], slot[8], bo[0], '1–8');
+      const b = add(st, 'First round', c, slot[4], slot[5], bo[0], '4–5');
+      const d = add(st, 'First round', c, slot[2], slot[7], bo[0], '2–7');
+      const e = add(st, 'First round', c, slot[3], slot[6], bo[0], '3–6');
+      const s1 = add(st + 1, 'Semifinals', c, W(a), W(b), bo[1], '1–8 vs 4–5');
+      const s2 = add(st + 1, 'Semifinals', c, W(d), W(e), bo[1], '2–7 vs 3–6');
+      add(st + 2, finalName, c, W(s1), W(s2), bo[2], 'final');
+    }
+  }
+  if (confs.length > 1) {
+    const finals = series.filter(x => x.round === finalName);
+    add(Math.max(...series.map(x => x.stage)) + 1, 'Finals', null, W(finals[0].id), W(finals[1].id), FINALS_LENGTH, 'Finals');
+  }
+  return series;
+}
+
+// Every postseason game with its day. Games past what a series needs are marked "if necessary".
+function buildPostseason(lg, regLastDay) {
+  const series = postseasonSeries(lg);
+  const games = [];
+  let start = regLastDay + 2; // a day off after the regular season
+  const stages = [...new Set(series.map(x => x.stage))].sort((a, b) => a - b);
+  for (const stage of stages) {
+    const list = series.filter(x => x.stage === stage);
+    // Series take turns: half play on one day, half the next, so a day never has more than 4 games.
+    const perSlot = MAX_POSTSEASON_GAMES_PER_DAY;
+    let end = start;
+    list.forEach((x, i) => {
+      const offset = Math.floor(i / perSlot) % 2;
+      x.firstDay = start + offset;
+      for (let n = 1; n <= x.bestOf; n++) {
+        const day = x.firstDay + 2 * (n - 1);
+        const hiHome = HOME_GAMES[x.bestOf].includes(n);
+        games.push({ id: 'P' + games.length, day, series: x.id, no: n, ifNecessary: n > Math.ceil(x.bestOf / 2), hiHome });
+        end = Math.max(end, day);
+      }
+      x.lastDay = x.firstDay + 2 * (x.bestOf - 1);
+    });
+    start = end + 2; // the next round waits for this one, plus a day off
+  }
+  return { series, games };
+}
 
 // Seeds that go straight in, and seeds that go to the play-in.
 function playoffLines(lg) {

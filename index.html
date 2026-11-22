@@ -177,14 +177,49 @@
       </div>
     </section>
 
-    <!-- Standings (1 vs 1) -->
-    <section id="view-standings" class="view" hidden>
-      <div class="wrap section stand">
-        <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
+    <!-- A league: its home page and standings, under one header -->
+    <section id="view-league" class="view" hidden>
+      <div class="lghead">
+        <div class="wrap lghead-inner">
+          <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
+          <div class="lgtitle">
+            <h1 id="lgName">League</h1>
+            <p class="lgsub" id="lgSub"></p>
+          </div>
+          <nav class="lgtabs" aria-label="League pages">
+            <a href="#league" id="tabHome">Home</a>
+            <a href="#standings" id="tabStandings">Standings</a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- League home -->
+      <div class="wrap section lgpage" id="lgHome">
+        <p class="sample" id="homeSample">Sample results. These games are made up to show how the page works.</p>
+        <div class="dayhead">
+          <div>
+            <h2 id="dayTitle">Day 1</h2>
+            <p class="muted" id="daySummary"></p>
+          </div>
+          <div class="daynav">
+            <button type="button" class="btn btn-ghost btn-sm" id="dayPrev" aria-label="Previous day">←</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="dayToday">Today</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="dayNext" aria-label="Next day">→</button>
+          </div>
+        </div>
+        <div class="panel scen" id="dayScen" hidden></div>
+        <div class="ggrid" id="dayGames"></div>
+        <div class="cols">
+          <section class="panel rpanel" id="dayRecords"></section>
+          <section class="panel rpanel" id="seasonLeaders"></section>
+        </div>
+      </div>
+
+      <!-- Standings -->
+      <div class="wrap section stand lgpage" id="lgStandings" hidden>
         <div class="stand-head">
           <div>
-            <p class="eyebrow">1 vs 1 · <span id="standLeague"></span></p>
-            <h1>Standings</h1>
+            <h2 class="stand-title">Standings</h2>
             <p class="muted" id="standMeta"></p>
           </div>
           <div class="seg" id="standTabs" role="tablist" aria-label="Group standings by">
