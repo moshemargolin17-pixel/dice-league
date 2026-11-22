@@ -2736,8 +2736,6 @@ const E = (() => {
     const summary = gs.length + (gs.length === 1 ? ' game' : ' games') + (nFin ? ' · ' + nFin + ' final' : '') + (nLive ? ' · ' + nLive + ' live' : '');
     out += '<section class="section"><div class="shead"><h2 class="h2">' + esc(title) + '</h2><div class="pmuted" style="font-size:14px">' + summary + '</div></div>' +
       '<div class="ggrid">' + (gs.map(gameCard).join('') || '<div class="banner">No games on this day.</div>') + '</div></section>';
-    const night = nightRecords(gs);
-    if (night.length || tipsOn()) out += '<section class="cols">' + recPanel(s.day.active || s.phase === 'done' ? 'Tonight' : 'Day ' + day, 'tonight', night, 'Tonight’s records appear as games go final.') + '</section>';
     return '<div class="stack">' + out + '</div>';
   }
   function dayBar() {
