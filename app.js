@@ -24,7 +24,6 @@ const rollD6 = () => 1 + Math.floor(Math.random() * 6);
 
 const dieA = document.getElementById('dieA');
 const dieB = document.getElementById('dieB');
-const totalEl = document.getElementById('total');
 
 drawDie(dieA, Number(dieA.dataset.value));
 drawDie(dieB, Number(dieB.dataset.value));
@@ -40,7 +39,6 @@ document.getElementById('rollBtn').addEventListener('click', () => {
   setTimeout(() => {
     drawDie(dieA, a);
     drawDie(dieB, b);
-    totalEl.textContent = a + b;
   }, 220);
 });
 
