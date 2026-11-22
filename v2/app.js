@@ -725,11 +725,14 @@ function scenarios(lg, games) {
   if (!Object.keys(base).length) return [];
   const rank = ['z', 'y', 'X', 'PS'];
   const goal = { z: 'clinches the #1 seed', y: 'clinches the division', X: 'clinches a playoff spot', PS: 'clinches a postseason spot' };
-  const withResult = (p, o, pWins) => {
+  const withResult = (g, p, o, pWins) => {
     const r2 = rows.map(r => ({ ...r }));
-    r2[p].left--; r2[o].left--;
+    r2[p].left--; r2[o].left--; r2[p].gp++; r2[o].gp++;
     if (pWins) { r2[p].w++; r2[o].l++; } else { r2[p].l++; r2[o].w++; }
-    return raceMarks(lg, r2);
+    const hp = (r2[p].h2h = { ...r2[p].h2h })[o] = [...(r2[p].h2h[o] || [0, 0])];
+    const ho = (r2[o].h2h = { ...r2[o].h2h })[p] = [...(r2[o].h2h[p] || [0, 0])];
+    if (pWins) { hp[0]++; ho[1]++; } else { hp[1]++; ho[0]++; }
+    return raceMarks(lg, r2, g.id);
   };
   const out = [];
   for (const g of games) {
@@ -737,11 +740,11 @@ function scenarios(lg, games) {
     for (const [p, o] of [[g.away, g.home], [g.home, g.away]]) {
       const name = esc(lg.players[p].name);
       const now = base[p];
-      const ifWin = withResult(p, o, true)[p];
+      const ifWin = withResult(g, p, o, true)[p];
       if (ifWin && rank.includes(ifWin) && (!rank.includes(now) || rank.indexOf(ifWin) < rank.indexOf(now))) {
         out.push(`<b>${name}</b> ${goal[ifWin]} with a win.`);
       }
-      if (now !== 'E' && withResult(p, o, false)[p] === 'E') out.push(`<b>${name}</b> is eliminated with a loss.`);
+      if (now !== 'E' && withResult(g, p, o, false)[p] === 'E') out.push(`<b>${name}</b> is eliminated with a loss.`);
     }
   }
   return out;

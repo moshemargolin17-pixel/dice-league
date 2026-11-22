@@ -451,31 +451,51 @@ function playoffSummary(spots, playIn, twoConfs, divs) {
   return `Top 8 make it. 1 plays 8, 4 plays 5, 2 plays 7 and 3 plays 6, then the bracket plays down to one winner. Every series is best of 7.${pi}${fin}`;
 }
 
-// Clinch marks, decided by wins alone (the safe, conservative way), within each seeded group.
-function raceMarks(lg, rows) {
+// Clinch marks within each seeded group. A rival who can at best tie you, and would lose the head-to-head
+// tiebreaker even after winning every game left between you, can't pass you (and the same the other way).
+// That shortcut is only used when no third player could end on the same record, since a 3-way tie is
+// broken among all of them. `skip` is a game to treat as already played (rows already count it).
+function raceMarks(lg, rows, skip) {
   const marks = {};
   const lines = playoffLines(lg);
   if (!lines) return marks;
+  const meet = {};   // regular-season games still to play between two players
+  for (const g of lg.games) if (!g.final && g.id !== skip) {
+    const k = Math.min(g.away, g.home) + '-' + Math.max(g.away, g.home);
+    meet[k] = (meet[k] || 0) + 1;
+  }
+  const meetings = (a, b) => meet[Math.min(a, b) + '-' + Math.max(a, b)] || 0;
+  const maxW = q => rows[q].w + rows[q].left;
+  const games = q => rows[q].gp + rows[q].left;
+  const h2h = (a, b) => rows[a].h2h[b] || [0, 0];
+  // a beats b in a head-to-head tiebreaker even if b wins every game left between them
+  const winsTie = (a, b) => { const [w, l] = h2h(a, b); return w > l + meetings(a, b); };
   for (const group of seedGroups(lg)) {
+    // could anyone besides a and b end the season with exactly t wins?
+    const third = (a, b, t) => group.some(x => x !== a && x !== b && rows[x].w <= t && t <= maxW(x));
+    // q finishes above p however the rest of the season goes
+    const ahead = (q, p) => rows[q].w > maxW(p) ||
+      (rows[q].w === maxW(p) && games(q) === games(p) && winsTie(q, p) && !third(p, q, maxW(p)));
+    // q could still finish above p
+    const threat = (q, p) => maxW(q) > rows[p].w ||
+      (maxW(q) === rows[p].w && !(games(q) === games(p) && winsTie(p, q) && !third(p, q, rows[p].w)));
     for (const p of group) {
-      const r = rows[p];
       const others = group.filter(q => q !== p);
-      const maxW = q => rows[q].w + rows[q].left;
-      const clinchedTop = K => others.filter(q => maxW(q) >= r.w).length < K;
-      const cantMakeTop = K => others.filter(q => rows[q].w > maxW(p)).length >= K;
+      const clinchedTop = K => others.filter(q => threat(q, p)).length < K;
+      const cantMakeTop = K => others.filter(q => ahead(q, p)).length >= K;
       let mark = null;
       if (divisionSeeding(lg)) {
         // Top 3 by record is always a top 6 seed; winning the division is too.
         const rivals = others.filter(q => divOf(lg, q) === divOf(lg, p));
-        const clinchedDiv = rivals.every(q => maxW(q) < r.w);
-        const canWinDiv = rivals.every(q => rows[q].w <= maxW(p));
+        const clinchedDiv = rivals.every(q => !threat(q, p));
+        const canWinDiv = rivals.every(q => !ahead(q, p));
         // Players who could still finish level with or above you, not counting division winners already decided
         // (they take seeds 1-3 and never block seeds 4-6). Fewer than 3 of them means a top 6 seed is locked.
         const clinched = q => {
           const qRivals = group.filter(x => x !== q && divOf(lg, x) === divOf(lg, q));
-          return qRivals.every(x => maxW(x) < rows[q].w);
+          return qRivals.every(x => !threat(x, q));
         };
-        const threats = others.filter(q => maxW(q) >= r.w && !clinched(q)).length;
+        const threats = others.filter(q => threat(q, p) && !clinched(q)).length;
         if (clinchedTop(1)) mark = 'z';
         else if (clinchedDiv) mark = 'y';
         else if (clinchedTop(3) || threats < 3) mark = 'X';
