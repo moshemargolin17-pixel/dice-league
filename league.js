@@ -303,6 +303,12 @@ function rankGroup(lg, rows, ids) {
 const PLAYOFF_CHOICES = { 5: [4], 10: [4, 6, 8], 12: [6, 8], 15: [6, 8] };
 const PLAY_IN_SIZES = [15]; // only 15-player conferences can add a play-in (with 8 spots)
 
+// Series length for each round, by playoff size: [first round, next round, conference final].
+// The play-in is a single game, and the Finals between conference champions are best of 7.
+const SERIES_LENGTHS = { 4: [3, 5], 6: [3, 5, 7], 8: [7, 7, 7] };
+const FINALS_LENGTH = 7;
+const boText = n => (n === 1 ? 'Single game' : `Best of ${n}`);
+
 // Seeds that go straight in, and seeds that go to the play-in.
 function playoffLines(lg) {
   const po = lg.playoffs;
@@ -332,12 +338,12 @@ function seedOrder(lg, rows, ids) {
 }
 
 function playoffSummary(spots, playIn, twoConfs, divs) {
-  const end = twoConfs ? ' Conference champions meet in the Finals.' : '';
   const divNote = spots === 6 && divs ? ' Division winners take seeds 1 to 3 in order of record, and the next 3 best records take seeds 4 to 6.' : '';
-  if (spots === 4) return `Top 4 make it. 1 plays 4 and 2 plays 3, and the winners meet.${end}`;
-  if (spots === 6) return `Top 6 make it.${divNote} 1 and 2 get a bye while 3 plays 6 and 4 plays 5. Then 1 plays the 4–5 winner and 2 plays the 3–6 winner, and those winners meet.${end}`;
-  const pi = playIn ? ' Seeds 7 to 10 play in: 7 plays 8 for the 7 seed, 9 plays 10, and that winner plays the 7–8 loser for the 8 seed.' : '';
-  return `Top 8 make it. 1 plays 8, 4 plays 5, 2 plays 7 and 3 plays 6, then the bracket plays down to one winner.${pi}${end}`;
+  const fin = twoConfs ? ' Conference champions meet in the Finals, best of 7.' : '';
+  if (spots === 4) return `Top 4 make it. 1 plays 4 and 2 plays 3 (best of 3), and the winners meet (best of 5).${fin}`;
+  if (spots === 6) return `Top 6 make it.${divNote} 1 and 2 get a bye while 3 plays 6 and 4 plays 5 (best of 3). Then 1 plays the 4–5 winner and 2 plays the 3–6 winner (best of 5), and those winners meet (best of 7).${fin}`;
+  const pi = playIn ? ' Seeds 7 to 10 play in, one game each: 7 plays 8 for the 7 seed, 9 plays 10, and that winner plays the 7–8 loser for the 8 seed.' : '';
+  return `Top 8 make it. 1 plays 8, 4 plays 5, 2 plays 7 and 3 plays 6, then the bracket plays down to one winner. Every series is best of 7.${pi}${fin}`;
 }
 
 // Clinch marks, decided by wins alone (the safe, conservative way), within each seeded group.

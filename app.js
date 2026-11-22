@@ -489,24 +489,25 @@ function standingsTable(lg, title, sub, ranked, marks, withCutLines) {
 // The bracket as it would be if the season ended today.
 function confRounds(lines, finalName) {
   const W = (a, b) => `Winner ${a}–${b}`;
+  const bo = SERIES_LENGTHS[lines.spots];
   if (lines.spots === 4) {
     return [
-      { name: 'Semifinals', games: [[1, 4], [2, 3]] },
-      { name: finalName, games: [[W(1, 4), W(2, 3)]] },
+      { name: 'Semifinals', bestOf: bo[0], games: [[1, 4], [2, 3]] },
+      { name: finalName, bestOf: bo[1], games: [[W(1, 4), W(2, 3)]] },
     ];
   }
   if (lines.spots === 6) {
     return [
-      { name: 'Wild card', games: [[3, 6], [4, 5]] },
-      { name: 'Semifinals', games: [[1, W(4, 5)], [2, W(3, 6)]] },
-      { name: finalName, games: [['Semifinal winner', 'Semifinal winner']] },
+      { name: 'Wild card', bestOf: bo[0], games: [[3, 6], [4, 5]] },
+      { name: 'Semifinals', bestOf: bo[1], games: [[1, W(4, 5)], [2, W(3, 6)]] },
+      { name: finalName, bestOf: bo[2], games: [['Semifinal winner', 'Semifinal winner']] },
     ];
   }
   return [
-    ...(lines.playIn ? [{ name: 'Play-in', games: [[7, 8], [9, 10], ['Loser 7–8', 'Winner 9–10']] }] : []),
-    { name: 'First round', games: [[1, 8], [4, 5], [2, 7], [3, 6]] },
-    { name: 'Semifinals', games: [[W(1, 8), W(4, 5)], [W(2, 7), W(3, 6)]] },
-    { name: finalName, games: [['Semifinal winner', 'Semifinal winner']] },
+    ...(lines.playIn ? [{ name: 'Play-in', bestOf: 1, games: [[7, 8], [9, 10], ['Loser 7–8', 'Winner 9–10']] }] : []),
+    { name: 'First round', bestOf: bo[0], games: [[1, 8], [4, 5], [2, 7], [3, 6]] },
+    { name: 'Semifinals', bestOf: bo[1], games: [[W(1, 8), W(4, 5)], [W(2, 7), W(3, 6)]] },
+    { name: finalName, bestOf: bo[2], games: [['Semifinal winner', 'Semifinal winner']] },
   ];
 }
 
@@ -523,7 +524,7 @@ function playoffPicture(lg, rows, lines) {
     return `<div class="bk-conf">
       ${title ? `<h3 class="bk-title">${esc(title)}</h3>` : ''}
       <div class="bk-rounds">${rounds.map(rd => `<div class="bk-round">
-        <p class="bk-name">${rd.name}</p>
+        <p class="bk-name">${rd.name} <span class="bk-bo">${boText(rd.bestOf)}</span></p>
         ${rd.games.map(([a, b]) => `<div class="bk-game">${side(a, seeds, rd.name === 'First round')}${side(b, seeds, rd.name === 'First round')}</div>`).join('')}
       </div>`).join('')}</div>
     </div>`;
@@ -531,7 +532,7 @@ function playoffPicture(lg, rows, lines) {
   const groups = seedGroups(lg).map(ids => seedOrder(lg, rows, ids).map(r => r.p));
   const blocks = confs
     ? lg.conferences.map((c, ci) => block(`${c} Conference`, groups[ci])).join('') +
-      `<div class="bk-conf"><h3 class="bk-title">Finals</h3><div class="bk-rounds"><div class="bk-round"><div class="bk-game">
+      `<div class="bk-conf"><h3 class="bk-title">Finals <span class="bk-bo">${boText(FINALS_LENGTH)}</span></h3><div class="bk-rounds"><div class="bk-round"><div class="bk-game">
         <span class="bk-slot bk-tbd">${esc(lg.conferences[0])} champion</span><span class="bk-slot bk-tbd">${esc(lg.conferences[1])} champion</span>
       </div></div></div></div>`
     : block('', groups[0]);

@@ -448,3 +448,5 @@ p { margin: 0; }
 .bk-seed { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 5px; background: var(--felt); color: var(--muted); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .bk-tbd { color: var(--muted); font-weight: 400; font-style: italic; }
 .mark-y { background: var(--blue); color: #FFFFFF; }
+.bk-bo { margin-left: 6px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 12px; }
+.bk-title .bk-bo { font-family: var(--f-body); }
