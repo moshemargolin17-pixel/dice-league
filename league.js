@@ -22,10 +22,24 @@ const confOf = (lg, p) => lg.players[p].conf;
 // League sizes you can pick, and the ways each one can be divided.
 // c = number of conferences (0 = everyone in one conference), d = divisions in each conference (0 = none).
 const LEAGUE_SIZES = [5, 10, 15, 20, 24, 30];
-// Games per player, for sizes that have fixed choices. Sizes not listed take any even-enough number.
-const GAME_CHOICES = {
-  5: [12, 20], // everyone plays each other 3 or 5 times
+// Game formats, for league setups that have fixed choices: how many times you play each player in
+// your own conference (same) and each player in the other conference (other).
+// Setups not listed take any games-per-player number.
+const GAME_FORMATS = {
+  '5:0x0': [{ same: 3 }, { same: 5 }],
+  '10:2x0': [{ same: 3, other: 2 }, { same: 5, other: 2 }],
+  '10:0x0': [{ same: 3 }, { same: 5 }],
 };
+const formatsFor = (n, sp) => GAME_FORMATS[`${n}:${sp.c}x${sp.d}`] || null;
+const confSize = (n, sp) => (sp.c ? n / sp.c : n);
+const formatGames = (n, sp, f) => (confSize(n, sp) - 1) * f.same + (sp.c ? (n - confSize(n, sp)) * (f.other || 0) : 0);
+const timesText = k => (k === 1 ? 'once' : k === 2 ? 'twice' : `${k} times`);
+function formatLabel(n, sp, f) {
+  const g = formatGames(n, sp, f);
+  return sp.c
+    ? `${g} games · ${timesText(f.same)} vs your conference, ${timesText(f.other)} vs the other`
+    : `${g} games · play each other ${timesText(f.same)}`;
+}
 const SPLITS = {
   5: [{ c: 0, d: 0 }],
   10: [{ c: 2, d: 0 }, { c: 0, d: 0 }],
@@ -89,7 +103,12 @@ function makeSchedule(playerCount, gamesPerPlayer) {
     }
     order = [order[0], order[m - 1], ...order.slice(1, m - 1)];
   }
-  // Even out home and away: whoever has had fewer home games so far is at home.
+  return balanceHomeAway(games, playerCount);
+}
+
+// Even out home and away games across players.
+function balanceHomeAway(games, playerCount) {
+  // Whoever has had fewer home games so far is at home.
   const homes = new Array(playerCount).fill(0), played = new Array(playerCount).fill(0);
   for (const g of games) {
     const [a, b] = [g.away, g.home];
@@ -112,6 +131,34 @@ function makeSchedule(playerCount, gamesPerPlayer) {
     }
   }
   return games;
+}
+
+// Schedule where each pair of players meets a set number of times: timesFor(a, b).
+// Each day, players with the most games left are paired first, and a pair that met recently waits.
+function makePairSchedule(playerCount, timesFor) {
+  const pairs = [];
+  for (let a = 0; a < playerCount; a++) for (let b = a + 1; b < playerCount; b++) {
+    const k = timesFor(a, b);
+    if (k > 0) pairs.push({ a, b, left: k, last: -99 });
+  }
+  const left = new Array(playerCount).fill(0);
+  for (const p of pairs) { left[p.a] += p.left; left[p.b] += p.left; }
+  const games = [];
+  for (let day = 1; pairs.some(p => p.left > 0) && day < 5000; day++) {
+    const busy = new Set();
+    const open = pairs.filter(p => p.left > 0)
+      .sort((x, y) => (left[y.a] + left[y.b]) - (left[x.a] + left[x.b]) || x.last - y.last);
+    for (const p of open) {
+      if (busy.has(p.a) || busy.has(p.b) || day - p.last < 2 && open.length > playerCount) continue;
+      busy.add(p.a); busy.add(p.b);
+      p.left--; p.last = day; left[p.a]--; left[p.b]--;
+      games.push({ id: games.length, day, away: p.a, home: p.b, final: false });
+    }
+  }
+  // Renumber days so there are no empty days.
+  const days = [...new Set(games.map(g => g.day))].sort((x, y) => x - y);
+  for (const g of games) g.day = days.indexOf(g.day) + 1;
+  return balanceHomeAway(games, playerCount);
 }
 
 // ---------- Sample leagues ----------

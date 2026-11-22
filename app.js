@@ -151,19 +151,17 @@ function draftGroups() {
   return [];
 }
 
-// Sizes with fixed game counts get a dropdown; the rest get a number box.
+// Setups with fixed game formats get a dropdown; the rest get a number box.
 function renderGameChoices() {
   const n = Number($('nlPlayers').value);
-  const choices = GAME_CHOICES[n];
-  $('nlGames').hidden = Boolean(choices);
-  $('nlGamesPick').hidden = !choices;
-  $('nlGamesLabel').htmlFor = choices ? 'nlGamesPick' : 'nlGames';
-  if (choices) {
-    const keep = Number($('nlGamesPick').value);
-    $('nlGamesPick').innerHTML = choices.map(g => {
-      const times = g / (n - 1);
-      return `<option value="${g}"${g === keep ? ' selected' : ''}>${g} games · play each other ${times === 1 ? 'once' : times === 2 ? 'twice' : times + ' times'}</option>`;
-    }).join('');
+  const formats = formatsFor(n, draft.split);
+  $('nlGames').hidden = Boolean(formats);
+  $('nlGamesPick').hidden = !formats;
+  $('nlGamesLabel').htmlFor = formats ? 'nlGamesPick' : 'nlGames';
+  if (formats) {
+    const keep = Number($('nlGamesPick').value) || 0;
+    $('nlGamesPick').innerHTML = formats.map((f, i) =>
+      `<option value="${i}"${i === keep ? ' selected' : ''}>${formatLabel(n, draft.split, f)}</option>`).join('');
   }
 }
 
@@ -212,6 +210,8 @@ $('nlSplits').addEventListener('change', e => {
   const opt = splitOptions(Number($('nlPlayers').value)).find(o => splitKey(o) === e.target.value);
   if (opt) draft.split = opt;
   renderGroupNames();
+  renderGameChoices();
+  updateStep1Hint();
 });
 $('nlGroupNames').addEventListener('input', e => {
   if (e.target.dataset.conf != null) draft.confNames[Number(e.target.dataset.conf)] = e.target.value;
@@ -234,13 +234,14 @@ function checkGroupNames() {
 function readStep1() {
   const name = $('nlName').value.trim();
   const n = Number($('nlPlayers').value);
-  const g = Number(GAME_CHOICES[n] ? $('nlGamesPick').value : $('nlGames').value);
   if (!LEAGUE_SIZES.includes(n)) return { error: `Pick a league size: ${LEAGUE_SIZES.join(', ')} players.` };
-  if (GAME_CHOICES[n] && !GAME_CHOICES[n].includes(g)) return { error: `With ${n} players, pick ${GAME_CHOICES[n].join(' or ')} games.` };
+  const formats = formatsFor(n, draft.split);
+  const format = formats ? formats[Number($('nlGamesPick').value) || 0] : null;
+  const g = format ? formatGames(n, draft.split, format) : Number($('nlGames').value);
   if (!Number.isInteger(g) || g < 1 || g > 200) return { error: 'Games per player must be a whole number from 1 to 200.' };
   if ((n * g) % 2) return { error: `With ${n} players, games per player must be even so everyone gets the same number. Try ${g - 1} or ${g + 1}.` };
-  if (!name) return { error: 'Give the league a name.', n, g, nameMissing: true };
-  return { name, n, g };
+  if (!name) return { error: 'Give the league a name.', n, g, format, nameMissing: true };
+  return { name, n, g, format };
 }
 
 function updateStep1Hint() {
@@ -248,7 +249,7 @@ function updateStep1Hint() {
   if (s.error && !s.nameMissing) { $('nlHint').textContent = ''; return; }
   const total = (s.n * s.g) / 2;
   const times = s.g / (s.n - 1);
-  const vsEach = Number.isInteger(times) ? ` Everyone plays everyone ${times === 1 ? 'once' : times === 2 ? 'twice' : times + ' times'}.` : '';
+  const vsEach = !s.format && Number.isInteger(times) ? ` Everyone plays everyone ${timesText(times)}.` : '';
   $('nlHint').textContent = `${total} games in all.${vsEach}`;
 }
 
@@ -304,17 +305,16 @@ function startNewLeague() {
   $('nlName').value = '';
   showError('nlError', '');
   showError('nlError2', '');
+  renderSplits();
   renderGameChoices();
   updateStep1Hint();
-  renderSplits();
   showStep(1);
 }
 
 ['nlName', 'nlPlayers', 'nlGames', 'nlGamesPick'].forEach(id => $(id).addEventListener(id === 'nlPlayers' || id === 'nlGamesPick' ? 'change' : 'input', () => {
   showError('nlError', '');
-  if (id === 'nlPlayers') renderGameChoices();
+  if (id === 'nlPlayers') { renderSplits(); renderGameChoices(); }
   updateStep1Hint();
-  if (id === 'nlPlayers') renderSplits();
 }));
 
 $('newStep1').addEventListener('submit', e => {
@@ -392,6 +392,15 @@ $('newStep2').addEventListener('submit', e => {
     p.div = d ? gi : null;
     p.conf = d ? divisions[gi].conf : c ? gi : null;
   }
+  // With a conference game format, each conference must have its full number of players.
+  if (s.format && c) {
+    const size = confSize(s.n, draft.split);
+    const off = conferences.findIndex((_, ci) => players.filter(p => p.conf === ci).length !== size);
+    if (off >= 0) {
+      showError('nlError2', `${conferences[off]} has ${players.filter(p => p.conf === off).length} players but needs ${size}, so everyone gets the same schedule. Move players until each conference has ${size}.`);
+      return;
+    }
+  }
   const groupCount = d ? divisions.length : c;
   for (let gi = 0; gi < groupCount; gi++) {
     if (!players.some(p => (d ? p.div : p.conf) === gi)) {
@@ -403,7 +412,10 @@ $('newStep2').addEventListener('submit', e => {
   const lg = {
     id: 'lg-' + Date.now().toString(36),
     name: s.name, mode: '1v1', gamesPerPlayer: s.g, players, conferences, divisions,
-    games: makeSchedule(s.n, s.g),
+    games: s.format
+      ? makePairSchedule(s.n, (a, b) => (!c || players[a].conf === players[b].conf ? s.format.same : s.format.other || 0))
+      : makeSchedule(s.n, s.g),
+    format: s.format || null,
     createdAt: now, lastPlayed: now,
   };
   if (!saveLeague(lg)) {
