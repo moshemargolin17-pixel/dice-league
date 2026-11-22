@@ -47,7 +47,7 @@
         </div>
 
         <div class="modes">
-          <a class="mode mode-live" href="#standings">
+          <a class="mode mode-live" href="#1v1">
             <span class="mode-badge">Open now</span>
             <h3>1 vs 1</h3>
           </a>
@@ -87,9 +87,22 @@
       </div>
     </section>
 
+    <!-- 1 vs 1: continue or start a league -->
+    <section id="view-1v1" class="view" hidden>
+      <div class="wrap section page">
+        <a class="back" href="#"><span aria-hidden="true">←</span> Home</a>
+        <h1>1 vs 1</h1>
+        <div class="choices">
+          <a class="choice choice-main" href="#standings">Continue league</a>
+          <a class="choice" href="#new-league">New league</a>
+        </div>
+      </div>
+    </section>
+
     <!-- Standings (1 vs 1) -->
     <section id="view-standings" class="view" hidden>
       <div class="wrap section stand">
+        <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
         <div class="stand-head">
           <div>
             <p class="eyebrow">1 vs 1</p>
@@ -122,7 +135,7 @@
     <!-- Placeholder page used by every mode and menu link until it is built -->
     <section id="view-page" class="view" hidden>
       <div class="wrap section page">
-        <a class="back" href="#"><span aria-hidden="true">←</span> Home</a>
+        <a class="back" id="pageBack" href="#"><span aria-hidden="true">←</span> Home</a>
         <h1 id="pageTitle">Mode</h1>
         <p class="lede" id="pageText"></p>
         <div class="soon">Coming soon</div>

@@ -121,6 +121,7 @@ document.getElementById('standTabs').addEventListener('click', e => {
 // ---------- Page switching ----------
 // Pages that aren't built yet show a "Coming soon" page.
 const COMING = {
+  'new-league': { title: 'New league', text: 'Set up a new 1 vs 1 league.', back: '1v1', backText: '1 vs 1' },
   'quick-game': { title: 'Quick Game', text: 'Two players, one game.' },
   'tournament': { title: 'Tournament', text: 'A knockout bracket with one winner.' },
   'practice': { title: 'Practice', text: 'Roll against the computer to learn the rules.' },
@@ -135,15 +136,20 @@ const COMING = {
 
 function showPage() {
   const key = location.hash.slice(1);
-  const view = key === 'standings' ? 'standings' : COMING[key] ? 'page' : 'home';
-  for (const v of ['home', 'standings', 'page']) document.getElementById('view-' + v).hidden = v !== view;
+  const view = key === 'standings' ? 'standings' : key === '1v1' ? '1v1' : COMING[key] ? 'page' : 'home';
+  for (const v of ['home', '1v1', 'standings', 'page']) document.getElementById('view-' + v).hidden = v !== view;
 
   if (view === 'standings') {
     renderStandings();
     document.title = 'Standings · Dice League';
+  } else if (view === '1v1') {
+    document.title = '1 vs 1 · Dice League';
   } else if (view === 'page') {
     document.getElementById('pageTitle').textContent = COMING[key].title;
     document.getElementById('pageText').textContent = COMING[key].text;
+    const back = document.getElementById('pageBack');
+    back.href = '#' + (COMING[key].back || '');
+    back.lastChild.textContent = ' ' + (COMING[key].backText || 'Home');
     document.title = `${COMING[key].title} · Dice League`;
   } else {
     document.title = 'Dice League';
