@@ -123,6 +123,9 @@ document.getElementById('standTabs').addEventListener('click', e => {
 // ---------- Page switching ----------
 // Pages that aren't built yet show a "Coming soon" page.
 const COMING = {
+  'quick-game': { title: 'Quick Game', text: 'Two players, one game.' },
+  'tournament': { title: 'Tournament', text: 'A knockout bracket with one winner.' },
+  'practice': { title: 'Practice', text: 'Roll against the computer to learn the rules.' },
   '2v2': { title: '2 vs 2', text: 'Teams of two.' },
   '3v3': { title: '3 vs 3', text: 'Teams of three.' },
   '4v4': { title: '4 vs 4', text: 'Teams of four.' },

@@ -272,3 +272,8 @@ p { margin: 0; }
   .topnav::-webkit-scrollbar { display: none; }
   .topnav a { flex: none; }
 }
+
+/* Second row of modes on the home page */
+.section-head-2 { margin-top: 48px; }
+.modes.modes-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .modes.modes-3 { grid-template-columns: 1fr; } }
