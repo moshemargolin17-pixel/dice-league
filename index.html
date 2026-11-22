@@ -4,269 +4,64 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Dice League</title>
-  <meta name="description" content="Pick a mode and start rolling.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="original/icon.svg">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600&family=Oswald:wght@700&family=Barlow:wght@500&display=swap">
+  <style>
+    /* Version picker: each card previews the look of the league it opens. */
+    :root {
+      --bg: #F3F4F7; --ink: #141A26; --muted: #5B6478; --line: #DCE0E8;
+      --gut-l: max(16px, env(safe-area-inset-left, 0px));
+      --gut-r: max(16px, env(safe-area-inset-right, 0px));
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) { --bg: #0F131B; --ink: #EEF1F6; --muted: #98A1B3; --line: #283043; color-scheme: dark; }
+    }
+    :root[data-theme="dark"] { --bg: #0F131B; --ink: #EEF1F6; --muted: #98A1B3; --line: #283043; color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg); color: var(--ink); font: 400 16px/1.5 'Inter', system-ui, sans-serif;
+      padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 56px var(--gut-r) 64px var(--gut-l); display: grid; gap: 28px; }
+    h1 { margin: 0; font: 800 clamp(40px, 8vw, 72px)/1 'Bricolage Grotesque', 'Arial Black', sans-serif; letter-spacing: -.03em; text-wrap: balance; }
+    .pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .ver {
+      display: grid; gap: 14px; align-content: space-between; min-height: 260px; padding: 28px;
+      border-radius: 18px; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .ver:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0, 0, 0, .18); }
+    .ver:focus-visible { outline: 3px solid #2457C5; outline-offset: 3px; }
+    .ver-name { margin: 0; }
+    .ver-go { font-weight: 600; }
+    .die { width: 48px; height: 48px; }
+    /* Original: navy and amber */
+    .v1 { background: #0E1A2B; color: #E8EEF6; border: 1px solid #22385A; }
+    .v1 .ver-name { font: 700 40px/1 'Oswald', Impact, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
+    .v1 .ver-go { color: #FFB020; font-family: 'Barlow', sans-serif; text-transform: uppercase; letter-spacing: .08em; }
+    /* 2.0: light with red and blue */
+    .v2 { background: #FFFFFF; color: #141A26; border: 1px solid #DCE0E8; }
+    .v2 .ver-name { font: 800 40px/1 'Bricolage Grotesque', 'Arial Black', sans-serif; letter-spacing: -.02em; }
+    .v2 .ver-go { color: #D2283C; }
+    @media (max-width: 640px) { .pick { grid-template-columns: 1fr; } .ver { min-height: 200px; } }
+    @media (prefers-reduced-motion: reduce) { .ver { transition: none; } }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="wrap topbar-inner">
-      <a class="brand" href="#">
-        <span class="brand-die" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        Dice League
+  <main class="wrap">
+    <h1>Which Dice League?</h1>
+    <div class="pick">
+      <a class="ver v1" href="original/">
+        <svg class="die" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="#FFB020"></rect><g fill="#0E1A2B"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>
+        <p class="ver-name">Dice League Original</p>
+        <span class="ver-go">Play →</span>
+      </a>
+      <a class="ver v2" href="v2/">
+        <svg class="die" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="#D2283C"></rect><g fill="#FFFFFF"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>
+        <p class="ver-name">Dice League 2.0</p>
+        <span class="ver-go">Play →</span>
       </a>
     </div>
-  </header>
-
-  <main>
-    <!-- Home -->
-    <section id="view-home" class="view">
-      <div class="hero">
-        <div class="wrap hero-inner">
-          <div class="hero-copy">
-            <h1>Dice League</h1>
-          </div>
-
-          <div class="table" aria-label="Dice tray">
-            <div class="dice">
-              <div class="die die-red" id="dieA" data-value="5" role="img" aria-label="Red die showing 5"></div>
-              <div class="die die-blue" id="dieB" data-value="3" role="img" aria-label="Blue die showing 3"></div>
-            </div>
-            <div class="tray-foot">
-              <button type="button" class="btn btn-roll" id="rollBtn">Roll</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="wrap section">
-        <div class="section-head">
-          <h2>Choose a mode</h2>
-        </div>
-
-        <div class="modes">
-          <a class="mode mode-live" href="#1v1">
-            <span class="mode-badge">Open now</span>
-            <h3>1 vs 1</h3>
-          </a>
-          <a class="mode mode-soon" href="#2v2">
-            <span class="mode-badge">Coming soon</span>
-            <h3>2 vs 2</h3>
-          </a>
-          <a class="mode mode-soon" href="#3v3">
-            <span class="mode-badge">Coming soon</span>
-            <h3>3 vs 3</h3>
-          </a>
-          <a class="mode mode-soon" href="#4v4">
-            <span class="mode-badge">Coming soon</span>
-            <h3>4 vs 4</h3>
-          </a>
-          <a class="mode mode-soon" href="#5v5">
-            <span class="mode-badge">Coming soon</span>
-            <h3>5 vs 5</h3>
-          </a>
-        </div>
-
-        <div class="section-head section-head-2">
-          <h2>More ways to play</h2>
-        </div>
-
-        <div class="modes modes-3">
-          <a class="mode" href="#quick-game">
-            <h3>Quick Game</h3>
-          </a>
-          <a class="mode" href="#tournament">
-            <h3>Tournament</h3>
-          </a>
-          <a class="mode" href="#practice">
-            <h3>Practice</h3>
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- 1 vs 1: continue or start a league -->
-    <section id="view-1v1" class="view" hidden>
-      <div class="wrap section page">
-        <a class="back" href="#"><span aria-hidden="true">←</span> Home</a>
-        <h1>1 vs 1</h1>
-        <div class="choices">
-          <button type="button" class="choice choice-main" id="continueBtn">
-            Continue league
-            <span class="choice-sub" id="continueName"></span>
-          </button>
-          <a class="choice" href="#new-league">New league</a>
-        </div>
-        <h2 class="saved-title" id="savedTitle">Saved leagues</h2>
-        <div class="saved-list">
-          <div class="saved saved-head" aria-hidden="true">
-            <span>League</span><span>Players</span><span>Progress</span><span>Leader</span><span>Last played</span>
-          </div>
-          <div id="savedLeagues" role="radiogroup" aria-labelledby="savedTitle"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- New league setup (1 vs 1) -->
-    <section id="view-new" class="view" hidden>
-      <div class="wrap section page newlg">
-        <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
-        <p class="eyebrow step" id="nlStepLabel">Step 1 of 2</p>
-        <h1>New league</h1>
-
-        <form id="newStep1" class="form" novalidate>
-          <label class="field" for="nlName">
-            <span class="field-label">League name</span>
-            <input id="nlName" type="text" maxlength="40" autocomplete="off" placeholder="Friday Night League">
-          </label>
-          <div class="field-row">
-            <label class="field" for="nlPlayers">
-              <span class="field-label">Players</span>
-              <select id="nlPlayers">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="24">24</option>
-                <option value="30">30</option>
-              </select>
-            </label>
-            <label class="field" for="nlGames" id="nlGamesLabel">
-              <span class="field-label">Games per player</span>
-              <input id="nlGames" type="number" min="1" max="200" step="1" value="18" inputmode="numeric">
-              <select id="nlGamesPick" hidden></select>
-            </label>
-          </div>
-          <p class="hint" id="nlHint" aria-live="polite"></p>
-          <fieldset class="field split-wrap" id="nlSplitWrap">
-            <legend class="field-label">How to divide the league</legend>
-            <div class="splits" id="nlSplits"></div>
-          </fieldset>
-          <div id="nlGroupNames" class="group-names" hidden></div>
-          <div class="field">
-            <label class="field-label" for="nlPlayoffs">Playoffs</label>
-            <select id="nlPlayoffs"></select>
-            <label class="check" id="nlPlayInWrap" hidden>
-              <input type="checkbox" id="nlPlayIn">
-              <span>Play-in for seeds 7 to 10</span>
-            </label>
-            <p class="hint" id="nlPlayoffHint" aria-live="polite"></p>
-          </div>
-          <p class="error" id="nlError" role="alert" hidden></p>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Next: add players</button>
-          </div>
-        </form>
-
-        <form id="newStep2" class="form form-wide" novalidate hidden>
-          <h2 class="form-title" id="nlStep2Title">Players</h2>
-          <div class="ptable">
-            <div class="prow prow-head" aria-hidden="true">
-              <span>#</span><span>Name</span><span>Initials</span><span>Skill</span><span id="nlGroupHead">Group</span>
-            </div>
-            <div id="nlRows"></div>
-          </div>
-          <p class="error" id="nlError2" role="alert" hidden></p>
-          <div class="form-actions">
-            <button type="button" class="btn btn-ghost" id="nlBack">Back</button>
-            <button type="submit" class="btn btn-primary">Create league</button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <!-- A league: its home page and standings, under one header -->
-    <section id="view-league" class="view" hidden>
-      <div class="lghead">
-        <div class="wrap lghead-inner">
-          <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
-          <div class="lgtitle">
-            <h1 id="lgName">League</h1>
-            <p class="lgsub" id="lgSub"></p>
-          </div>
-          <nav class="lgtabs" aria-label="League pages">
-            <a href="#league" data-tab="home">Home</a>
-            <a href="#games" data-tab="games">Games</a>
-            <a href="#standings" data-tab="standings">Standings</a>
-            <a href="#players" data-tab="players">Players</a>
-            <a href="#stats" data-tab="stats">Stats</a>
-            <a href="#league-options" data-tab="settings">Settings</a>
-          </nav>
-        </div>
-      </div>
-
-      <!-- League home -->
-      <div class="wrap section lgpage" id="lgHome">
-        <p class="sample" id="homeSample">Sample results. These games are made up to show how the page works.</p>
-        <div class="dayhead">
-          <div>
-            <h2 id="dayTitle">Day 1</h2>
-            <p class="muted" id="daySummary"></p>
-          </div>
-          <div class="daynav">
-            <button type="button" class="btn btn-ghost btn-sm" id="dayPrev" aria-label="Previous day">←</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="dayToday">Today</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="dayNext" aria-label="Next day">→</button>
-          </div>
-        </div>
-        <div class="panel scen" id="dayScen" hidden></div>
-        <div class="ggrid" id="dayGames"></div>
-        <div class="cols">
-          <section class="panel rpanel" id="dayRecords"></section>
-          <section class="panel rpanel" id="seasonLeaders"></section>
-        </div>
-      </div>
-
-      <!-- Games, Players, a player, Stats and Settings (filled by pages.js) -->
-      <div class="wrap section lgpage" id="lgGames" hidden></div>
-      <div class="wrap section lgpage" id="lgPlayers" hidden></div>
-      <div class="wrap section lgpage" id="lgPlayer" hidden></div>
-      <div class="wrap section lgpage" id="lgStats" hidden></div>
-      <div class="wrap section lgpage" id="lgSettings" hidden></div>
-
-      <!-- Standings -->
-      <div class="wrap section stand lgpage" id="lgStandings" hidden>
-        <div class="stand-head">
-          <div>
-            <h2 class="stand-title">Standings</h2>
-            <p class="muted" id="standMeta"></p>
-          </div>
-          <div class="seg" id="standTabs" role="tablist" aria-label="Group standings by">
-            <button type="button" role="tab" data-view="conf">Conference</button>
-            <button type="button" role="tab" data-view="div">Division</button>
-            <button type="button" role="tab" data-view="league">League</button>
-          </div>
-        </div>
-        <p class="sample" id="standSample">Sample results. These games are made up to show how the table works. Real results replace them once game logging is built.</p>
-        <div id="standTables" class="stack"></div>
-        <div class="legend" id="standLegend"></div>
-        <details class="key">
-          <summary>What the columns mean</summary>
-          <p><b>W</b> and <b>L</b> are wins and losses. <b>PCT</b> is win percentage. <b>GB</b> is games behind first place. <b>Home</b> and <b>Away</b> are records in home and away games. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the player's division, conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points scored and allowed per game, and <b>Diff</b> is the difference. <b>L10</b> is the record in the last 10 games. <b>Strk</b> is the current winning or losing streak.</p>
-          <p id="standCutNote">A solid line falls under the 6th seed (playoffs) and a dashed line under the 10th (play-in). Ties are broken by head-to-head record, then division or conference record, then point differential.</p>
-        </details>
-      </div>
-    </section>
-
-    <!-- Placeholder page used by every mode and menu link until it is built -->
-    <section id="view-page" class="view" hidden>
-      <div class="wrap section page">
-        <a class="back" id="pageBack" href="#"><span aria-hidden="true">←</span> Home</a>
-        <h1 id="pageTitle">Mode</h1>
-        <p class="lede" id="pageText"></p>
-        <div class="soon">Coming soon</div>
-      </div>
-    </section>
   </main>
-
-  <footer class="foot">
-    <div class="wrap">Dice League</div>
-  </footer>
-
-  <script src="league.js"></script>
-  <script src="app.js"></script>
-  <script src="pages.js"></script>
 </body>
 </html>

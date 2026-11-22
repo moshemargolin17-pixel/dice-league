@@ -613,3 +613,8 @@ p { margin: 0; }
 .btn-danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
 .btn-danger:hover { background: var(--bad); color: #FFFFFF; }
 .btn:disabled { opacity: .5; cursor: default; }
+
+/* Link to the other version */
+.switch { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 14px; padding: 6px 10px; border-radius: 8px; white-space: nowrap; }
+.switch:hover { color: var(--ink); background: var(--felt); }
+.switch:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
