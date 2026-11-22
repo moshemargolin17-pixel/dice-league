@@ -22,23 +22,40 @@ const confOf = (lg, p) => lg.players[p].conf;
 // League sizes you can pick, and the ways each one can be divided.
 // c = number of conferences (0 = everyone in one conference), d = divisions in each conference (0 = none).
 const LEAGUE_SIZES = [5, 10, 15, 20, 24, 30];
-// Game formats, for league setups that have fixed choices: how many times you play each player in
-// your own conference (same) and each player in the other conference (other).
-// Setups not listed take any games-per-player number.
+// Game formats: how many times you play each player in your division (div), the rest of your
+// conference (same) and the other conference (other). Setups not listed take any games-per-player number.
 const GAME_FORMATS = {
   '5:0x0': [{ same: 3 }, { same: 5 }],
   '10:2x0': [{ same: 3, other: 2 }, { same: 5, other: 2 }],
   '10:0x0': [{ same: 3 }, { same: 5 }],
+  '15:0x3': [{ div: 5, same: 3 }],
+  '20:2x0': [{ same: 3, other: 2 }, { same: 5, other: 2 }],
+  '24:2x3': [{ div: 5, same: 3, other: 2 }],
+  '30:2x3': [{ div: 5, same: 3, other: 2 }],
 };
 const formatsFor = (n, sp) => GAME_FORMATS[`${n}:${sp.c}x${sp.d}`] || null;
 const confSize = (n, sp) => (sp.c ? n / sp.c : n);
-const formatGames = (n, sp, f) => (confSize(n, sp) - 1) * f.same + (sp.c ? (n - confSize(n, sp)) * (f.other || 0) : 0);
+const divSize = (n, sp) => (sp.d ? confSize(n, sp) / sp.d : 0);
+function formatGames(n, sp, f) {
+  const conf = confSize(n, sp), div = divSize(n, sp);
+  const inConf = f.div && div ? (div - 1) * f.div + (conf - div) * f.same : (conf - 1) * f.same;
+  return inConf + (sp.c ? (n - conf) * (f.other || 0) : 0);
+}
+// How many times players a and b meet under a format.
+function formatTimes(lg, f, a, b) {
+  const pa = lg.players[a], pb = lg.players[b];
+  if (f.div && pa.div != null && pa.div === pb.div) return f.div;
+  if (!hasConfs(lg) || pa.conf === pb.conf) return f.same;
+  return f.other || 0;
+}
 const timesText = k => (k === 1 ? 'once' : k === 2 ? 'twice' : `${k} times`);
 function formatLabel(n, sp, f) {
   const g = formatGames(n, sp, f);
-  return sp.c
-    ? `${g} games · ${timesText(f.same)} vs your conference, ${timesText(f.other)} vs the other`
-    : `${g} games · play each other ${timesText(f.same)}`;
+  const parts = [];
+  if (f.div && sp.d) parts.push(`${timesText(f.div)} vs your division`, `${timesText(f.same)} vs the rest of the ${sp.c ? 'conference' : 'league'}`);
+  else if (sp.c) parts.push(`${timesText(f.same)} vs your conference`);
+  if (sp.c) parts.push(`${timesText(f.other)} vs the other conference`);
+  return parts.length ? `${g} games · ${parts.join(', ')}` : `${g} games · play each other ${timesText(f.same)}`;
 }
 const SPLITS = {
   5: [{ c: 0, d: 0 }],

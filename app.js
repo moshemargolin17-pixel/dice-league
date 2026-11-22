@@ -392,12 +392,14 @@ $('newStep2').addEventListener('submit', e => {
     p.div = d ? gi : null;
     p.conf = d ? divisions[gi].conf : c ? gi : null;
   }
-  // With a conference game format, each conference must have its full number of players.
-  if (s.format && c) {
-    const size = confSize(s.n, draft.split);
-    const off = conferences.findIndex((_, ci) => players.filter(p => p.conf === ci).length !== size);
-    if (off >= 0) {
-      showError('nlError2', `${conferences[off]} has ${players.filter(p => p.conf === off).length} players but needs ${size}, so everyone gets the same schedule. Move players until each conference has ${size}.`);
+  // With a game format, every conference and division must be full, so everyone gets the same schedule.
+  if (s.format && (c || d)) {
+    const groups = d
+      ? divisions.map((dv, gi) => ({ name: dv.name, size: divSize(s.n, draft.split), count: players.filter(p => p.div === gi).length }))
+      : conferences.map((cf, gi) => ({ name: cf, size: confSize(s.n, draft.split), count: players.filter(p => p.conf === gi).length }));
+    const off = groups.find(g => g.count !== g.size);
+    if (off) {
+      showError('nlError2', `${off.name} has ${off.count} players but needs ${off.size}, so everyone gets the same schedule. Move players until each ${d ? 'division' : 'conference'} has ${off.size}.`);
       return;
     }
   }
@@ -413,7 +415,7 @@ $('newStep2').addEventListener('submit', e => {
     id: 'lg-' + Date.now().toString(36),
     name: s.name, mode: '1v1', gamesPerPlayer: s.g, players, conferences, divisions,
     games: s.format
-      ? makePairSchedule(s.n, (a, b) => (!c || players[a].conf === players[b].conf ? s.format.same : s.format.other || 0))
+      ? makePairSchedule(s.n, (a, b) => formatTimes({ players, conferences }, s.format, a, b))
       : makeSchedule(s.n, s.g),
     format: s.format || null,
     createdAt: now, lastPlayed: now,
