@@ -3277,24 +3277,16 @@ const E = (() => {
     '30:2x3': [{ div: 5, same: 3, other: 2 }],
   };
   const SETUP_PLAYOFFS = { 5: [4], 10: [4, 6, 8], 12: [6, 8], 15: [6, 8] };   // by players per conference
-  const timesTxt = k => (k === 1 ? 'once' : k === 2 ? 'twice' : k + ' times');
   function shapeGames(sh) {
     const C = Math.max(1, sh.c), conf = sh.n / C, div = sh.d ? conf / sh.d : 0, f = sh.format;
     return (sh.d ? (div - 1) * f.div + (conf - div) * f.same : (conf - 1) * f.same) + (C > 1 ? (sh.n - conf) * f.other : 0);
   }
+  // Layout, e.g. "2 conferences, 6 divisions".
   function splitTxt(n, c, d) {
-    if (!c && !d) return '1 conference of ' + n;
-    if (!c) return '1 conference with ' + d + ' divisions of ' + n / d;
-    if (!d) return c + ' conferences of ' + n / c;
-    return c + ' conferences, each with ' + d + ' divisions of ' + n / c / d;
+    const confs = Math.max(1, c), divs = d * confs;
+    return confs + (confs === 1 ? ' conference' : ' conferences') + (divs ? ', ' + divs + ' divisions' : '');
   }
-  function formatTxt(sh) {
-    const f = sh.format, parts = [];
-    if (sh.d && f.div) parts.push(timesTxt(f.div) + ' vs your division', timesTxt(f.same) + ' vs the rest of the ' + (sh.c ? 'conference' : 'league'));
-    else if (sh.c) parts.push(timesTxt(f.same) + ' vs your conference');
-    if (sh.c) parts.push(timesTxt(f.other) + ' vs the other conference');
-    return shapeGames(sh) + ' games · ' + (parts.length ? parts.join(', ') : 'play each other ' + timesTxt(f.same));
-  }
+
   const playoffShort = po => (po && po.spots ? 'Top ' + po.spots + (po.playIn ? ' + play-in' : '') : 'No playoffs');
   function shapeSummary(sh) {
     sh = L.normShape(sh);
@@ -3334,10 +3326,10 @@ const E = (() => {
       (next && !now && JSON.stringify(next) !== JSON.stringify(cur) ? '<br>Next season: <b>' + shapeSummary(next) + '</b>' : '') + '</div>' +
       '<div class="frow">' +
         '<div class="field"><label for="lsN">Players</label><select id="lsN">' + SETUP_SIZES.map(n => opt(n, n, n === dr.n)).join('') + '</select></div>' +
-        '<div class="field"><label for="lsSplit">How it’s divided</label><select id="lsSplit">' + SETUP_SPLITS[dr.n].map(([c, d]) => opt(c + 'x' + d, splitTxt(dr.n, c, d), c === dr.c && d === dr.d)).join('') + '</select></div>' +
+        '<div class="field"><label for="lsSplit">Layout</label><select id="lsSplit">' + SETUP_SPLITS[dr.n].map(([c, d]) => opt(c + 'x' + d, splitTxt(dr.n, c, d), c === dr.c && d === dr.d)).join('') + '</select></div>' +
       '</div><div class="frow">' +
-        '<div class="field"><label for="lsFmt">Games</label><select id="lsFmt">' + SETUP_FORMATS[formatKey(dr)].map((f, i) => opt(i, formatTxt(L.normShape({ n: dr.n, c: dr.c, d: dr.d, format: f })), i === dr.fi)).join('') + '</select></div>' +
-        '<div class="field"><label for="lsPo">Playoffs</label><select id="lsPo">' + (SETUP_PLAYOFFS[cs] || [4]).map(k => opt(k, k === 4 ? 'Top 4 make it' : k === 6 ? 'Top 6 make it · 1 and 2 get a bye' : 'Top 8 make it', k === dr.spots)).join('') + '</select></div>' +
+        '<div class="field"><label for="lsFmt">Games</label><select id="lsFmt">' + SETUP_FORMATS[formatKey(dr)].map((f, i) => opt(i, shapeGames(L.normShape({ n: dr.n, c: dr.c, d: dr.d, format: f })) + ' games', i === dr.fi)).join('') + '</select></div>' +
+        '<div class="field"><label for="lsPo">Playoffs</label><select id="lsPo">' + (SETUP_PLAYOFFS[cs] || [4]).map(k => opt(k, 'Top ' + k, k === dr.spots)).join('') + '</select></div>' +
       '</div>' +
       (cs === 15 && dr.spots === 8 ? '<label class="lscheck"><input type="checkbox" id="lsPi"' + (dr.playIn ? ' checked' : '') + '> Play-in for seeds 7 to 10</label>' : '') +
       '<div class="note">' + poText + '</div>' +
