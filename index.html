@@ -45,12 +45,54 @@
     .v2 .ver-go { color: #D2283C; }
     @media (max-width: 640px) { .pick { grid-template-columns: 1fr; } .ver { min-height: 200px; } }
     @media (prefers-reduced-motion: reduce) { .ver { transition: none; } }
+
+    /* Account: one sign-in for the whole site */
+    :root { --surface: #FFFFFF; --red: #D2283C; --blue: #2457C5; --bad: #C0283A; --good: #1E8A4C; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --surface: #181E2A; --red: #FF5A6A; --blue: #6E9BFF; --bad: #FF7A88; --good: #5FD18B; } }
+    :root[data-theme="dark"] { --surface: #181E2A; --red: #FF5A6A; --blue: #6E9BFF; --bad: #FF7A88; --good: #5FD18B; }
+    [hidden] { display: none !important; }
+    .auth { display: grid; gap: 16px; max-width: 420px; padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; }
+    .auth h2 { margin: 0; font: 800 26px/1.1 'Bricolage Grotesque', 'Arial Black', sans-serif; }
+    .auth p { margin: 0; }
+    .field { display: grid; gap: 6px; }
+    .field span { font-size: 14px; font-weight: 600; }
+    .field input {
+      min-height: 46px; padding: 10px 12px; font: 500 16px 'Inter', system-ui, sans-serif; color: var(--ink);
+      background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    }
+    .field input:focus-visible { outline: 3px solid var(--blue); outline-offset: 0; border-color: var(--blue); }
+    .btn { font: 600 16px/1 'Inter', system-ui, sans-serif; border: 0; border-radius: 12px; padding: 14px 20px; cursor: pointer; background: var(--red); color: #FFFFFF; }
+    .btn:disabled { opacity: .6; cursor: default; }
+    .btn:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+    .links { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .linkbtn { appearance: none; background: none; border: 0; padding: 0; font: 600 14px 'Inter', system-ui, sans-serif; color: var(--red); cursor: pointer; text-decoration: underline; }
+    .msg { font-size: 14px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); }
+    .msg.bad { color: var(--bad); border-color: var(--bad); }
+    .msg.good { color: var(--good); border-color: var(--good); }
+    .muted { color: var(--muted); }
+    .who { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
   </style>
 </head>
 <body>
   <main class="wrap">
-    <h1>Which Dice League?</h1>
-    <div class="pick">
+    <h1 id="mainTitle">Which Dice League?</h1>
+
+    <!-- Sign in: one account for both versions -->
+    <form class="auth" id="auth" novalidate hidden>
+      <h2 id="authTitle">Sign in</h2>
+      <p class="muted" id="authNote">One account for all of Dice League: Original and 2.0.</p>
+      <label class="field" id="emailField"><span>Email</span><input id="email" type="email" autocomplete="email" required></label>
+      <label class="field" id="passField"><span>Password</span><input id="password" type="password" autocomplete="current-password" minlength="6" required></label>
+      <p class="msg" id="authMsg" role="alert" hidden></p>
+      <button type="submit" class="btn" id="authBtn">Sign in</button>
+      <div class="links" id="authLinks">
+        <button type="button" class="linkbtn" data-mode="up">New here? Create an account</button>
+        <button type="button" class="linkbtn" data-mode="reset">Forgot password?</button>
+      </div>
+    </form>
+
+    <p class="who" id="who" hidden><span id="whoText"></span><button type="button" class="linkbtn" id="signOut">Sign out</button></p>
+    <div class="pick" id="pick" hidden>
       <a class="ver v1" href="original/index.html">
         <svg class="die" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="#FFB020"></rect><g fill="#0E1A2B"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>
         <p class="ver-name">Dice League Original</p>
@@ -63,5 +105,129 @@
       </a>
     </div>
   </main>
+
+  <script src="original/supabase.js"></script>
+  <script src="original/config.js"></script>
+  <script src="account.js"></script>
+  <script>
+    // First page: sign in once, then pick a version. ?next=original or ?next=v2 goes straight back there.
+    const $ = id => document.getElementById(id);
+    const acc = window.DLAccount;
+    const next = new URLSearchParams(location.search).get('next');
+    const NEXT = { original: 'original/league.html', v2: 'v2/index.html' };
+    const here = location.origin + location.pathname;
+    let mode = 'in';
+
+    const MODES = {
+      in: { title: 'Sign in', button: 'Sign in', email: true, pass: true, links: true },
+      up: { title: 'Create an account', button: 'Create account', email: true, pass: true, links: true },
+      reset: { title: 'Reset your password', button: 'Send reset link', email: true, pass: false, links: true },
+      newpw: { title: 'Choose a new password', button: 'Save new password', email: false, pass: true, links: false },
+    };
+
+    function say(text, tone) {
+      $('authMsg').textContent = text || '';
+      $('authMsg').className = 'msg' + (tone ? ' ' + tone : '');
+      $('authMsg').hidden = !text;
+    }
+
+    function setMode(m) {
+      mode = m;
+      const d = MODES[m];
+      $('authTitle').textContent = d.title;
+      $('authBtn').textContent = d.button;
+      $('emailField').hidden = !d.email;
+      $('passField').hidden = !d.pass;
+      $('authLinks').hidden = !d.links;
+      $('password').autocomplete = m === 'in' ? 'current-password' : 'new-password';
+      document.querySelectorAll('[data-mode]').forEach(b => {
+        const target = b.dataset.mode === m ? 'in' : b.dataset.mode;
+        b.dataset.target = target;
+        b.textContent = target === 'in' ? 'Back to sign in' : target === 'up' ? 'New here? Create an account' : 'Forgot password?';
+      });
+      say('');
+    }
+
+    function friendly(err) {
+      const t = String(err && err.message || err || '');
+      if (/invalid login/i.test(t)) return 'That email and password don’t match an account. Check them, or create an account.';
+      if (/not confirmed/i.test(t)) return 'Confirm your email first: open the link Supabase sent you, then sign in.';
+      if (/already registered|already exists/i.test(t)) return 'That email already has an account. Sign in instead, or reset the password.';
+      if (/password/i.test(t) && /6|short|least/i.test(t)) return 'The password needs at least 6 characters.';
+      if (/fetch|network/i.test(t)) return 'Couldn’t reach the server. Check your internet connection and try again.';
+      return t || 'Something went wrong. Try again.';
+    }
+
+    async function showSignedIn(user) {
+      if (next && NEXT[next]) { location.replace(NEXT[next]); return; }
+      $('auth').hidden = true;
+      $('mainTitle').textContent = 'Which Dice League?';
+      $('whoText').textContent = `Signed in as ${user.email}`;
+      $('who').hidden = false;
+      $('pick').hidden = false;
+    }
+
+    function showSignIn() {
+      $('who').hidden = true;
+      $('pick').hidden = true;
+      $('mainTitle').textContent = 'Dice League';
+      $('auth').hidden = false;
+      setMode(acc.isRecovering() ? 'newpw' : 'in');
+    }
+
+    $('auth').addEventListener('click', e => {
+      const b = e.target.closest('[data-mode]');
+      if (b) setMode(b.dataset.target || b.dataset.mode);
+    });
+
+    $('auth').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = $('email').value.trim(), password = $('password').value;
+      const d = MODES[mode];
+      if (d.email && !/^\S+@\S+\.\S+$/.test(email)) { say('Enter your email address.', 'bad'); return; }
+      if (d.pass && password.length < 6) { say('The password needs at least 6 characters.', 'bad'); return; }
+      $('authBtn').disabled = true;
+      try {
+        if (mode === 'in') {
+          const { data, error } = await acc.client.auth.signInWithPassword({ email, password });
+          if (error) throw error;
+          showSignedIn(data.user);
+        } else if (mode === 'up') {
+          const { data, error } = await acc.client.auth.signUp({ email, password, options: { emailRedirectTo: here } });
+          if (error) throw error;
+          if (data.session) showSignedIn(data.user);
+          else { setMode('in'); say('Almost done: check your email and open the confirmation link, then sign in here.', 'good'); }
+        } else if (mode === 'reset') {
+          const { error } = await acc.client.auth.resetPasswordForEmail(email, { redirectTo: here });
+          if (error) throw error;
+          setMode('in');
+          say('If that email has an account, a reset link is on its way. Open it on this device.', 'good');
+        } else if (mode === 'newpw') {
+          const { data, error } = await acc.client.auth.updateUser({ password });
+          if (error) throw error;
+          acc.doneRecovering();
+          history.replaceState(null, '', location.pathname + location.search);
+          showSignedIn(data.user);
+        }
+      } catch (err) {
+        say(friendly(err), 'bad');
+      } finally {
+        $('authBtn').disabled = false;
+      }
+    });
+
+    $('signOut').addEventListener('click', async () => {
+      await acc.signOut();
+      showSignIn();
+    });
+
+    (async () => {
+      if (!acc.on) { $('pick').hidden = false; return; } // accounts not set up: just pick a version
+      await new Promise(r => setTimeout(r, 0));        // let a sign-in link in the address finish first
+      const user = await acc.user();
+      if (user && !acc.isRecovering()) showSignedIn(user); else showSignIn();
+    })();
+    acc.onChange(event => { if (event === 'PASSWORD_RECOVERY') showSignIn(); });
+  </script>
 </body>
 </html>

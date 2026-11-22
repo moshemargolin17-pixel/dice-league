@@ -1665,9 +1665,11 @@ const E = (() => {
     await new Promise(r => setTimeout(r, 0));
     if (data && data.session && !Cloud.recovering) { Cloud.user = data.session.user; return; }
     if (Cloud.recovering) Cloud.mode = 'newpw';
+    // One account for the whole site: sign in on the first page, then come back here.
+    if (!Cloud.recovering) { location.replace('../index.html?next=original'); return new Promise(() => {}); }
     await new Promise(res => { Cloud.done = res; authScreen(); });
   }
-  async function signOut() { try { await Cloud.client.auth.signOut(); } catch (e) { /* */ } location.reload(); }
+  async function signOut() { try { await Cloud.client.auth.signOut(); } catch (e) { /* */ } location.href = '../index.html'; }
 
   /* ---------- leagues: several leagues per account / browser. The first league keeps the original paths; others live under lg/<id>/ ---------- */
   const Leagues = {

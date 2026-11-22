@@ -61,21 +61,17 @@ const SAMPLE_LEAGUES = [
   { id: 'sample-summer', name: 'Summer League', seed: 413, playedShare: 1, lastPlayed: '2026-08-30T19:15:00.000Z' },
 ].map(makeSampleLeague);
 
-const myLeagues = () => readJSON('dl-leagues', []);
+const myLeagues = () => Saved.leagues; // see cloud.js: the account's leagues, or this browser's
 const allLeagues = () => [...myLeagues(), ...SAMPLE_LEAGUES];
 const findLeague = id => allLeagues().find(lg => lg.id === id);
 
-function saveLeague(lg) {
-  const list = myLeagues().filter(x => x.id !== lg.id);
-  list.push(lg);
-  return writeJSON('dl-leagues', list);
-}
+// Saves a league to the account (or this browser). Resolves when saved; rejects if it couldn't be.
+const saveLeague = lg => Saved.saveLeague(lg);
 
-const lastPlayedOf = lg => readJSON('dl-last-played', {})[lg.id] || lg.lastPlayed;
+const lastPlayedOf = lg => Saved.lastPlayed[lg.id] || lg.lastPlayed;
 function markPlayed(lg) {
-  const map = readJSON('dl-last-played', {});
-  map[lg.id] = new Date().toISOString();
-  writeJSON('dl-last-played', map);
+  Saved.lastPlayed[lg.id] = new Date().toISOString();
+  Saved.saveLastPlayed().catch(e => console.error(e));
 }
 const byLastPlayed = () => allLeagues().sort((a, b) => lastPlayedOf(b).localeCompare(lastPlayedOf(a)));
 
@@ -443,11 +439,17 @@ $('newStep2').addEventListener('submit', e => {
     playoffs: s.playoffs,
     createdAt: now, lastPlayed: now,
   };
-  if (!saveLeague(lg)) {
-    showError('nlError2', 'This browser blocked saving, so the league could not be kept. Check that the site is allowed to store data, then try again.');
-    return;
-  }
-  openLeague(lg);
+  const btn = e.submitter;
+  if (btn) btn.disabled = true;
+  saveLeague(lg)
+    .then(() => openLeague(lg))
+    .catch(err => {
+      console.error(err);
+      showError('nlError2', Saved.mode === 'cloud'
+        ? 'The league couldn’t be saved to your account. Check your internet connection, then press Create league again.'
+        : 'This browser blocked saving, so the league could not be kept. Check that the site is allowed to store data, then try again.');
+    })
+    .finally(() => { if (btn) btn.disabled = false; });
 });
 
 // ---------- Standings ----------

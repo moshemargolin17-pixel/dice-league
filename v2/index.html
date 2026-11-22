@@ -17,7 +17,11 @@
         <span class="brand-die" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
         Dice League 2.0
       </a>
-      <a class="switch" href="../index.html">Switch to Original</a>
+      <div class="acct">
+        <span class="acct-who" id="acctWho" hidden></span>
+        <button type="button" class="switch" id="acctOut" hidden>Sign out</button>
+        <a class="switch" href="../index.html">Switch to Original</a>
+      </div>
     </div>
   </header>
 
@@ -266,7 +270,11 @@
     <div class="wrap">Dice League</div>
   </footer>
 
+  <script src="../original/supabase.js"></script>
+  <script src="../original/config.js"></script>
+  <script src="../account.js"></script>
   <script src="league.js"></script>
+  <script src="cloud.js"></script>
   <script src="app.js"></script>
   <script src="pages.js"></script>
 </body>

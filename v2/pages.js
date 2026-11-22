@@ -435,9 +435,9 @@ document.addEventListener('submit', e => {
     lg.name = name;
     if (confs.length) lg.conferences = confs;
     divs.forEach((d, i) => { lg.divisions[i].name = d; });
-    saveLeague(lg);
-    renderLeagueHeader(lg, 'settings');
-    flash('sNamesOk');
+    saveLeague(lg)
+      .then(() => { renderLeagueHeader(lg, 'settings'); flash('sNamesOk'); })
+      .catch(() => showError('sNamesErr', 'Couldn’t save. Check your internet connection and try again.'));
   }
   if (e.target.id === 'sPlayers') {
     e.preventDefault();
@@ -453,9 +453,9 @@ document.addEventListener('submit', e => {
     }
     showError('sPlayersErr', '');
     next.forEach((x, i) => Object.assign(lg.players[i], x));
-    saveLeague(lg);
-    renderSettingsPage(lg);
-    flash('sPlayersOk');
+    saveLeague(lg)
+      .then(() => { renderSettingsPage(lg); flash('sPlayersOk'); })
+      .catch(() => showError('sPlayersErr', 'Couldn’t save. Check your internet connection and try again.'));
   }
 });
 
@@ -469,9 +469,46 @@ document.addEventListener('click', e => {
   if (e.target.id !== 'sDelete') return;
   if (!deleteArmed) { deleteArmed = true; renderSettingsPage(currentLeague); return; }
   deleteArmed = false;
-  writeJSON('dl-leagues', myLeagues().filter(x => x.id !== currentLeague.id));
-  location.hash = '1v1';
+  Saved.deleteLeague(currentLeague.id)
+    .then(() => { location.hash = '1v1'; })
+    .catch(() => alertBar('Couldn’t delete the league. Check your internet connection and try again.'));
 });
 window.addEventListener('hashchange', () => { deleteArmed = false; });
 
-showPage();
+// A short message across the top of the page.
+function alertBar(text) {
+  let el = $('alertBar');
+  if (!el) {
+    el = document.createElement('p');
+    el.id = 'alertBar';
+    el.className = 'alert-bar';
+    el.setAttribute('role', 'alert');
+    document.querySelector('main').prepend(el);
+  }
+  el.textContent = text;
+}
+
+// ---------- Start ----------
+// Load the account's leagues first. Signed out: go to the first page to sign in.
+(async () => {
+  let state;
+  try { state = await Saved.init(); } catch (e) { console.error(e); state = 'error'; }
+  if (state === 'signed-out') { location.replace('../index.html?next=v2'); return; }
+  if (state === 'error') {
+    Saved.loadLocal();
+    alertBar('Your leagues couldn’t be loaded from your account, so this shows the ones saved in this browser. Check your internet connection and reload.');
+  }
+  if (Saved.mode === 'cloud') {
+    $('acctWho').textContent = Saved.user.email;
+    $('acctWho').hidden = false;
+    $('acctOut').hidden = false;
+  }
+  currentLeague = byLastPlayed()[0];
+  selectedLeague = currentLeague;
+  showPage();
+})();
+
+$('acctOut').addEventListener('click', async () => {
+  await window.DLAccount.signOut();
+  location.href = '../index.html';
+});
