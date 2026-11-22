@@ -52,12 +52,7 @@ function formatTimes(lg, f, a, b) {
 }
 const timesText = k => (k === 1 ? 'once' : k === 2 ? 'twice' : `${k} times`);
 function formatLabel(n, sp, f) {
-  const g = formatGames(n, sp, f);
-  const parts = [];
-  if (f.div && sp.d) parts.push(`${timesText(f.div)} vs your division`, `${timesText(f.same)} vs the rest of the ${sp.c ? 'conference' : 'league'}`);
-  else if (sp.c) parts.push(`${timesText(f.same)} vs your conference`);
-  if (sp.c) parts.push(`${timesText(f.other)} vs the other conference`);
-  return parts.length ? `${g} games · ${parts.join(', ')}` : `${g} games · play each other ${timesText(f.same)}`;
+  return `${formatGames(n, sp, f)} games`;
 }
 const SPLITS = {
   5: [{ c: 0, d: 0 }],

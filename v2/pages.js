@@ -419,7 +419,6 @@ function leagueSetupPanel(lg) {
         <label class="field"><span class="field-label">Playoffs</span><select id="lsPo"${dis}>${(PLAYOFF_CHOICES[size] || [4]).map(k => opt(k, 'Top ' + k, k === dr.spots)).join('')}</select></label>
       </div>
       ${PLAY_IN_SIZES.includes(size) && dr.spots === 8 ? `<label class="check"><input type="checkbox" id="lsPi"${dr.playIn ? ' checked' : ''}${dis}> Play-in for seeds 7 to 10</label>` : ''}
-      <p class="muted">${esc(playoffSummary(dr.spots, dr.playIn, dr.c > 1, dr.d > 0))}</p>
       <p class="error" id="sSetupErr" role="alert" hidden></p>
       ${now ? `<div class="form-actions"><button type="submit" class="btn btn-primary">Save and make a new schedule</button><span class="saved-note" id="sSetupOk" hidden>Saved</span></div>
       <p class="muted">No games have been played yet, so saving rebuilds the league with this setup and a new schedule.</p>`

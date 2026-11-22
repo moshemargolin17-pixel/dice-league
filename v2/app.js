@@ -161,7 +161,6 @@ function renderPlayoffChoices() {
   const canPlayIn = PLAY_IN_SIZES.includes(size) && pick === 8;
   $('nlPlayInWrap').hidden = !canPlayIn;
   if (!canPlayIn) $('nlPlayIn').checked = false;
-  $('nlPlayoffHint').textContent = playoffSummary(pick, canPlayIn && $('nlPlayIn').checked, draft.split.c > 1, draft.split.d > 0);
 }
 ['nlPlayoffs', 'nlPlayIn'].forEach(id => $(id).addEventListener('change', renderPlayoffChoices));
 
@@ -514,6 +513,13 @@ function confRounds(lines, finalName) {
   ];
 }
 
+// Bracket page: the postseason bracket, once the regular season is over.
+function renderBracketPage(lg) {
+  const lines = playoffLines(lg);
+  if (!seasonDone(lg) || !lines) { location.hash = 'standings'; return; }
+  $('lgBracket').innerHTML = playoffPicture(lg, computeStandings(lg), lines);
+}
+
 function playoffPicture(lg, rows, lines) {
   const confs = hasConfs(lg);
   const side = (x, seeds, firstRound) => {
@@ -549,7 +555,7 @@ function playoffPicture(lg, rows, lines) {
       </div></div></div></div>`
     : block('', groups[0], null);
   return `<section class="panel bk">
-    <h2 class="panel-title">Playoff picture <span class="panel-sub">${seasonDone(lg) ? 'Final seeds' : 'If the season ended today'}</span></h2>
+    <h2 class="panel-title">${seasonDone(lg) ? 'Bracket' : 'Playoff picture <span class="panel-sub">If the season ended today</span>'}</h2>
     ${blocks}
   </section>`;
 }
@@ -597,7 +603,7 @@ function renderStandings() {
   }
   // The playoff picture shows once three quarters of the regular season is played (and through the postseason).
   const played = lg.games.filter(g => g.final).length;
-  const showPicture = lines && lg.games.length && played >= lg.games.length * 0.75;
+  const showPicture = lines && lg.games.length && played >= lg.games.length * 0.75 && !seasonDone(lg);
   $('standTables').innerHTML = html + (showPicture ? playoffPicture(lg, rows, lines) : '');
 }
 
@@ -669,6 +675,7 @@ function renderLeagueHeader(lg, tab) {
   $('lgName').textContent = lg.name;
   // "Day X of Y" counts the whole season, playoffs included.
   $('lgSub').textContent = `Season 1 · Day ${todayOf(lg)} of ${lastDayOf(lg)}`;
+  $('tabBracket').hidden = !(seasonDone(lg) && playoffLines(lg));
   document.querySelectorAll('.lgtabs a').forEach(a => {
     if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
@@ -790,7 +797,7 @@ const COMING = {
   '4v4': { title: '4 vs 4', text: 'Teams of four.' },
   '5v5': { title: '5 vs 5', text: 'Full teams of five.' },
 };
-const LEAGUE_TABS = { league: 'home', games: 'games', standings: 'standings', players: 'players', stats: 'stats', 'league-options': 'settings' };
+const LEAGUE_TABS = { league: 'home', games: 'games', standings: 'standings', bracket: 'bracket', players: 'players', stats: 'stats', 'league-options': 'settings' };
 const VIEWS = { '1v1': '1v1', 'new-league': 'new' };
 for (const k of Object.keys(LEAGUE_TABS)) VIEWS[k] = 'league';
 const TITLES = { '1v1': '1 vs 1', new: 'New league' };
@@ -808,9 +815,9 @@ function showPage() {
     const tab = playerMatch ? 'players' : LEAGUE_TABS[key];
     const panel = playerMatch ? 'player' : tab;
     renderLeagueHeader(lg, tab);
-    const panels = { home: 'lgHome', games: 'lgGames', standings: 'lgStandings', players: 'lgPlayers', player: 'lgPlayer', stats: 'lgStats', settings: 'lgSettings' };
+    const panels = { home: 'lgHome', games: 'lgGames', standings: 'lgStandings', bracket: 'lgBracket', players: 'lgPlayers', player: 'lgPlayer', stats: 'lgStats', settings: 'lgSettings' };
     for (const [k, id] of Object.entries(panels)) $(id).hidden = k !== panel;
-    const names = { home: lg.name, games: 'Games', standings: 'Standings', players: 'Players', stats: 'Stats', settings: 'Settings' };
+    const names = { home: lg.name, games: 'Games', standings: 'Standings', bracket: 'Bracket', players: 'Players', stats: 'Stats', settings: 'Settings' };
     title = names[tab];
     if (panel === 'home') renderLeagueHome();
     else if (panel === 'standings') renderStandings();
@@ -821,6 +828,7 @@ function showPage() {
       if (lg.players[p]) { renderPlayerPage(lg, p); title = lg.players[p].name; } else location.hash = 'players';
     }
     else if (panel === 'stats') renderStatsPage(lg);
+    else if (panel === 'bracket') renderBracketPage(lg);
     else if (panel === 'settings') renderSettingsPage(lg);
   } else if (view === '1v1') {
     selectedLeague = byLastPlayed()[0]; // start on the league played last
