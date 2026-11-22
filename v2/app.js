@@ -550,7 +550,6 @@ function playoffPicture(lg, rows, lines) {
     : block('', groups[0], null);
   return `<section class="panel bk">
     <h2 class="panel-title">Playoff picture <span class="panel-sub">${seasonDone(lg) ? 'Final seeds' : 'If the season ended today'}</span></h2>
-    <p class="bk-summary">${esc(playoffSummary(lines.spots, lines.playIn, confs, hasDivs(lg)))}</p>
     ${blocks}
   </section>`;
 }
@@ -596,7 +595,10 @@ function renderStandings() {
     const seeded = Boolean(lines) && !confs;
     html = standingsTable(lg, views.length > 1 ? 'Whole League' : lg.name, '', (seeded ? seedOrder : rankGroup)(lg, rows, allIds(lg)), marks, seeded);
   }
-  $('standTables').innerHTML = html + (lines ? playoffPicture(lg, rows, lines) : '');
+  // The playoff picture shows once three quarters of the regular season is played (and through the postseason).
+  const played = lg.games.filter(g => g.final).length;
+  const showPicture = lines && lg.games.length && played >= lg.games.length * 0.75;
+  $('standTables').innerHTML = html + (showPicture ? playoffPicture(lg, rows, lines) : '');
 }
 
 $('standTabs').addEventListener('click', e => {
