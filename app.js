@@ -43,7 +43,84 @@ document.getElementById('rollBtn').addEventListener('click', () => {
 });
 
 // ---------- Standings ----------
-const GAMES = makeSampleSeason(); // swapped for real games once game logging exists
+// ---------- Saved leagues ----------
+// For now these are sample leagues. Each has its own made-up season.
+// Which league was played last is remembered in this browser.
+const SAVED_LEAGUES = [
+  { id: 'dice-league', name: 'Dice League', seed: 2026, playedDays: 34, lastPlayed: '2026-11-21T21:00:00' },
+  { id: 'friday-night', name: 'Friday Night League', seed: 77, playedDays: 12, lastPlayed: '2026-11-14T22:30:00' },
+  { id: 'summer-2026', name: 'Summer League', seed: 413, playedDays: 58, lastPlayed: '2026-08-30T19:15:00' },
+];
+const gamesCache = {};
+const gamesOf = lg => (gamesCache[lg.id] = gamesCache[lg.id] || makeSampleSeason(lg.seed, lg.playedDays));
+
+function readJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key)) || fallback; } catch (e) { return fallback; }
+}
+function writeJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage blocked */ }
+}
+const lastPlayedOf = lg => readJSON('dl-last-played', {})[lg.id] || lg.lastPlayed;
+function markPlayed(lg) {
+  const map = readJSON('dl-last-played', {});
+  map[lg.id] = new Date().toISOString();
+  writeJSON('dl-last-played', map);
+}
+const byLastPlayed = () => SAVED_LEAGUES.slice().sort((a, b) => lastPlayedOf(b).localeCompare(lastPlayedOf(a)));
+
+let currentLeague = byLastPlayed()[0];  // the league the standings page shows
+let selectedLeague = currentLeague;     // the league highlighted on the 1 vs 1 page
+
+function whenText(iso) {
+  const d = new Date(iso), now = new Date();
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((day(now) - day(d)) / 86400000);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
+}
+
+function leagueSummary(lg) {
+  const games = gamesOf(lg);
+  const finals = games.filter(g => g.final);
+  const rows = computeStandings(games);
+  const leader = rankGroup(rows, LEAGUE.players.map(p => p.id))[0];
+  return {
+    day: Math.max(0, ...finals.map(g => g.day)),
+    played: finals.length,
+    total: games.length,
+    leader: `${LEAGUE.players[leader.p].name} (${leader.w}–${leader.l})`,
+  };
+}
+
+function renderSavedLeagues() {
+  const list = document.getElementById('savedLeagues');
+  list.innerHTML = byLastPlayed().map(lg => {
+    const s = leagueSummary(lg);
+    const on = lg.id === selectedLeague.id;
+    return `<button type="button" class="saved" role="radio" aria-checked="${on}" data-id="${lg.id}">
+      <span class="saved-name">${esc(lg.name)}</span>
+      <span class="saved-col">${LEAGUE.players.length}</span>
+      <span class="saved-col">Day ${s.day} · ${s.played}/${s.total}</span>
+      <span class="saved-col">${esc(s.leader)}</span>
+      <span class="saved-col saved-when">${whenText(lastPlayedOf(lg))}</span>
+    </button>`;
+  }).join('');
+  document.getElementById('continueName').textContent = selectedLeague.name;
+}
+
+document.getElementById('savedLeagues').addEventListener('click', e => {
+  const b = e.target.closest('.saved');
+  if (!b) return;
+  selectedLeague = SAVED_LEAGUES.find(lg => lg.id === b.dataset.id);
+  renderSavedLeagues();
+});
+
+document.getElementById('continueBtn').addEventListener('click', () => {
+  currentLeague = selectedLeague;
+  markPlayed(currentLeague);
+  location.hash = 'standings';
+});
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmtPct = x => (x === 1 ? '1.000' : x.toFixed(3).replace(/^0/, ''));
 const rec = (w, l) => `${w}–${l}`;
@@ -86,6 +163,7 @@ function standingsTable(title, sub, ranked, marks, withCutLines) {
 }
 
 function renderStandings() {
+  const GAMES = gamesOf(currentLeague);
   const rows = computeStandings(GAMES);
   const marks = raceMarks(rows);
   const played = GAMES.filter(g => g.final).length;
@@ -94,6 +172,7 @@ function renderStandings() {
   document.querySelectorAll('#standTabs button').forEach(b => {
     b.setAttribute('aria-selected', String(b.dataset.view === standView));
   });
+  document.getElementById('standLeague').textContent = currentLeague.name;
   document.getElementById('standMeta').textContent =
     `Through day ${lastDay} · ${played} of ${GAMES.length} games played`;
 
@@ -143,6 +222,8 @@ function showPage() {
     renderStandings();
     document.title = 'Standings · Dice League';
   } else if (view === '1v1') {
+    selectedLeague = byLastPlayed()[0]; // start on the league played last
+    renderSavedLeagues();
     document.title = '1 vs 1 · Dice League';
   } else if (view === 'page') {
     document.getElementById('pageTitle').textContent = COMING[key].title;

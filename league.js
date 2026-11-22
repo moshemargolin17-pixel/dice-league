@@ -42,8 +42,8 @@ function seededRandom(seed) {
   };
 }
 
-function makeSampleSeason() {
-  const rand = seededRandom(2026);
+function makeSampleSeason(seed = 2026, playedDays = 34) {
+  const rand = seededRandom(seed);
   const N = LEAGUE.players.length;
   const pairs = [];
   for (let a = 0; a < N; a++) for (let h = 0; h < N; h++) if (a !== h) pairs.push([a, h]);
@@ -54,7 +54,6 @@ function makeSampleSeason() {
   // Give each sample player a hidden strength so the table spreads out like a real season.
   const strength = LEAGUE.players.map(() => rand() * 10);
   const perDay = 15;
-  const playedDays = 34;
   return pairs.map(([away, home], i) => {
     const day = Math.floor(i / perDay) + 1;
     const game = { id: i, day, away, home, final: day <= playedDays };

@@ -93,8 +93,18 @@
         <a class="back" href="#"><span aria-hidden="true">←</span> Home</a>
         <h1>1 vs 1</h1>
         <div class="choices">
-          <a class="choice choice-main" href="#standings">Continue league</a>
+          <button type="button" class="choice choice-main" id="continueBtn">
+            Continue league
+            <span class="choice-sub" id="continueName"></span>
+          </button>
           <a class="choice" href="#new-league">New league</a>
+        </div>
+        <h2 class="saved-title" id="savedTitle">Saved leagues</h2>
+        <div class="saved-list">
+          <div class="saved saved-head" aria-hidden="true">
+            <span>League</span><span>Players</span><span>Progress</span><span>Leader</span><span>Last played</span>
+          </div>
+          <div id="savedLeagues" role="radiogroup" aria-labelledby="savedTitle"></div>
         </div>
       </div>
     </section>
@@ -105,7 +115,7 @@
         <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
         <div class="stand-head">
           <div>
-            <p class="eyebrow">1 vs 1</p>
+            <p class="eyebrow">1 vs 1 · <span id="standLeague"></span></p>
             <h1>Standings</h1>
             <p class="muted" id="standMeta"></p>
           </div>
