@@ -665,12 +665,8 @@ function todayOf(lg) {
 
 function renderLeagueHeader(lg, tab) {
   $('lgName').textContent = lg.name;
-  const post = postOf(lg);
-  const postText = post.games.length
-    ? ` · Postseason days ${Math.min(...post.games.map(g => g.day))}–${lastDayOf(lg)}`
-    : '';
   // "Day X of Y" counts the whole season, playoffs included.
-  $('lgSub').textContent = `Season 1 · Day ${todayOf(lg)} of ${lastDayOf(lg)}${postText}`;
+  $('lgSub').textContent = `Season 1 · Day ${todayOf(lg)} of ${lastDayOf(lg)}`;
   document.querySelectorAll('.lgtabs a').forEach(a => {
     if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
