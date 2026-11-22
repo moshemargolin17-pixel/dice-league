@@ -2169,7 +2169,7 @@ const E = (() => {
     return st;
   }
   const stageOf = x => (x.round === 0 ? (x.kind === 'pi8' ? 'pib' : 'pia') : 'r' + x.round);
-  const stageDays = (n, bo) => 2 * (bo - 1) + 1 + (n > 4 ? 1 : 0);
+  const stageDays = (n, bo) => 2 * (bo - 1) + 1 + (n > 1 ? 1 : 0);   // + a day for the 4-games-a-day limit
   function seasonLastDay() {
     const s = S.season, stages = postStages();
     if (!stages.length) return s.totalDays;
@@ -2194,7 +2194,8 @@ const E = (() => {
           // the next unscheduled game can't come before tomorrow, nor before a day of rest
           const next = Math.max(dayOf(inf) + 2, s.day.cur + 1);
           const last = inf.open ? dayOf(inf) + 2 * left : next + 2 * (left - 1);
-          e = Math.max(e, last + (xs.length > 4 && left > 0 ? 1 : 0));
+          // with other series in the round, a game can wait a day for the 4-games-a-day limit
+          e = Math.max(e, last + (xs.length > 1 && left > 0 ? 1 : 0));
         }
         end = Math.max(e, s.day.cur); start = end + 2; stages.shift();
         break;
