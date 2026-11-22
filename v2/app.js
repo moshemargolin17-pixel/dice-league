@@ -617,7 +617,7 @@ const seasonDone = lg => lg.games.length > 0 && lg.games.every(g => g.final);
 // The postseason schedule, built from seeds (cached per league and schedule).
 const postCache = new Map();
 function postOf(lg) {
-  const key = `${lg.id}:${lg.games.length}:${JSON.stringify(lg.playoffs || null)}`;
+  const key = `${lg.id}:${lg.setupVersion || 0}:${lg.games.length}:${JSON.stringify(lg.playoffs || null)}`;
   if (!postCache.has(key)) postCache.set(key, buildPostseason(lg, seasonDays(lg)));
   return postCache.get(key);
 }

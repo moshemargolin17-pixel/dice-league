@@ -350,9 +350,7 @@ function renderStatsPage(lg) {
       ${gameList('Highest scores', hiPts, hiPts, g => `${pname(lg, W(g))} vs ${pname(lg, L(g))}`)}
       ${gameList('Biggest wins', g => hiPts(g) - loPts(g), g => '+' + (hiPts(g) - loPts(g)), g => `${pname(lg, W(g))} over ${pname(lg, L(g))}`)}
       ${gameList('Highest combined', g => g.homePts + g.awayPts, g => g.homePts + g.awayPts, scoreLine)}
-    </div>
-    <h3 class="h2">Lows</h3>
-    <div class="cols2">
+
       ${gameList('Lowest scores', g => -loPts(g), loPts, g => `${pname(lg, L(g))} vs ${pname(lg, W(g))}`)}
       ${gameList('Lowest combined', g => -(g.homePts + g.awayPts), g => g.homePts + g.awayPts, scoreLine)}
     </div>`;
@@ -364,6 +362,118 @@ document.addEventListener('click', e => {
   const k = b.dataset.sort;
   statSort = statSort.key === k ? { key: k, asc: !statSort.asc } : { key: k, asc: k === 'opg' };
   renderStatsPage(currentLeague);
+});
+
+// ---------- League setup ----------
+// Players, layout, games and playoffs. Changeable until the first game is final; changing them
+// rebuilds the schedule and spreads the players over the new groups in order.
+let lsDraft = null;          // the setup form's choices while it's being edited
+let lsDraftFor = null;       // which league the draft belongs to
+
+const layoutText = (c, d) => {
+  const confs = Math.max(1, c), divs = d * confs;
+  return confs + (confs === 1 ? ' conference' : ' conferences') + (divs ? ', ' + divs + ' divisions' : '');
+};
+function shapeOfLeague(lg) {
+  const c = hasConfs(lg) ? lg.conferences.length : 0;
+  const d = hasDivs(lg) ? lg.divisions.length / Math.max(1, c) : 0;
+  return { n: lg.players.length, c, d };
+}
+function draftFor(lg) {
+  if (!lsDraft || lsDraftFor !== lg.id) {
+    const sp = shapeOfLeague(lg);
+    const fl = formatsFor(sp.n, sp) || [];
+    const fi = lg.format ? fl.findIndex(f => JSON.stringify(f) === JSON.stringify(lg.format)) : 0;
+    lsDraft = { n: sp.n, c: sp.c, d: sp.d, fi: Math.max(0, fi), spots: (lg.playoffs || {}).spots || 0, playIn: !!(lg.playoffs || {}).playIn };
+    lsDraftFor = lg.id;
+  }
+  return fixDraft(lsDraft);
+}
+function fixDraft(dr) {
+  const opts = splitOptions(dr.n);
+  if (!opts.some(o => o.c === dr.c && o.d === dr.d)) { dr.c = opts[0].c; dr.d = opts[0].d; }
+  const fl = formatsFor(dr.n, dr) || [];
+  if (!(dr.fi >= 0 && dr.fi < fl.length)) dr.fi = 0;
+  const size = confSize(dr.n, dr), pl = PLAYOFF_CHOICES[size] || [4];
+  if (!pl.includes(dr.spots)) dr.spots = pl[0];
+  if (!(PLAY_IN_SIZES.includes(size) && dr.spots === 8)) dr.playIn = false;
+  return dr;
+}
+const canReshape = lg => !lg.sample && !lg.games.some(g => g.final);
+
+function leagueSetupPanel(lg) {
+  const dr = draftFor(lg), now = canReshape(lg);
+  const cur = shapeOfLeague(lg);
+  const curText = `${cur.n} players · ${layoutText(cur.c, cur.d)} · ${lg.games.length ? lg.gamesPerPlayer : 0} games · ${lg.playoffs && lg.playoffs.spots ? 'Top ' + lg.playoffs.spots + (lg.playoffs.playIn ? ' + play-in' : '') : 'No playoffs'}`;
+  const dis = now ? '' : ' disabled';
+  const opt = (v, label, on) => `<option value="${v}"${on ? ' selected' : ''}>${label}</option>`;
+  const fl = formatsFor(dr.n, dr) || [];
+  const size = confSize(dr.n, dr);
+  return `<form class="panel tpanel form-panel" id="sSetup" novalidate>
+      <h3 class="panel-title">League setup</h3>
+      <p class="muted">This season: <b>${esc(curText)}</b></p>
+      <div class="sgrid">
+        <label class="field"><span class="field-label">Players</span><select id="lsN"${dis}>${LEAGUE_SIZES.map(n => opt(n, n, n === dr.n)).join('')}</select></label>
+        <label class="field"><span class="field-label">Layout</span><select id="lsSplit"${dis}>${splitOptions(dr.n).map(o => opt(o.c + 'x' + o.d, layoutText(o.c, o.d), o.c === dr.c && o.d === dr.d)).join('')}</select></label>
+        <label class="field"><span class="field-label">Games</span><select id="lsFmt"${dis}>${fl.map((f, i) => opt(i, formatGames(dr.n, dr, f) + ' games', i === dr.fi)).join('')}</select></label>
+        <label class="field"><span class="field-label">Playoffs</span><select id="lsPo"${dis}>${(PLAYOFF_CHOICES[size] || [4]).map(k => opt(k, 'Top ' + k, k === dr.spots)).join('')}</select></label>
+      </div>
+      ${PLAY_IN_SIZES.includes(size) && dr.spots === 8 ? `<label class="check"><input type="checkbox" id="lsPi"${dr.playIn ? ' checked' : ''}${dis}> Play-in for seeds 7 to 10</label>` : ''}
+      <p class="muted">${esc(playoffSummary(dr.spots, dr.playIn, dr.c > 1, dr.d > 0))}</p>
+      <p class="error" id="sSetupErr" role="alert" hidden></p>
+      ${now ? `<div class="form-actions"><button type="submit" class="btn btn-primary">Save and make a new schedule</button><span class="saved-note" id="sSetupOk" hidden>Saved</span></div>
+      <p class="muted">No games have been played yet, so saving rebuilds the league with this setup and a new schedule.</p>`
+      : `<p class="muted">${lg.sample ? 'Sample leagues can’t be changed.' : 'The setup is locked once a game has been played.'}</p>`}
+    </form>`;
+}
+
+// Rebuild a league with a new setup: keep players in order (adding or dropping from the end), regroup them,
+// and make a new schedule.
+function reshapeLeague(lg, dr) {
+  const sp = { c: dr.c, d: dr.d };
+  const format = formatsFor(dr.n, sp)[dr.fi];
+  const taken = new Set();
+  const players = Array.from({ length: dr.n }, (_, i) => {
+    const old = lg.players[i];
+    const pl = old ? { ...old, id: i } : { id: i, name: 'Player ' + (i + 1), short: 'P' + (i + 1), skill: 2 };
+    let short = pl.short || autoShort(pl.name);
+    for (let k = 2; taken.has(short); k++) short = (pl.short || autoShort(pl.name)).slice(0, 3) + k;
+    taken.add(short);
+    pl.short = short;
+    return pl;
+  });
+  const conferences = dr.c ? (lg.conferences && lg.conferences.length === dr.c ? lg.conferences.slice() : CONF_NAMES[dr.c].slice()) : [];
+  const totalDivs = dr.d * Math.max(1, dr.c);
+  const keepDivNames = lg.divisions && lg.divisions.length === totalDivs;
+  const divisions = Array.from({ length: totalDivs }, (_, i) => ({
+    name: keepDivNames ? lg.divisions[i].name : (DIV_NAMES[i] || 'Division ' + (i + 1)),
+    conf: dr.c ? Math.floor(i / dr.d) : null,
+  }));
+  const confSz = dr.n / Math.max(1, dr.c), divSz = dr.d ? confSz / dr.d : 0;
+  players.forEach((pl, i) => {
+    pl.div = dr.d ? Math.floor(i / divSz) : null;
+    pl.conf = dr.c ? Math.floor(i / confSz) : null;
+  });
+  lg.players = players;
+  lg.conferences = conferences;
+  lg.divisions = divisions;
+  lg.format = format;
+  lg.gamesPerPlayer = formatGames(dr.n, sp, format);
+  lg.playoffs = { spots: dr.spots, playIn: dr.playIn };
+  lg.games = makePairSchedule(dr.n, (a, b) => formatTimes({ players, conferences }, format, a, b));
+  lg.setupVersion = (lg.setupVersion || 0) + 1;
+}
+
+document.addEventListener('change', e => {
+  if (!/^ls(N|Split|Fmt|Po|Pi)$/.test(e.target.id || '') || !document.getElementById('sSetup')) return;
+  const lg = currentLeague, dr = draftFor(lg), v = e.target.value;
+  if (e.target.id === 'lsN') dr.n = +v;
+  if (e.target.id === 'lsSplit') { const [c, d] = v.split('x').map(Number); dr.c = c; dr.d = d; }
+  if (e.target.id === 'lsFmt') dr.fi = +v;
+  if (e.target.id === 'lsPo') dr.spots = +v;
+  if (e.target.id === 'lsPi') dr.playIn = e.target.checked;
+  fixDraft(dr);
+  renderSettingsPage(lg);
 });
 
 // ---------- Settings ----------
@@ -389,6 +499,7 @@ function renderSettingsPage(lg) {
       <p class="error" id="sNamesErr" role="alert" hidden></p>
       <div class="form-actions"><button type="submit" class="btn btn-primary"${ro}>Save names</button><span class="saved-note" id="sNamesOk" hidden>Saved</span></div>
     </form>
+    ${leagueSetupPanel(lg)}
     <form class="panel tpanel form-panel" id="sPlayers" novalidate>
       <h3 class="panel-title">Players</h3>
       <div class="tscroll"><table class="tbl tbl-plain tbl-form"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Skill</th></tr>
@@ -422,6 +533,19 @@ function flash(id) {
 document.addEventListener('submit', e => {
   const lg = currentLeague;
   if (lg.sample) return;
+  if (e.target.id === 'sSetup') {
+    e.preventDefault();
+    if (!canReshape(lg)) return;
+    const before = JSON.parse(JSON.stringify(lg));
+    reshapeLeague(lg, draftFor(lg));
+    saveLeague(lg)
+      .then(() => { lsDraft = null; renderLeagueHeader(lg, 'settings'); renderSettingsPage(lg); flash('sSetupOk'); })
+      .catch(() => {
+        Object.assign(lg, before);
+        showError('sSetupErr', 'Couldn’t save. Check your internet connection and try again.');
+      });
+    return;
+  }
   if (e.target.id === 'sNames') {
     e.preventDefault();
     const name = $('sLgName').value.trim();
