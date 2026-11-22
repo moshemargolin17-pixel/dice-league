@@ -3441,7 +3441,7 @@ const E = (() => {
         else main = viewHome();
       }
     } finally { D = keepD; }
-    app.innerHTML = '<header class="top"><div class="wrap"><a class="brand brand-home" href="./" title="Back to modes">' + brandMark() + '<div><h1>' + esc(S.cfg.leagueName) + '</h1><div class="sub">Season ' + S.season.n + ' · ' + esc(currentRoundLabel()) + '</div></div></a>' +
+    app.innerHTML = '<header class="top"><div class="wrap"><a class="brand brand-home" href="index.html" title="Back to modes">' + brandMark() + '<div><h1>' + esc(S.cfg.leagueName) + '</h1><div class="sub">Season ' + S.season.n + ' · ' + esc(currentRoundLabel()) + '</div></div></a>' +
       '<nav class="tabs" aria-label="Pages">' + tabs.map(([k, l]) => '<button type="button" class="tab' + (S.view === k ? ' on' : '') + '" data-act="nav" data-v="' + k + '"' + (S.view === k ? ' aria-current="page"' : '') + '>' + l + '</button>').join('') + '</nav></div></header>' +
       '<main><div class="wrap">' + (Store.mode === 'demo' ? '<div class="banner demo">Preview league: ' + esc(window.__DL_DEMO_LABEL__ || 'simulated') + '. Look around and log rolls; nothing here saves, and your real league isn’t touched.</div>' : '') + main + '</div></main>' + (Sim.on ? simBar() : S.view === 'home' ? dayBar() : '');
     cleanHints(app);
