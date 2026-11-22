@@ -4,7 +4,7 @@
 // A league looks like:
 // {
 //   id, name, mode: '1v1', gamesPerPlayer,
-//   players: [{ id, name, short, skill, conf, div }],  // skill: 1 (best) to 5; conf/div are indexes or null
+//   players: [{ id, name, short, skill, conf, div }],  // skill: 1 (best) to 3; conf/div are indexes or null
 //   conferences: ['East', 'West'] or [],               // none, or 2 or more
 //   divisions: [{ name, conf }] or [],                  // conf is null when there are no conferences
 //   playoffs: { spots: 4 | 6 | 8, playIn: bool },     // per conference (or whole league with one conference)
@@ -12,7 +12,7 @@
 //   createdAt, lastPlayed, sample?
 // }
 
-const SKILLS = [1, 2, 3, 4, 5];
+const SKILLS = [1, 2, 3];
 
 const hasConfs = lg => Boolean(lg.conferences && lg.conferences.length > 1);
 const hasDivs = lg => Boolean(lg.divisions && lg.divisions.length > 0);
@@ -94,88 +94,93 @@ function autoShort(name) {
 }
 
 // ---------- Schedule ----------
-// Round-robin "circle" schedule: each day everyone plays once (one player sits out when the
-// count is odd). Rounds repeat until every player has gamesPerPlayer games. Home and away
-// alternate from one day to the next.
-function makeSchedule(playerCount, gamesPerPlayer) {
-  const slots = Array.from({ length: playerCount }, (_, i) => i);
-  if (playerCount % 2) slots.push(-1); // -1 is a bye
-  const m = slots.length;
-  const count = new Array(playerCount).fill(0);
-  const games = [];
-  let order = slots.slice();
-  let day = 0;
-  for (let round = 0; round < 2000 && count.some(c => c < gamesPerPlayer); round++) {
-    const today = [];
-    for (let i = 0; i < m / 2; i++) {
-      const a = order[i], b = order[m - 1 - i];
-      if (a < 0 || b < 0 || count[a] >= gamesPerPlayer || count[b] >= gamesPerPlayer) continue;
-      const flip = (round + i) % 2 === 1;
-      today.push({ away: flip ? a : b, home: flip ? b : a });
-      count[a]++; count[b]++;
-    }
-    if (today.length) {
-      day++;
-      for (const g of today) games.push({ id: games.length, day, away: g.away, home: g.home, final: false });
-    }
-    order = [order[0], order[m - 1], ...order.slice(1, m - 1)];
+// Each pair of players meets timesFor(a, b) times. Rules:
+//  - nobody plays two days in a row (at most every other day)
+//  - the same two players meeting in back-to-back games is avoided, but allowed when there's no other choice
+// Each day, the available players with the most games left are paired first.
+function makePairSchedule(playerCount, timesFor, seed = 1) {
+  const rand = seededRandom(seed);
+  const key = (a, b) => (a < b ? a * 1000 + b : b * 1000 + a);
+  const need = new Map();
+  const left = new Array(playerCount).fill(0);
+  for (let a = 0; a < playerCount; a++) for (let b = a + 1; b < playerCount; b++) {
+    const k = timesFor(a, b);
+    if (k > 0) { need.set(key(a, b), k); left[a] += k; left[b] += k; }
   }
-  return balanceHomeAway(games, playerCount);
+  let remaining = left.reduce((x, y) => x + y, 0) / 2;
+  const lastDay = new Array(playerCount).fill(-9);
+  const lastOpp = new Array(playerCount).fill(-1);
+  const games = [];
+  for (let day = 1; remaining > 0 && day < 10000; day++) {
+    const avail = [];
+    for (let p = 0; p < playerCount; p++) if (left[p] > 0 && day - lastDay[p] >= 2) avail.push(p);
+    const tie = new Map(avail.map(p => [p, rand()]));
+    avail.sort((x, y) => left[y] - left[x] || tie.get(x) - tie.get(y));
+    const used = new Set();
+    for (const p of avail) {
+      if (used.has(p)) continue;
+      let best = -1, bestScore = -Infinity;
+      for (const q of avail) {
+        if (q === p || used.has(q)) continue;
+        const k = need.get(key(p, q)) || 0;
+        if (!k) continue;
+        // Prefer opponents with many games left and pairs with many meetings left; avoid rematches.
+        const score = left[q] * 10 + k * 4 - (lastOpp[p] === q || lastOpp[q] === p ? 1000 : 0) + rand();
+        if (score > bestScore) { bestScore = score; best = q; }
+      }
+      if (best < 0) continue;
+      const q = best;
+      used.add(p); used.add(q);
+      need.set(key(p, q), need.get(key(p, q)) - 1);
+      left[p]--; left[q]--; remaining--;
+      lastDay[p] = lastDay[q] = day;
+      lastOpp[p] = q; lastOpp[q] = p;
+      games.push({ id: games.length, day, away: p, home: q, final: false });
+    }
+  }
+  assignHomeAway(games, playerCount);
+  return games;
 }
 
-// Even out home and away games across players.
-function balanceHomeAway(games, playerCount) {
-  // Whoever has had fewer home games so far is at home.
-  const homes = new Array(playerCount).fill(0), played = new Array(playerCount).fill(0);
+// Home and away. For every pair, meetings alternate home and away in date order, so an even number of
+// meetings splits evenly and an odd number gives one player a single extra home game. Who gets that
+// extra game is chosen so each player's total home games stays within one of half their games.
+function assignHomeAway(games, playerCount) {
+  const byPair = new Map();
   for (const g of games) {
-    const [a, b] = [g.away, g.home];
-    const needA = homes[a] - played[a] / 2, needB = homes[b] - played[b] / 2;
-    const homeIsA = needA < needB || (needA === needB && g.id % 2 === 0);
-    g.home = homeIsA ? a : b;
-    g.away = homeIsA ? b : a;
-    homes[g.home]++; played[a]++; played[b]++;
+    const a = Math.min(g.away, g.home), b = Math.max(g.away, g.home);
+    const k = a * 1000 + b;
+    if (!byPair.has(k)) byPair.set(k, { a, b, list: [] });
+    byPair.get(k).list.push(g);
   }
-  // Then swap home and away in any game where the home player has 2+ more home games than
-  // the away player, until no swap helps.
-  for (let changed = true, pass = 0; changed && pass < 50; pass++) {
+  const pairs = [...byPair.values()];
+  const homes = new Array(playerCount).fill(0);
+  pairs.forEach((pr, i) => {
+    pr.first = i % 2 ? pr.a : pr.b; // gets the extra home game when meetings are odd
+    const k = pr.list.length;
+    homes[pr.first] += Math.ceil(k / 2);
+    homes[pr.first === pr.a ? pr.b : pr.a] += Math.floor(k / 2);
+  });
+  for (let changed = true, pass = 0; changed && pass < 100; pass++) {
     changed = false;
-    for (const g of games) {
-      if (homes[g.home] - homes[g.away] >= 2) {
-        homes[g.home]--; homes[g.away]++;
-        [g.home, g.away] = [g.away, g.home];
+    for (const pr of pairs) {
+      if (pr.list.length % 2 === 0) continue;
+      const other = pr.first === pr.a ? pr.b : pr.a;
+      if (homes[pr.first] - homes[other] >= 2) {
+        homes[pr.first]--; homes[other]++;
+        pr.first = other;
         changed = true;
       }
     }
   }
-  return games;
-}
-
-// Schedule where each pair of players meets a set number of times: timesFor(a, b).
-// Each day, players with the most games left are paired first, and a pair that met recently waits.
-function makePairSchedule(playerCount, timesFor) {
-  const pairs = [];
-  for (let a = 0; a < playerCount; a++) for (let b = a + 1; b < playerCount; b++) {
-    const k = timesFor(a, b);
-    if (k > 0) pairs.push({ a, b, left: k, last: -99 });
+  for (const pr of pairs) {
+    const other = pr.first === pr.a ? pr.b : pr.a;
+    pr.list.sort((x, y) => x.day - y.day || x.id - y.id);
+    pr.list.forEach((g, i) => {
+      g.home = i % 2 === 0 ? pr.first : other;
+      g.away = i % 2 === 0 ? other : pr.first;
+    });
   }
-  const left = new Array(playerCount).fill(0);
-  for (const p of pairs) { left[p.a] += p.left; left[p.b] += p.left; }
-  const games = [];
-  for (let day = 1; pairs.some(p => p.left > 0) && day < 5000; day++) {
-    const busy = new Set();
-    const open = pairs.filter(p => p.left > 0)
-      .sort((x, y) => (left[y.a] + left[y.b]) - (left[x.a] + left[x.b]) || x.last - y.last);
-    for (const p of open) {
-      if (busy.has(p.a) || busy.has(p.b) || day - p.last < 2 && open.length > playerCount) continue;
-      busy.add(p.a); busy.add(p.b);
-      p.left--; p.last = day; left[p.a]--; left[p.b]--;
-      games.push({ id: games.length, day, away: p.a, home: p.b, final: false });
-    }
-  }
-  // Renumber days so there are no empty days.
-  const days = [...new Set(games.map(g => g.day))].sort((x, y) => x - y);
-  for (const g of games) g.day = days.indexOf(g.day) + 1;
-  return balanceHomeAway(games, playerCount);
 }
 
 // ---------- Sample leagues ----------
@@ -191,23 +196,16 @@ function seededRandom(seed) {
   };
 }
 
-function makeSampleLeague({ id, name, seed, playedDays, lastPlayed }) {
+// 30 players, 2 conferences with 3 divisions each, 80 games. playedShare is how much of the season is done.
+function makeSampleLeague({ id, name, seed, playedShare, lastPlayed }) {
   const rand = seededRandom(seed);
   const players = Array.from({ length: 30 }, (_, i) => ({
-    id: i, name: 'Player ' + (i + 1), short: 'P' + (i + 1), skill: 1 + Math.floor(rand() * 5),
+    id: i, name: 'Player ' + (i + 1), short: 'P' + (i + 1), skill: 1 + Math.floor(rand() * 3),
     div: Math.floor(i / 5), conf: Math.floor(i / 15),
   }));
-  const games = makeSchedule(30, 58);
-  // Better skill (lower number) scores a little more on average.
-  for (const g of games) {
-    if (g.day > playedDays) continue;
-    const score = p => Math.round(60 + (5 - players[p].skill) * 2.5 + rand() * 30);
-    let a = score(g.away), h = score(g.home) + 1; // a small home edge
-    if (a === h) (rand() < 0.5 ? a++ : h++);
-    Object.assign(g, { final: true, awayPts: a, homePts: h });
-  }
-  return {
-    id, name, mode: '1v1', sample: true, gamesPerPlayer: 58, players, games,
+  const format = GAME_FORMATS['30:2x3'][0];
+  const lg = {
+    id, name, mode: '1v1', sample: true, gamesPerPlayer: 80, players, format,
     conferences: ['East', 'West'],
     divisions: [
       { name: 'Atlantic', conf: 0 }, { name: 'Central', conf: 0 }, { name: 'Southeast', conf: 0 },
@@ -216,6 +214,17 @@ function makeSampleLeague({ id, name, seed, playedDays, lastPlayed }) {
     playoffs: { spots: 8, playIn: true },
     createdAt: lastPlayed, lastPlayed,
   };
+  lg.games = makePairSchedule(30, (a, b) => formatTimes(lg, format, a, b), seed);
+  const lastDay = Math.round(Math.max(...lg.games.map(g => g.day)) * playedShare);
+  // Better skill (lower number) scores a little more on average.
+  for (const g of lg.games) {
+    if (g.day > lastDay) continue;
+    const score = p => Math.round(60 + (3 - players[p].skill) * 4 + rand() * 30);
+    let a = score(g.away), h = score(g.home) + 1; // a small home edge
+    if (a === h) (rand() < 0.5 ? a++ : h++);
+    Object.assign(g, { final: true, awayPts: a, homePts: h });
+  }
+  return lg;
 }
 
 // ---------- Standings ----------

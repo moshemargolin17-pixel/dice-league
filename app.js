@@ -56,9 +56,9 @@ $('rollBtn').addEventListener('click', () => {
 // Leagues you create are saved in this browser. The three sample leagues are always listed
 // so there is something to look at.
 const SAMPLE_LEAGUES = [
-  { id: 'sample-dice-league', name: 'Dice League', seed: 2026, playedDays: 34, lastPlayed: '2026-11-21T21:00:00.000Z' },
-  { id: 'sample-friday-night', name: 'Friday Night League', seed: 77, playedDays: 12, lastPlayed: '2026-11-14T22:30:00.000Z' },
-  { id: 'sample-summer', name: 'Summer League', seed: 413, playedDays: 58, lastPlayed: '2026-08-30T19:15:00.000Z' },
+  { id: 'sample-dice-league', name: 'Dice League', seed: 2026, playedShare: 0.6, lastPlayed: '2026-11-21T21:00:00.000Z' },
+  { id: 'sample-friday-night', name: 'Friday Night League', seed: 77, playedShare: 0.2, lastPlayed: '2026-11-14T22:30:00.000Z' },
+  { id: 'sample-summer', name: 'Summer League', seed: 413, playedShare: 1, lastPlayed: '2026-08-30T19:15:00.000Z' },
 ].map(makeSampleLeague);
 
 const myLeagues = () => readJSON('dl-leagues', []);
@@ -279,7 +279,7 @@ function showError(id, msg) {
 }
 
 function playerRow(i) {
-  const p = draft.players[i] || { name: '', short: '', skill: 3, shortTouched: false };
+  const p = draft.players[i] || { name: '', short: '', skill: 2, shortTouched: false };
   draft.players[i] = p;
   const groups = draftGroups();
   const shortShown = p.shortTouched ? p.short : autoShort(p.name || `Player ${i + 1}`);
@@ -296,7 +296,7 @@ function playerRow(i) {
     <label class="prow-field prow-skill">
       <span class="sr">Player ${i + 1} skill</span>
       <select id="nlK${i}" data-k="skill">
-        ${SKILLS.map(k => `<option value="${k}"${k === p.skill ? ' selected' : ''}>Skill ${k}${k === 1 ? ' · best' : k === 5 ? ' · lowest' : ''}</option>`).join('')}
+        ${SKILLS.map(k => `<option value="${k}"${k === p.skill ? ' selected' : ''}>Skill ${k}${k === 1 ? ' · best' : k === SKILLS[SKILLS.length - 1] ? ' · lowest' : ''}</option>`).join('')}
       </select>
     </label>
     ${groups.length ? `<label class="prow-field prow-group">
@@ -350,7 +350,7 @@ $('newStep1').addEventListener('submit', e => {
   if (draft.groupsFor !== groupsFor) {
     draft.groupsFor = groupsFor;
     for (let i = 0; i < s.n; i++) {
-      draft.players[i] = draft.players[i] || { name: '', short: '', skill: 3, shortTouched: false };
+      draft.players[i] = draft.players[i] || { name: '', short: '', skill: 2, shortTouched: false };
       draft.players[i].group = draft.split.size ? Math.floor(i / draft.split.size) : null;
     }
   }
@@ -437,7 +437,7 @@ $('newStep2').addEventListener('submit', e => {
     name: s.name, mode: '1v1', gamesPerPlayer: s.g, players, conferences, divisions,
     games: s.format
       ? makePairSchedule(s.n, (a, b) => formatTimes({ players, conferences }, s.format, a, b))
-      : makeSchedule(s.n, s.g),
+      : makePairSchedule(s.n, () => Math.max(1, Math.round(s.g / (s.n - 1)))),
     format: s.format || null,
     playoffs: s.playoffs,
     createdAt: now, lastPlayed: now,
