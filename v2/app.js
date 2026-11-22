@@ -743,47 +743,6 @@ function scenarios(lg, games) {
   return out;
 }
 
-function recordsPanel(title, items, empty) {
-  return `<h2 class="panel-title">${esc(title)}</h2>` + (items.length
-    ? items.map(it => `<div class="rrow"><div class="rrow-text"><p class="rlab">${esc(it.label)}</p><p class="rwho">${esc(it.who)}</p></div><p class="rval">${esc(it.value)}</p></div>`).join('')
-    : `<p class="rempty">${esc(empty)}</p>`);
-}
-
-function dayRecords(lg, games) {
-  const fin = games.filter(g => g.final);
-  if (!fin.length) return [];
-  const pick = f => fin.reduce((b, g) => (b == null || f(g) > f(b) ? g : b), null);
-  const name = p => lg.players[p].name;
-  const winner = g => (g.homePts > g.awayPts ? g.home : g.away);
-  const loser = g => (g.homePts > g.awayPts ? g.away : g.home);
-  const top = pick(g => Math.max(g.homePts, g.awayPts));
-  const big = pick(g => Math.abs(g.homePts - g.awayPts));
-  const close = pick(g => -Math.abs(g.homePts - g.awayPts));
-  return [
-    { label: 'Top score', who: name(winner(top)), value: String(Math.max(top.homePts, top.awayPts)) },
-    { label: 'Biggest win', who: `${name(winner(big))} over ${name(loser(big))}`, value: '+' + Math.abs(big.homePts - big.awayPts) },
-    { label: 'Closest game', who: `${name(close.away)} vs ${name(close.home)}`, value: String(Math.abs(close.homePts - close.awayPts)) },
-  ];
-}
-
-function seasonLeaders(lg) {
-  const rows = computeStandings(lg).filter(r => r.gp);
-  if (!rows.length) return [];
-  const best = f => rows.reduce((b, r) => (b == null || f(r) > f(b) ? r : b), null);
-  const name = r => lg.players[r.p].name;
-  const rec1 = best(r => r.pct + r.w / 1000);
-  const ppg = best(r => r.pf / r.gp);
-  const diff = best(r => r.diff / r.gp);
-  const streak = best(r => (r.streak[0] === 'W' ? Number(r.streak.slice(1)) : 0));
-  const out = [
-    { label: 'Best record', who: name(rec1), value: rec(rec1.w, rec1.l) },
-    { label: 'Most points per game', who: name(ppg), value: (ppg.pf / ppg.gp).toFixed(1) },
-    { label: 'Best point differential', who: name(diff), value: (diff.diff >= 0 ? '+' : '') + (diff.diff / diff.gp).toFixed(1) },
-  ];
-  if (streak.streak[0] === 'W') out.push({ label: 'Longest win streak going', who: name(streak), value: streak.streak });
-  return out;
-}
-
 function renderLeagueHome() {
   const lg = currentLeague;
   const today = todayOf(lg), last = lastDayOf(lg);
@@ -811,8 +770,6 @@ function renderLeagueHome() {
   $('dayScen').hidden = !sc.length;
   $('dayScen').innerHTML = sc.length ? `<h2 class="panel-title">On the line today</h2>${sc.map(t => `<p class="scl">${t}</p>`).join('')}` : '';
 
-  $('dayRecords').innerHTML = recordsPanel(`Day ${day}`, dayRecords(lg, games), 'Top score, biggest win and closest game show up here once games are final.');
-  $('seasonLeaders').innerHTML = recordsPanel('Season leaders', seasonLeaders(lg), 'Leaders show up here once games are played.');
 }
 
 function stepDay(delta) {
