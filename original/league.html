@@ -2161,25 +2161,15 @@ const E = (() => {
     if (s.phase === 'reg') return 'Day ' + s.day.cur + ' of ' + seasonLastDay();
     if (s.phase === 'done') return 'Season complete';
     const open = s.post.series.filter(x => !seriesInfo(D, x).done);
-    const r = open.length ? Math.max(...open.map(x => x.round)) : 0;
+    const r = Math.max(0, ...(open.length ? open : s.post.series).map(x => x.round));
     return roundName(r) + ' · Day ' + s.day.cur + ' of ' + seasonLastDay();
   }
   // The latest day the season could end, playoffs included: a dry run of the postseason schedule (the same rules as
   // scheduleNext: a day of rest, at most 4 games a day, a round waits for the one before it) with every series going the distance.
-  // A few ways the series could go (every one going the distance, sweeps either way, fixed mixes), since a
-  // sweep in one series can knock the others out of step; Y is the latest of them.
   function seasonLastDay() {
-    const s = S.season;
-    if (!L.lines()) return s.totalDays;
-    if (s.phase === 'done') return s.day.cur;
-    let y = 0;
-    for (let k = 0; k < 9; k++) y = Math.max(y, lastDayIf(k));
-    return y;
-  }
-  function lastDayIf(policy) {
     const s = S.season, ln = L.lines();
-    let seedR = 1234567 + policy * 7919;
-    const coin = () => ((seedR = (seedR * 1103515245 + 12345) % 2147483648) / 2147483648) < 0.5;
+    if (!ln) return s.totalDays;
+    if (s.phase === 'done') return s.day.cur;
     const post = s.phase !== 'reg' && D;
     const real = post ? s.post.series : [];
     const last = {};
@@ -2187,9 +2177,8 @@ const E = (() => {
     const nodes = [], byId = {};
     const done = n => n.wh >= n.need || n.wl >= n.need;
     const win = n => (n.wh >= n.need ? n.hi : n.lo), lose = n => (n.wh >= n.need ? n.lo : n.hi);
-    const play = (n, day) => {   // 0: the side behind wins (the series runs long), 1: higher seed sweeps, 2: lower seed, else mixed
-      const hiWins = policy === 0 ? n.wh <= n.wl : policy === 1 ? true : policy === 2 ? false : coin();
-      if (hiWins) n.wh++; else n.wl++;
+    const play = (n, day) => {   // the side behind wins, so the series runs as long as it can
+      if (n.wh <= n.wl) n.wh++; else n.wl++;
       [n.hi, n.lo].forEach(p => { last[p] = Math.max(last[p] || 0, day); });
     };
     let ended = Math.max(s.day.cur, post ? 0 : s.totalDays);
