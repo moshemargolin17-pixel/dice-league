@@ -313,10 +313,29 @@ function playoffLines(lg) {
 // The groups seeded separately: each conference, or the whole league.
 const seedGroups = lg => (hasConfs(lg) ? lg.conferences.map((_, ci) => playersInConf(lg, ci)) : [allIds(lg)]);
 
-function playoffSummary(spots, playIn, twoConfs) {
+// Top 6 with divisions: division winners take seeds 1-3 (ordered by record), then the next 3 best records.
+const divisionSeeding = lg => Boolean(lg.playoffs && lg.playoffs.spots === 6 && hasDivs(lg));
+
+// Seed order for a group of players (a conference, or the whole league).
+function seedOrder(lg, rows, ids) {
+  const byRecord = rankGroup(lg, rows, ids);
+  if (!divisionSeeding(lg)) return byRecord;
+  const divs = [...new Set(ids.map(p => divOf(lg, p)))];
+  const winners = divs.map(d => rankGroup(lg, rows, ids.filter(p => divOf(lg, p) === d))[0].p);
+  const order = [
+    ...rankGroup(lg, rows, winners),
+    ...rankGroup(lg, rows, ids.filter(p => !winners.includes(p))),
+  ];
+  const lead = order[0];
+  for (const r of order) r.gb = ((lead.w - r.w) + (r.l - lead.l)) / 2;
+  return order;
+}
+
+function playoffSummary(spots, playIn, twoConfs, divs) {
   const end = twoConfs ? ' Conference champions meet in the Finals.' : '';
+  const divNote = spots === 6 && divs ? ' Division winners take seeds 1 to 3 in order of record, and the next 3 best records take seeds 4 to 6.' : '';
   if (spots === 4) return `Top 4 make it. 1 plays 4 and 2 plays 3, and the winners meet.${end}`;
-  if (spots === 6) return `Top 6 make it. 1 and 2 get a bye while 3 plays 6 and 4 plays 5. Then 1 plays the 4–5 winner and 2 plays the 3–6 winner, and those winners meet.${end}`;
+  if (spots === 6) return `Top 6 make it.${divNote} 1 and 2 get a bye while 3 plays 6 and 4 plays 5. Then 1 plays the 4–5 winner and 2 plays the 3–6 winner, and those winners meet.${end}`;
   const pi = playIn ? ' Seeds 7 to 10 play in: 7 plays 8 for the 7 seed, 9 plays 10, and that winner plays the 7–8 loser for the 8 seed.' : '';
   return `Top 8 make it. 1 plays 8, 4 plays 5, 2 plays 7 and 3 plays 6, then the bracket plays down to one winner.${pi}${end}`;
 }
@@ -334,6 +353,25 @@ function raceMarks(lg, rows) {
       const clinchedTop = K => others.filter(q => maxW(q) >= r.w).length < K;
       const cantMakeTop = K => others.filter(q => rows[q].w > maxW(p)).length >= K;
       let mark = null;
+      if (divisionSeeding(lg)) {
+        // Top 3 by record is always a top 6 seed; winning the division is too.
+        const rivals = others.filter(q => divOf(lg, q) === divOf(lg, p));
+        const clinchedDiv = rivals.every(q => maxW(q) < r.w);
+        const canWinDiv = rivals.every(q => rows[q].w <= maxW(p));
+        // Players who could still finish level with or above you, not counting division winners already decided
+        // (they take seeds 1-3 and never block seeds 4-6). Fewer than 3 of them means a top 6 seed is locked.
+        const clinched = q => {
+          const qRivals = group.filter(x => x !== q && divOf(lg, x) === divOf(lg, q));
+          return qRivals.every(x => maxW(x) < rows[q].w);
+        };
+        const threats = others.filter(q => maxW(q) >= r.w && !clinched(q)).length;
+        if (clinchedTop(1)) mark = 'z';
+        else if (clinchedDiv) mark = 'y';
+        else if (clinchedTop(3) || threats < 3) mark = 'X';
+        else if (cantMakeTop(6) && !canWinDiv) mark = 'E';
+        marks[p] = mark;
+        continue;
+      }
       if (clinchedTop(1)) mark = 'z';
       else if (clinchedTop(lines.direct)) mark = 'X';
       else if (lines.playIn && clinchedTop(lines.post) && cantMakeTop(lines.direct)) mark = 'PI';
@@ -349,6 +387,7 @@ function markText(lg) {
   const l = playoffLines(lg) || { direct: 0, post: 0 };
   return {
     z: '#1 seed',
+    y: 'Won division',
     X: `Playoffs (top ${l.direct})`,
     PI: 'Play-in (7–10)',
     PS: 'Postseason (top 10)',
