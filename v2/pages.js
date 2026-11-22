@@ -200,9 +200,9 @@ function renderPlayerPage(lg, p) {
   const splits = [
     ['Home', f.home], ['Away', f.away],
     ...(f.div ? [['Division', f.div]] : []),
-    ...(f.conf ? [['Conference', f.conf], ['Other conference', f.other]] : []),
-    ['Last 10', f.last10], ['vs .500 and up', f.vsGood], ['vs under .500', f.vsBad],
-    [`Close (${CLOSE_MARGIN} or fewer)`, f.close],
+    ...(f.conf ? [['Conference', f.conf], ['Interconference', f.other]] : []),
+    ['Last 10', f.last10], ['vs .500+', f.vsGood], ['vs under .500', f.vsBad],
+    ['Close', f.close],
   ];
   const pb = (label, x, value) => tile(label, x ? value(x) : '—', x ? esc(at(lg, x)) : '');
   const pf = f.fin.length ? (f.ppg).toFixed(1) : '—', pa = f.fin.length ? f.opg.toFixed(1) : '—';
@@ -298,13 +298,15 @@ function renderStatsPage(lg) {
   };
   const recBW = (label, key) => bw(label, f => recPct(f[key]) + f[key].length / 1e4, f => recText(f[key]), f => f[key] && f[key].length);
   const situational = [
-    recBW('vs .500 and up', 'vsGood'), recBW('vs under .500', 'vsBad'), recBW('Home', 'home'), recBW('Away', 'away'),
-    recBW(`Close (${CLOSE_MARGIN} or fewer)`, 'close'),
-    ...(hasDivs(lg) ? [recBW('Division', 'div')] : []), ...(hasConfs(lg) ? [recBW('Conference', 'conf'), recBW('Other conference', 'other')] : []),
+    recBW('vs .500+', 'vsGood'), recBW('vs under .500', 'vsBad'), recBW('Home', 'home'), recBW('Away', 'away'),
+    recBW('Close', 'close'),
+    ...(hasDivs(lg) ? [recBW('Division', 'div')] : []), ...(hasConfs(lg) ? [recBW('Conference', 'conf'), recBW('Interconference', 'other')] : []),
   ];
   const playerStats = [
     bw('Average margin', f => f.margin, f => sign1(f.margin)),
     bw('Margin of victory', f => f.mov ?? -99, f => fmt1(f.mov), f => f.mov != null),
+    // closest losses are best (margins in losses are negative, so the highest is the smallest loss)
+    bw('Margin of loss', f => f.mol ?? -99, f => sign1(f.mol), f => f.mol != null),
     bw('Lowest score', f => -Math.min(...f.fin.map(x => x.pts)), f => Math.min(...f.fin.map(x => x.pts))),
     bw('90+ games', f => f.games90.length, f => f.games90.length),
     bw('100+ games', f => f.games100.length, f => f.games100.length),
@@ -339,11 +341,12 @@ function renderStatsPage(lg) {
     <h3 class="h2">League leaders</h3>
     <div class="cols2">
       ${leaders(`Best in close games`, f => recPct(f.close) + f.close.length / 1e4, f => recText(f.close), f => f.close.length)}
-      ${leaders('Best vs .500 and up', f => recPct(f.vsGood) + f.vsGood.length / 1e4, f => recText(f.vsGood), f => f.vsGood.length)}
+      ${leaders('Best vs .500+', f => recPct(f.vsGood) + f.vsGood.length / 1e4, f => recText(f.vsGood), f => f.vsGood.length)}
       ${leaders('Most blowout wins', f => f.blowWins.length, f => f.blowWins.length, f => f.blowWins.length)}
       ${leaders('Most 90+ games', f => f.games90.length, f => f.games90.length, f => f.games90.length)}
       ${leaders('Most 100+ games', f => f.games100.length, f => f.games100.length, f => f.games100.length)}
       ${leaders('Longest win streak', f => f.winRun, f => f.winRun, f => f.winRun)}
+      ${leaders('Longest losing streak', f => f.loseRun, f => f.loseRun, f => f.loseRun)}
       ${gameList('Highest scores', hiPts, hiPts, g => `${pname(lg, W(g))} vs ${pname(lg, L(g))}`)}
       ${gameList('Biggest wins', g => hiPts(g) - loPts(g), g => '+' + (hiPts(g) - loPts(g)), g => `${pname(lg, W(g))} over ${pname(lg, L(g))}`)}
       ${gameList('Highest combined', g => g.homePts + g.awayPts, g => g.homePts + g.awayPts, scoreLine)}
