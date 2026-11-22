@@ -133,9 +133,10 @@
                 <option value="30">30</option>
               </select>
             </label>
-            <label class="field" for="nlGames">
+            <label class="field" for="nlGames" id="nlGamesLabel">
               <span class="field-label">Games per player</span>
               <input id="nlGames" type="number" min="1" max="200" step="1" value="18" inputmode="numeric">
+              <select id="nlGamesPick" hidden></select>
             </label>
           </div>
           <p class="hint" id="nlHint" aria-live="polite"></p>

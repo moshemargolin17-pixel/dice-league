@@ -22,6 +22,10 @@ const confOf = (lg, p) => lg.players[p].conf;
 // League sizes you can pick, and the ways each one can be divided.
 // c = number of conferences (0 = everyone in one conference), d = divisions (not offered right now).
 const LEAGUE_SIZES = [5, 10, 15, 20, 24, 30];
+// Games per player, for sizes that have fixed choices. Sizes not listed take any even-enough number.
+const GAME_CHOICES = {
+  5: [12, 20], // everyone plays each other 3 or 5 times
+};
 const SPLITS = {
   5: [{ c: 0, d: 0 }],
   10: [{ c: 2, d: 0 }, { c: 0, d: 0 }],

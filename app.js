@@ -151,6 +151,22 @@ function draftGroups() {
   return [];
 }
 
+// Sizes with fixed game counts get a dropdown; the rest get a number box.
+function renderGameChoices() {
+  const n = Number($('nlPlayers').value);
+  const choices = GAME_CHOICES[n];
+  $('nlGames').hidden = Boolean(choices);
+  $('nlGamesPick').hidden = !choices;
+  $('nlGamesLabel').htmlFor = choices ? 'nlGamesPick' : 'nlGames';
+  if (choices) {
+    const keep = Number($('nlGamesPick').value);
+    $('nlGamesPick').innerHTML = choices.map(g => {
+      const times = g / (n - 1);
+      return `<option value="${g}"${g === keep ? ' selected' : ''}>${g} games · play each other ${times === 1 ? 'once' : times === 2 ? 'twice' : times + ' times'}</option>`;
+    }).join('');
+  }
+}
+
 function renderSplits() {
   const n = Number($('nlPlayers').value);
   const wrap = $('nlSplitWrap');
@@ -218,17 +234,18 @@ function checkGroupNames() {
 function readStep1() {
   const name = $('nlName').value.trim();
   const n = Number($('nlPlayers').value);
-  const g = Number($('nlGames').value);
-  if (!name) return { error: 'Give the league a name.' };
+  const g = Number(GAME_CHOICES[n] ? $('nlGamesPick').value : $('nlGames').value);
   if (!LEAGUE_SIZES.includes(n)) return { error: `Pick a league size: ${LEAGUE_SIZES.join(', ')} players.` };
+  if (GAME_CHOICES[n] && !GAME_CHOICES[n].includes(g)) return { error: `With ${n} players, pick ${GAME_CHOICES[n].join(' or ')} games.` };
   if (!Number.isInteger(g) || g < 1 || g > 200) return { error: 'Games per player must be a whole number from 1 to 200.' };
   if ((n * g) % 2) return { error: `With ${n} players, games per player must be even so everyone gets the same number. Try ${g - 1} or ${g + 1}.` };
+  if (!name) return { error: 'Give the league a name.', n, g, nameMissing: true };
   return { name, n, g };
 }
 
 function updateStep1Hint() {
   const s = readStep1();
-  if (s.error) { $('nlHint').textContent = ''; return; }
+  if (s.error && !s.nameMissing) { $('nlHint').textContent = ''; return; }
   const total = (s.n * s.g) / 2;
   const times = s.g / (s.n - 1);
   const vsEach = Number.isInteger(times) ? ` Everyone plays everyone ${times === 1 ? 'once' : times === 2 ? 'twice' : times + ' times'}.` : '';
@@ -287,13 +304,15 @@ function startNewLeague() {
   $('nlName').value = '';
   showError('nlError', '');
   showError('nlError2', '');
+  renderGameChoices();
   updateStep1Hint();
   renderSplits();
   showStep(1);
 }
 
-['nlName', 'nlPlayers', 'nlGames'].forEach(id => $(id).addEventListener(id === 'nlPlayers' ? 'change' : 'input', () => {
+['nlName', 'nlPlayers', 'nlGames', 'nlGamesPick'].forEach(id => $(id).addEventListener(id === 'nlPlayers' || id === 'nlGamesPick' ? 'change' : 'input', () => {
   showError('nlError', '');
+  if (id === 'nlPlayers') renderGameChoices();
   updateStep1Hint();
   if (id === 'nlPlayers') renderSplits();
 }));
