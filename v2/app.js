@@ -669,9 +669,8 @@ function renderLeagueHeader(lg, tab) {
   const postText = post.games.length
     ? ` · Postseason days ${Math.min(...post.games.map(g => g.day))}–${lastDayOf(lg)}`
     : '';
-  $('lgSub').textContent = seasonDone(lg)
-    ? `Season 1 · Regular season complete${postText}`
-    : `Season 1 · Day ${todayOf(lg)} of ${seasonDays(lg)}${postText}`;
+  // "Day X of Y" counts the whole season, playoffs included.
+  $('lgSub').textContent = `Season 1 · Day ${todayOf(lg)} of ${lastDayOf(lg)}${postText}`;
   document.querySelectorAll('.lgtabs a').forEach(a => {
     if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
   });
