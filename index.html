@@ -18,6 +18,7 @@
         Dice League
       </a>
       <nav class="topnav" aria-label="Main">
+        <a href="#standings">Standings</a>
         <a href="#rules">Rules</a>
         <a href="#players">Players</a>
         <a href="#options">Options</a>
@@ -56,31 +57,65 @@
         </div>
 
         <div class="modes">
-          <a class="mode" href="#quick-game">
-            <span class="mode-badge">1 game</span>
-            <h3>Quick Game</h3>
-            <p>Two players, one game. Roll it out and see who wins.</p>
-            <span class="mode-go">Play <span aria-hidden="true">→</span></span>
+          <a class="mode mode-live" href="#standings">
+            <span class="mode-badge">Open now</span>
+            <h3>1 vs 1</h3>
+            <p>Player against player. Thirty players, two conferences, one champion.</p>
+            <span class="mode-go">See the standings <span aria-hidden="true">→</span></span>
           </a>
-          <a class="mode" href="#season">
-            <span class="mode-badge">Full schedule</span>
-            <h3>League Season</h3>
-            <p>Play a schedule of games, climb the standings and crown a champion.</p>
-            <span class="mode-go">Start a season <span aria-hidden="true">→</span></span>
+          <a class="mode mode-soon" href="#2v2">
+            <span class="mode-badge">Coming soon</span>
+            <h3>2 vs 2</h3>
+            <p>Teams of two.</p>
           </a>
-          <a class="mode" href="#tournament">
-            <span class="mode-badge">Knockout</span>
-            <h3>Tournament</h3>
-            <p>Lose once and you're out. The last player standing wins.</p>
-            <span class="mode-go">Build a bracket <span aria-hidden="true">→</span></span>
+          <a class="mode mode-soon" href="#3v3">
+            <span class="mode-badge">Coming soon</span>
+            <h3>3 vs 3</h3>
+            <p>Teams of three.</p>
           </a>
-          <a class="mode" href="#practice">
-            <span class="mode-badge">Solo</span>
-            <h3>Practice</h3>
-            <p>Roll against the computer to learn the rules with nothing on the line.</p>
-            <span class="mode-go">Practice <span aria-hidden="true">→</span></span>
+          <a class="mode mode-soon" href="#4v4">
+            <span class="mode-badge">Coming soon</span>
+            <h3>4 vs 4</h3>
+            <p>Teams of four.</p>
+          </a>
+          <a class="mode mode-soon" href="#5v5">
+            <span class="mode-badge">Coming soon</span>
+            <h3>5 vs 5</h3>
+            <p>Full teams of five.</p>
           </a>
         </div>
+      </div>
+    </section>
+
+    <!-- Standings (1 vs 1) -->
+    <section id="view-standings" class="view" hidden>
+      <div class="wrap section stand">
+        <div class="stand-head">
+          <div>
+            <p class="eyebrow">1 vs 1</p>
+            <h1>Standings</h1>
+            <p class="muted" id="standMeta"></p>
+          </div>
+          <div class="seg" id="standTabs" role="tablist" aria-label="Group standings by">
+            <button type="button" role="tab" data-view="conf">Conference</button>
+            <button type="button" role="tab" data-view="div">Division</button>
+            <button type="button" role="tab" data-view="league">League</button>
+          </div>
+        </div>
+        <p class="sample">Sample results. These games are made up to show how the table works. Real results replace them once game logging is built.</p>
+        <div id="standTables" class="stack"></div>
+        <div class="legend">
+          <span><span class="mark mark-z">z</span>#1 seed</span>
+          <span><span class="mark mark-X">X</span>Playoffs (top 6)</span>
+          <span><span class="mark mark-PI">PI</span>Play-in (7–10)</span>
+          <span><span class="mark mark-PS">PS</span>Postseason (top 10)</span>
+          <span><span class="mark mark-E">E</span>Eliminated</span>
+        </div>
+        <details class="key">
+          <summary>What the columns mean</summary>
+          <p><b>W</b> and <b>L</b> are wins and losses. <b>PCT</b> is win percentage. <b>GB</b> is games behind first place. <b>Home</b> and <b>Away</b> are records in home and away games. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the player's division, conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points scored and allowed per game, and <b>Diff</b> is the difference. <b>L10</b> is the record in the last 10 games. <b>Strk</b> is the current winning or losing streak.</p>
+          <p>A solid line falls under the 6th seed (playoffs) and a dashed line under the 10th (play-in). Ties are broken by head-to-head record, then division or conference record, then point differential.</p>
+        </details>
       </div>
     </section>
 
@@ -99,6 +134,7 @@
     <div class="wrap">Dice League</div>
   </footer>
 
+  <script src="league.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
