@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Dice League</title>
+  <meta name="description" content="Pick a mode and start rolling.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#">
+        <span class="brand-die" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        Dice League
+      </a>
+      <nav class="topnav" aria-label="Main">
+        <a href="#rules">Rules</a>
+        <a href="#players">Players</a>
+        <a href="#options">Options</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Home -->
+    <section id="view-home" class="view">
+      <div class="hero">
+        <div class="wrap hero-inner">
+          <div class="hero-copy">
+            <p class="eyebrow">Season 1</p>
+            <h1>Dice League</h1>
+            <p class="lede">Pick a mode below and start rolling. Try the dice first if you like.</p>
+          </div>
+
+          <div class="table" aria-label="Dice tray">
+            <div class="dice">
+              <div class="die die-red" id="dieA" data-value="5" role="img" aria-label="Red die showing 5"></div>
+              <div class="die die-blue" id="dieB" data-value="3" role="img" aria-label="Blue die showing 3"></div>
+            </div>
+            <div class="tray-foot">
+              <p class="total" aria-live="polite">Total <strong id="total">8</strong></p>
+              <button type="button" class="btn btn-roll" id="rollBtn">Roll the dice</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="wrap section">
+        <div class="section-head">
+          <h2>Choose a mode</h2>
+          <p class="muted">Each mode is a different way to play.</p>
+        </div>
+
+        <div class="modes">
+          <a class="mode" href="#quick-game">
+            <span class="mode-badge">1 game</span>
+            <h3>Quick Game</h3>
+            <p>Two players, one game. Roll it out and see who wins.</p>
+            <span class="mode-go">Play <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="mode" href="#season">
+            <span class="mode-badge">Full schedule</span>
+            <h3>League Season</h3>
+            <p>Play a schedule of games, climb the standings and crown a champion.</p>
+            <span class="mode-go">Start a season <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="mode" href="#tournament">
+            <span class="mode-badge">Knockout</span>
+            <h3>Tournament</h3>
+            <p>Lose once and you're out. The last player standing wins.</p>
+            <span class="mode-go">Build a bracket <span aria-hidden="true">→</span></span>
+          </a>
+          <a class="mode" href="#practice">
+            <span class="mode-badge">Solo</span>
+            <h3>Practice</h3>
+            <p>Roll against the computer to learn the rules with nothing on the line.</p>
+            <span class="mode-go">Practice <span aria-hidden="true">→</span></span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Placeholder page used by every mode and menu link until it is built -->
+    <section id="view-page" class="view" hidden>
+      <div class="wrap section page">
+        <a class="back" href="#"><span aria-hidden="true">←</span> Home</a>
+        <h1 id="pageTitle">Mode</h1>
+        <p class="lede" id="pageText"></p>
+        <div class="soon">Coming soon</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <div class="wrap">Dice League</div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
