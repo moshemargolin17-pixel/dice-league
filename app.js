@@ -154,7 +154,7 @@ function draftGroups() {
 function renderSplits() {
   const n = Number($('nlPlayers').value);
   const wrap = $('nlSplitWrap');
-  if (!Number.isInteger(n) || n < 2 || n > 30) { wrap.hidden = true; return; }
+  if (!LEAGUE_SIZES.includes(n)) { wrap.hidden = true; return; }
   wrap.hidden = false;
   const opts = splitOptions(n);
   if (!opts.some(o => splitKey(o) === splitKey(draft.split))) draft.split = opts[0];
@@ -163,7 +163,6 @@ function renderSplits() {
       <input type="radio" name="nlSplit" id="nlSplit${i}" value="${splitKey(o)}"${splitKey(o) === splitKey(draft.split) ? ' checked' : ''}>
       <span>${splitLabel(o)}</span>
     </label>`).join('');
-  $('nlSplitNote').hidden = opts.length > 1;
   renderGroupNames();
 }
 
@@ -221,7 +220,7 @@ function readStep1() {
   const n = Number($('nlPlayers').value);
   const g = Number($('nlGames').value);
   if (!name) return { error: 'Give the league a name.' };
-  if (!Number.isInteger(n) || n < 2 || n > 30) return { error: 'Players must be a whole number from 2 to 30.' };
+  if (!LEAGUE_SIZES.includes(n)) return { error: `Pick a league size: ${LEAGUE_SIZES.join(', ')} players.` };
   if (!Number.isInteger(g) || g < 1 || g > 200) return { error: 'Games per player must be a whole number from 1 to 200.' };
   if ((n * g) % 2) return { error: `With ${n} players, games per player must be even so everyone gets the same number. Try ${g - 1} or ${g + 1}.` };
   return { name, n, g };
@@ -280,7 +279,7 @@ function showStep(n) {
 
 function startNewLeague() {
   draft.players = [];
-  draft.split = { c: 0, d: 0, size: 0 };
+  draft.split = { c: -1, d: -1, size: 0 }; // nothing picked yet, so the first option is used
   draft.confNames = [];
   draft.divNames = [];
   draft.groupsFor = '';
@@ -293,7 +292,7 @@ function startNewLeague() {
   showStep(1);
 }
 
-['nlName', 'nlPlayers', 'nlGames'].forEach(id => $(id).addEventListener('input', () => {
+['nlName', 'nlPlayers', 'nlGames'].forEach(id => $(id).addEventListener(id === 'nlPlayers' ? 'change' : 'input', () => {
   showError('nlError', '');
   updateStep1Hint();
   if (id === 'nlPlayers') renderSplits();

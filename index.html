@@ -124,7 +124,14 @@
           <div class="field-row">
             <label class="field" for="nlPlayers">
               <span class="field-label">Players</span>
-              <input id="nlPlayers" type="number" min="2" max="30" step="1" value="10" inputmode="numeric">
+              <select id="nlPlayers">
+                <option value="5">5</option>
+                <option value="10" selected>10</option>
+                <option value="15">15</option>
+                <option value="20">20</option>
+                <option value="24">24</option>
+                <option value="30">30</option>
+              </select>
             </label>
             <label class="field" for="nlGames">
               <span class="field-label">Games per player</span>
@@ -135,7 +142,6 @@
           <fieldset class="field split-wrap" id="nlSplitWrap">
             <legend class="field-label">How to divide the league</legend>
             <div class="splits" id="nlSplits"></div>
-            <p class="hint" id="nlSplitNote" hidden>This number of players can't be split into equal groups, so it plays as one table.</p>
           </fieldset>
           <div id="nlGroupNames" class="group-names" hidden></div>
           <p class="error" id="nlError" role="alert" hidden></p>
