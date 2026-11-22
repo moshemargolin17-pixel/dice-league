@@ -1,4 +1,11 @@
-<!doctype html><html lang="en"><head>
+<!doctype html><html lang="en" data-design="app"><head>
+<script>
+  // Show the saved design right away (League App until one is chosen), so the page never flashes another look.
+  (function () {
+    var ok = ['app','chalk','sunset','blueprint','popart','wildwest','usa','civilwar','revolution','confederate','bauhaus','mono'];
+    try { var t = localStorage.getItem('diceLeague:theme'); if (ok.indexOf(t) >= 0) document.documentElement.setAttribute('data-design', t); } catch (e) {}
+  })();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="theme-color" content="#0E1A2B"><meta name="apple-mobile-web-app-capable" content="yes">
@@ -978,6 +985,38 @@ button.pcell:hover,button.pcell:focus-visible{border-color:var(--accent)}
 .simuntil input{min-height:38px;padding:4px 6px}
 .simuntil .btn{min-height:38px}
 
+
+/* ---- Black & White ---- */
+html[data-design="mono"]{
+  color-scheme:light;
+  --bg:#FFFFFF; --bg-img:none;
+  --page-ink:#000000; --page-muted:#555555;
+  --head-bg:#000000; --head-ink:#FFFFFF; --head-muted:#BDBDBD; --head-border:#000000; --head-border-w:2px;
+  --panel:#FFFFFF; --panel-2:#F2F2F2; --border:#000000; --panel-border:2px solid #000000; --shadow:none;
+  --ink:#000000; --muted:#555555; --line:#D6D6D6;
+  --accent:#000000; --accent-ink:#FFFFFF; --link:#000000;
+  --live:#000000; --good:#000000; --bad:#000000; --warn:#000000;
+  --sc-bg:transparent; --sc-win:#000000; --sc-lose:#9A9A9A; --sc-win-bg:transparent; --sc-lose-bg:transparent; --sc-live:#000000; --sc-live-bg:transparent; --sc-size:28px; --sc-radius:0;
+  --num:#000000;
+  --f-display:'Archivo', system-ui, sans-serif; --f-body:'Archivo', system-ui, sans-serif; --f-num:'Archivo Narrow', 'Arial Narrow', sans-serif;
+  --radius:0; --h-case:uppercase; --h-track:.06em; --h-weight:800; --h-size:20px;
+  --nav-ink:#BDBDBD; --nav-on-bg:#FFFFFF; --nav-on-ink:#000000; --nav-on-line:transparent; --nav-radius:0; --nav-case:uppercase; --nav-font:var(--f-display); --nav-track:.06em; --nav-border:transparent;
+  --foot-bg:#000000; --foot-ink:#FFFFFF; --foot-border:#000000;
+  --season-bg:#FFFFFF; --season-ink:#000000; --season-muted:#555555; --season-num:#000000; --season-line:#D6D6D6;
+  --tonight-bg:#FFFFFF; --tonight-ink:#000000; --tonight-muted:#555555; --tonight-num:#000000; --tonight-line:#D6D6D6;
+  --gtop-bg:#F2F2F2; --gtop-live-bg:#E0E0E0;
+  --input-bg:#FFFFFF; --input-ink:#000000; --input-border:#000000;
+  --chip-bg:#F2F2F2; --chip-ink:#000000; --chip-on-bg:#000000; --chip-on-ink:#FFFFFF;
+  --po-mark:#000000; --pi-mark:#777777;
+  --overlay:rgba(0,0,0,.6);
+}
+html[data-design="mono"] .brand .logo rect{fill:#FFFFFF}
+html[data-design="mono"] .brand .logo g{fill:#000000}
+html[data-design="mono"] .brand h1{font-weight:800;letter-spacing:.08em}
+html[data-design="mono"] .sc{font-weight:700}
+html[data-design="mono"] .sc.win{text-decoration:underline;text-underline-offset:4px}
+html[data-design="mono"] .daybar .btn.primary{background:#FFFFFF;color:#000000;border-color:#FFFFFF}
+
 /* Logo links back to the mode picker */
 a.brand-home{text-decoration:none;color:inherit}
 a.brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
@@ -1479,23 +1518,18 @@ const E = (() => {
   const pad3 = n => String(n).padStart(3, '0');
   const timeStr = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const DESIGNS = [
-    { id: 'arena', name: 'Arena Scoreboard', desc: 'Dark navy with glowing amber scoreboard numbers', sw: ['#0E1A2B', '#FFB020', '#16263D', 'Chakra Petch'] },
     { id: 'app', name: 'League App', desc: 'Clean white and blue, like a sports app', sw: ['#F2F4F8', '#1D4ED8', '#FFFFFF', 'Archivo Narrow'] },
     { id: 'chalk', name: 'Chalkboard', desc: 'Coach’s board with chalk lettering', sw: ['#26332B', '#F7E07C', '#2E3D34', 'Permanent Marker'] },
     { id: 'sunset', name: 'Sunset Strip', desc: 'Dusk purple melting into a coral sunset', sw: ['#3A1259', '#FFC93C', '#2A1442', 'Righteous'] },
     { id: 'blueprint', name: 'Blueprint', desc: 'Drafting-paper blue with white grid lines', sw: ['#0E4A82', '#FFE066', '#0B4272', 'Space Mono'] },
     { id: 'popart', name: 'Pop Art', desc: 'Comic-book yellow, halftone dots, bold ink', sw: ['#FFD93B', '#E8294B', '#FFFFFF', 'Bangers'] },
-    { id: 'deco', name: 'Art Deco', desc: 'Emerald black with gold lines, 1920s glamour', sw: ['#0D1B17', '#E6C65A', '#12261F', 'Limelight'] },
-    { id: 'graffiti', name: 'Graffiti', desc: 'Spray-paint lime and hot pink on a dark wall', sw: ['#121016', '#C6FF3D', '#1C1923', 'Bungee'] },
-    { id: 'retro', name: 'Retro', desc: 'Warm 70s cream, brown, orange and teal with chunky type', sw: ['#F3E3C3', '#E4572E', '#3A2314', 'Bowlby One'] },
     { id: 'wildwest', name: 'Wild West', desc: 'Saloon parchment, leather brown and rust red, wanted-poster type', sw: ['#E6CF9F', '#9C2F1B', '#2B1A0E', 'Rye'] },
     { id: 'usa', name: 'Patriotic', desc: 'Red, white and navy blue with stars and stripes', sw: ['#F6F7FB', '#B31942', '#0A3161', 'Bebas Neue'] },
     { id: 'civilwar', name: 'Civil War', desc: 'Union navy and brass buttons on old parchment, with the Stars and Stripes', sw: ['#E6DAB9', '#B5893A', '#1B2A49', 'Sancreek'] },
     { id: 'revolution', name: 'American Revolution', desc: 'Continental blue and buff, a 1776 broadside and the Betsy Ross flag', sw: ['#EFE3C4', '#F2DDA0', '#22406B', 'IM Fell English SC'] },
     { id: 'confederate', name: 'Confederate', desc: 'Wool gray and butternut with the Confederate battle flag', sw: ['#3B3E40', '#D3AC6B', '#2B2D2F', 'Special Elite'] },
-    { id: 'glass', name: 'Stained Glass', desc: 'Jewel colors and gold leading in a dark cathedral', sw: ['#0D0B1A', '#E0A526', '#17132B', 'Cinzel'] },
-    { id: 'vapor', name: 'Vaporwave', desc: 'Pastel pink, lilac and cyan with a retro-future glow', sw: ['#E3D4FF', '#D6249F', '#2A1B4D', 'Audiowide'] },
-    { id: 'bauhaus', name: 'Bauhaus', desc: 'Primary red, blue and yellow with bold geometric type', sw: ['#F3EBDC', '#E63B2E', '#1F4FD8', 'Jost'] }
+    { id: 'bauhaus', name: 'Bauhaus', desc: 'Primary red, blue and yellow with bold geometric type', sw: ['#F3EBDC', '#E63B2E', '#1F4FD8', 'Jost'] },
+    { id: 'mono', name: 'Black & White', desc: 'Black type and borders on white, no color at all', sw: ['#FFFFFF', '#000000', '#F2F2F2', 'Archivo Narrow'] }
   ];
   const ROUND_NAMES = { 0: 'Play-In', 1: 'First Round', 2: 'Quarterfinals', 3: 'Semifinals', 4: 'Finals' };
   const AUTO_END_MS = 12 * 3600 * 1000;
@@ -1730,7 +1764,7 @@ const E = (() => {
     const players = [];
     for (let p = 0; p < 30; p++) players.push({ name: 'Player ' + (p + 1) });
     return {
-      v: 1, leagueName: 'Dice League', theme: 'arena',
+      v: 1, leagueName: 'Dice League', theme: 'app',
       confNames: ['East', 'West'],
       divNames: ['Atlantic', 'Central', 'Southeast', 'Northwest', 'Pacific', 'Southwest'],
       players, currentSeason: 1, seasons: [1], history: {}
@@ -3415,7 +3449,7 @@ const E = (() => {
 
   /* ---------- main render ---------- */
   function applyTheme(t) {
-    if (!DESIGNS.some(d => d.id === t)) t = 'arena';   // a removed design falls back to Arena
+    if (!DESIGNS.some(d => d.id === t)) t = 'app';   // a removed design falls back to League App
     document.documentElement.setAttribute('data-design', t);
     try { localStorage.setItem(LSK + 'theme', t); } catch (e) { /* ignore */ }
   }
@@ -3978,7 +4012,7 @@ const E = (() => {
   async function boot() {
     let t = null, v = null;
     try { t = localStorage.getItem(LSK + 'theme'); v = localStorage.getItem(LSK + 'view'); } catch (e) { /* */ }
-    applyTheme(t || 'arena');
+    applyTheme(t || 'app');
     if (v) S.view = v;
     app.innerHTML = '<div class="wrap"><div class="loading">Loading your league…</div></div>';
     if (Cloud.on) { try { await cloudGate(); } catch (e) { console.error(e); app.innerHTML = '<div class="wrap"><div class="loading">Couldn’t reach the sign-in server. Check your internet and reload.</div></div>'; return; } app.innerHTML = '<div class="wrap"><div class="loading">Loading your league…</div></div>'; }
@@ -3989,7 +4023,7 @@ const E = (() => {
       let cfg = await Store.get('league/config');
       if (!cfg) {
         fresh = Store.mode === 'cloud' && !Store.px;
-        S.cfg = normPlayers(defaultConfig()); S.cfg.theme = t || 'arena';
+        S.cfg = normPlayers(defaultConfig()); S.cfg.theme = t || 'app';
         const ent = Leagues.list.find(x => x.id === Leagues.id); if (ent && ent.name) S.cfg.leagueName = ent.name;
         S.season = newSeasonDoc(1); S.days = {};
         await Store.write('league/config', S.cfg);

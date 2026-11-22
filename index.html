@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Dice League</title>
   <link rel="icon" href="original/icon.svg">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600&family=Oswald:wght@700&family=Barlow:wght@500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600&family=Archivo:wght@600;800&display=swap">
   <style>
     /* Version picker: each card previews the look of the league it opens. */
     :root {
@@ -35,10 +35,10 @@
     .ver-name { margin: 0; }
     .ver-go { font-weight: 600; }
     .die { width: 48px; height: 48px; }
-    /* Original: navy and amber */
-    .v1 { background: #0E1A2B; color: #E8EEF6; border: 1px solid #22385A; }
-    .v1 .ver-name { font: 700 40px/1 'Oswald', Impact, sans-serif; text-transform: uppercase; letter-spacing: .06em; }
-    .v1 .ver-go { color: #FFB020; font-family: 'Barlow', sans-serif; text-transform: uppercase; letter-spacing: .08em; }
+    /* Original: its default League App design, white and blue */
+    .v1 { background: #FFFFFF; color: #0B1220; border: 1px solid #DCE1EA; }
+    .v1 .ver-name { font: 800 40px/1 'Archivo', system-ui, sans-serif; letter-spacing: -.01em; }
+    .v1 .ver-go { color: #1D4ED8; font-family: 'Archivo', sans-serif; }
     /* 2.0: light with red and blue */
     .v2 { background: #FFFFFF; color: #141A26; border: 1px solid #DCE0E8; }
     .v2 .ver-name { font: 800 40px/1 'Bricolage Grotesque', 'Arial Black', sans-serif; letter-spacing: -.02em; }
@@ -94,7 +94,7 @@
     <p class="who" id="who" hidden><span id="whoText"></span><button type="button" class="linkbtn" id="signOut">Sign out</button></p>
     <div class="pick" id="pick" hidden>
       <a class="ver v1" href="original/index.html">
-        <svg class="die" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="#FFB020"></rect><g fill="#0E1A2B"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>
+        <svg class="die" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="#1D4ED8"></rect><g fill="#FFFFFF"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>
         <p class="ver-name">Dice League Original</p>
         <span class="ver-go">Play →</span>
       </a>
