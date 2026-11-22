@@ -1,6 +1,6 @@
-<!doctype html><html lang="en" data-design="app"><head>
+<!doctype html><html lang="en" data-design="mono"><head>
 <script>
-  // Show the saved design right away (League App until one is chosen), so the page never flashes another look.
+  // Show the saved design right away (Black & White until one is chosen), so the page never flashes another look.
   (function () {
     var ok = ['app','chalk','sunset','blueprint','popart','wildwest','usa','civilwar','revolution','confederate','bauhaus','mono'];
     try { var t = localStorage.getItem('diceLeague:theme'); if (ok.indexOf(t) >= 0) document.documentElement.setAttribute('data-design', t); } catch (e) {}
@@ -1518,6 +1518,7 @@ const E = (() => {
   const pad3 = n => String(n).padStart(3, '0');
   const timeStr = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const DESIGNS = [
+    { id: 'mono', name: 'Black & White', desc: 'Black type and borders on white, no color at all', sw: ['#FFFFFF', '#000000', '#F2F2F2', 'Archivo Narrow'] },
     { id: 'app', name: 'League App', desc: 'Clean white and blue, like a sports app', sw: ['#F2F4F8', '#1D4ED8', '#FFFFFF', 'Archivo Narrow'] },
     { id: 'chalk', name: 'Chalkboard', desc: 'Coach’s board with chalk lettering', sw: ['#26332B', '#F7E07C', '#2E3D34', 'Permanent Marker'] },
     { id: 'sunset', name: 'Sunset Strip', desc: 'Dusk purple melting into a coral sunset', sw: ['#3A1259', '#FFC93C', '#2A1442', 'Righteous'] },
@@ -1528,8 +1529,7 @@ const E = (() => {
     { id: 'civilwar', name: 'Civil War', desc: 'Union navy and brass buttons on old parchment, with the Stars and Stripes', sw: ['#E6DAB9', '#B5893A', '#1B2A49', 'Sancreek'] },
     { id: 'revolution', name: 'American Revolution', desc: 'Continental blue and buff, a 1776 broadside and the Betsy Ross flag', sw: ['#EFE3C4', '#F2DDA0', '#22406B', 'IM Fell English SC'] },
     { id: 'confederate', name: 'Confederate', desc: 'Wool gray and butternut with the Confederate battle flag', sw: ['#3B3E40', '#D3AC6B', '#2B2D2F', 'Special Elite'] },
-    { id: 'bauhaus', name: 'Bauhaus', desc: 'Primary red, blue and yellow with bold geometric type', sw: ['#F3EBDC', '#E63B2E', '#1F4FD8', 'Jost'] },
-    { id: 'mono', name: 'Black & White', desc: 'Black type and borders on white, no color at all', sw: ['#FFFFFF', '#000000', '#F2F2F2', 'Archivo Narrow'] }
+    { id: 'bauhaus', name: 'Bauhaus', desc: 'Primary red, blue and yellow with bold geometric type', sw: ['#F3EBDC', '#E63B2E', '#1F4FD8', 'Jost'] }
   ];
   const ROUND_NAMES = { 0: 'Play-In', 1: 'First Round', 2: 'Quarterfinals', 3: 'Semifinals', 4: 'Finals' };
   const AUTO_END_MS = 12 * 3600 * 1000;
@@ -1764,7 +1764,7 @@ const E = (() => {
     const players = [];
     for (let p = 0; p < 30; p++) players.push({ name: 'Player ' + (p + 1) });
     return {
-      v: 1, leagueName: 'Dice League', theme: 'app',
+      v: 1, leagueName: 'Dice League', theme: 'mono',
       confNames: ['East', 'West'],
       divNames: ['Atlantic', 'Central', 'Southeast', 'Northwest', 'Pacific', 'Southwest'],
       players, currentSeason: 1, seasons: [1], history: {}
@@ -3449,7 +3449,7 @@ const E = (() => {
 
   /* ---------- main render ---------- */
   function applyTheme(t) {
-    if (!DESIGNS.some(d => d.id === t)) t = 'app';   // a removed design falls back to League App
+    if (!DESIGNS.some(d => d.id === t)) t = 'mono';   // a removed design falls back to Black & White
     document.documentElement.setAttribute('data-design', t);
     try { localStorage.setItem(LSK + 'theme', t); } catch (e) { /* ignore */ }
   }
@@ -4012,7 +4012,7 @@ const E = (() => {
   async function boot() {
     let t = null, v = null;
     try { t = localStorage.getItem(LSK + 'theme'); v = localStorage.getItem(LSK + 'view'); } catch (e) { /* */ }
-    applyTheme(t || 'app');
+    applyTheme(t || 'mono');
     if (v) S.view = v;
     app.innerHTML = '<div class="wrap"><div class="loading">Loading your league…</div></div>';
     if (Cloud.on) { try { await cloudGate(); } catch (e) { console.error(e); app.innerHTML = '<div class="wrap"><div class="loading">Couldn’t reach the sign-in server. Check your internet and reload.</div></div>'; return; } app.innerHTML = '<div class="wrap"><div class="loading">Loading your league…</div></div>'; }
@@ -4023,7 +4023,7 @@ const E = (() => {
       let cfg = await Store.get('league/config');
       if (!cfg) {
         fresh = Store.mode === 'cloud' && !Store.px;
-        S.cfg = normPlayers(defaultConfig()); S.cfg.theme = t || 'app';
+        S.cfg = normPlayers(defaultConfig()); S.cfg.theme = t || 'mono';
         const ent = Leagues.list.find(x => x.id === Leagues.id); if (ent && ent.name) S.cfg.leagueName = ent.name;
         S.season = newSeasonDoc(1); S.days = {};
         await Store.write('league/config', S.cfg);
