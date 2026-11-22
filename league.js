@@ -1,36 +1,114 @@
-// Dice League: league setup, sample season, and standings math (1 vs 1).
+// Dice League: league data, schedules and standings math (1 vs 1).
 // Nothing here touches the page; app.js draws what these functions return.
+//
+// A league looks like:
+// {
+//   id, name, mode: '1v1', gamesPerPlayer,
+//   players: [{ id, name, short, skill, conf, div }],  // skill: 1 (best) to 5; conf/div are indexes or null
+//   conferences: ['East', 'West'] or [],               // none, or 2 or more
+//   divisions: [{ name, conf }] or [],                  // conf is null when there are no conferences
+//   playoffSpots?, playInSpots?,
+//   games: [{ id, day, away, home, final, awayPts?, homePts? }],
+//   createdAt, lastPlayed, sample?
+// }
 
-// ---------- League setup ----------
-// 30 players, 2 conferences, 6 divisions of 5 (3 divisions per conference).
-const LEAGUE = {
-  name: 'Dice League',
-  conferences: ['East', 'West'],
-  divisions: [
-    { name: 'Atlantic', conf: 0 },
-    { name: 'Central', conf: 0 },
-    { name: 'Southeast', conf: 0 },
-    { name: 'Northwest', conf: 1 },
-    { name: 'Pacific', conf: 1 },
-    { name: 'Southwest', conf: 1 },
-  ],
-  players: Array.from({ length: 30 }, (_, i) => ({
-    id: i,
-    name: 'Player ' + (i + 1),
-    div: Math.floor(i / 5),
-  })),
-  playoffSpots: 6,   // seeds 1-6 go straight to the playoffs
-  playInSpots: 4,    // seeds 7-10 go to the play-in
-};
+const SKILLS = [1, 2, 3, 4, 5];
 
-const divOf = p => LEAGUE.players[p].div;
-const confOf = p => LEAGUE.divisions[divOf(p)].conf;
-const playersInConf = c => LEAGUE.players.filter(pl => confOf(pl.id) === c).map(pl => pl.id);
-const playersInDiv = d => LEAGUE.players.filter(pl => pl.div === d).map(pl => pl.id);
+const hasConfs = lg => Boolean(lg.conferences && lg.conferences.length > 1);
+const hasDivs = lg => Boolean(lg.divisions && lg.divisions.length > 0);
+const divOf = (lg, p) => lg.players[p].div;
+const confOf = (lg, p) => lg.players[p].conf;
 
-// ---------- Sample season ----------
-// Until real games are logged, the standings show a made-up season so the page has something in it.
-// Everyone plays everyone twice (once home, once away): 58 games each, 870 in all.
+// Ways to split a number of players into equal groups.
+// c = conferences (0 = none), d = divisions per conference (or in all, when there are no conferences).
+function splitOptions(n) {
+  const out = [{ c: 0, d: 0, size: n }];
+  for (let d = 2; d <= 8; d++) if (n % d === 0 && n / d >= 2) out.push({ c: 0, d, size: n / d });
+  for (let c = 2; c <= 4; c++) if (n % c === 0 && n / c >= 2) out.push({ c, d: 0, size: n / c });
+  for (let c = 2; c <= 4; c++) for (let d = 2; d <= 4; d++) {
+    if (n % (c * d) === 0 && n / (c * d) >= 2) out.push({ c, d, size: n / (c * d) });
+  }
+  return out;
+}
+const splitKey = sp => `${sp.c}x${sp.d}`;
+function splitLabel(sp) {
+  if (!sp.c && !sp.d) return 'One table';
+  if (!sp.c) return `${sp.d} divisions of ${sp.size}`;
+  if (!sp.d) return `${sp.c} conferences of ${sp.size}`;
+  return `${sp.c} conferences, each with ${sp.d} divisions of ${sp.size}`;
+}
+const CONF_NAMES = { 2: ['East', 'West'], 3: ['East', 'Central', 'West'], 4: ['North', 'South', 'East', 'West'] };
+const DIV_NAMES = ['Atlantic', 'Central', 'Southeast', 'Northwest', 'Pacific', 'Southwest', 'Midwest', 'Northeast',
+  'Mountain', 'Gulf', 'Coastal', 'Plains', 'Lakes', 'Valley', 'Desert', 'Harbor'];
+const allIds = lg => lg.players.map(pl => pl.id);
+const playersInConf = (lg, c) => allIds(lg).filter(p => confOf(lg, p) === c);
+const playersInDiv = (lg, d) => allIds(lg).filter(p => divOf(lg, p) === d);
+
+// Short name from a full name: initials for several words, first letters for one word,
+// and "P7" for "Player 7".
+function autoShort(name) {
+  const n = String(name || '').trim();
+  const numbered = /^player\s*(\d+)$/i.exec(n);
+  if (numbered) return 'P' + numbered[1];
+  const words = n.split(/\s+/).filter(Boolean);
+  if (words.length > 1) return words.map(w => w[0]).join('').slice(0, 4).toUpperCase();
+  return (words[0] || '').slice(0, 3).toUpperCase();
+}
+
+// ---------- Schedule ----------
+// Round-robin "circle" schedule: each day everyone plays once (one player sits out when the
+// count is odd). Rounds repeat until every player has gamesPerPlayer games. Home and away
+// alternate from one day to the next.
+function makeSchedule(playerCount, gamesPerPlayer) {
+  const slots = Array.from({ length: playerCount }, (_, i) => i);
+  if (playerCount % 2) slots.push(-1); // -1 is a bye
+  const m = slots.length;
+  const count = new Array(playerCount).fill(0);
+  const games = [];
+  let order = slots.slice();
+  let day = 0;
+  for (let round = 0; round < 2000 && count.some(c => c < gamesPerPlayer); round++) {
+    const today = [];
+    for (let i = 0; i < m / 2; i++) {
+      const a = order[i], b = order[m - 1 - i];
+      if (a < 0 || b < 0 || count[a] >= gamesPerPlayer || count[b] >= gamesPerPlayer) continue;
+      const flip = (round + i) % 2 === 1;
+      today.push({ away: flip ? a : b, home: flip ? b : a });
+      count[a]++; count[b]++;
+    }
+    if (today.length) {
+      day++;
+      for (const g of today) games.push({ id: games.length, day, away: g.away, home: g.home, final: false });
+    }
+    order = [order[0], order[m - 1], ...order.slice(1, m - 1)];
+  }
+  // Even out home and away: whoever has had fewer home games so far is at home.
+  const homes = new Array(playerCount).fill(0), played = new Array(playerCount).fill(0);
+  for (const g of games) {
+    const [a, b] = [g.away, g.home];
+    const needA = homes[a] - played[a] / 2, needB = homes[b] - played[b] / 2;
+    const homeIsA = needA < needB || (needA === needB && g.id % 2 === 0);
+    g.home = homeIsA ? a : b;
+    g.away = homeIsA ? b : a;
+    homes[g.home]++; played[a]++; played[b]++;
+  }
+  // Then swap home and away in any game where the home player has 2+ more home games than
+  // the away player, until no swap helps.
+  for (let changed = true, pass = 0; changed && pass < 50; pass++) {
+    changed = false;
+    for (const g of games) {
+      if (homes[g.home] - homes[g.away] >= 2) {
+        homes[g.home]--; homes[g.away]++;
+        [g.home, g.away] = [g.away, g.home];
+        changed = true;
+      }
+    }
+  }
+  return games;
+}
+
+// ---------- Sample leagues ----------
+// Made-up leagues so the saved list and standings have something in them.
 function seededRandom(seed) {
   let s = seed >>> 0;
   return () => {
@@ -42,30 +120,31 @@ function seededRandom(seed) {
   };
 }
 
-function makeSampleSeason(seed = 2026, playedDays = 34) {
+function makeSampleLeague({ id, name, seed, playedDays, lastPlayed }) {
   const rand = seededRandom(seed);
-  const N = LEAGUE.players.length;
-  const pairs = [];
-  for (let a = 0; a < N; a++) for (let h = 0; h < N; h++) if (a !== h) pairs.push([a, h]);
-  for (let i = pairs.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [pairs[i], pairs[j]] = [pairs[j], pairs[i]];
+  const players = Array.from({ length: 30 }, (_, i) => ({
+    id: i, name: 'Player ' + (i + 1), short: 'P' + (i + 1), skill: 1 + Math.floor(rand() * 5),
+    div: Math.floor(i / 5), conf: Math.floor(i / 15),
+  }));
+  const games = makeSchedule(30, 58);
+  // Better skill (lower number) scores a little more on average.
+  for (const g of games) {
+    if (g.day > playedDays) continue;
+    const score = p => Math.round(60 + (5 - players[p].skill) * 2.5 + rand() * 30);
+    let a = score(g.away), h = score(g.home) + 1; // a small home edge
+    if (a === h) (rand() < 0.5 ? a++ : h++);
+    Object.assign(g, { final: true, awayPts: a, homePts: h });
   }
-  // Give each sample player a hidden strength so the table spreads out like a real season.
-  const strength = LEAGUE.players.map(() => rand() * 10);
-  const perDay = 15;
-  return pairs.map(([away, home], i) => {
-    const day = Math.floor(i / perDay) + 1;
-    const game = { id: i, day, away, home, final: day <= playedDays };
-    if (game.final) {
-      const score = p => Math.round(55 + strength[p] + rand() * 30);
-      let a = score(away), h = score(home) + 1; // a small home edge
-      if (a === h) (rand() < 0.5 ? a++ : h++);
-      game.awayPts = a;
-      game.homePts = h;
-    }
-    return game;
-  });
+  return {
+    id, name, mode: '1v1', sample: true, gamesPerPlayer: 58, players, games,
+    conferences: ['East', 'West'],
+    divisions: [
+      { name: 'Atlantic', conf: 0 }, { name: 'Central', conf: 0 }, { name: 'Southeast', conf: 0 },
+      { name: 'Northwest', conf: 1 }, { name: 'Pacific', conf: 1 }, { name: 'Southwest', conf: 1 },
+    ],
+    playoffSpots: 6, playInSpots: 4,
+    createdAt: lastPlayed, lastPlayed,
+  };
 }
 
 // ---------- Standings ----------
@@ -78,10 +157,11 @@ function emptyRow(p) {
 
 const winPct = (w, l) => (w + l ? w / (w + l) : 0);
 
-// Build one row per player from every game. Only final games count; unplayed ones count as games left.
-function computeStandings(games) {
-  const rows = LEAGUE.players.map(pl => emptyRow(pl.id));
-  const finals = games.filter(g => g.final).sort((x, y) => x.day - y.day || x.id - y.id);
+// One row per player from every game. Only final games count; unplayed ones count as games left.
+function computeStandings(lg) {
+  const confs = hasConfs(lg), divs = hasDivs(lg);
+  const rows = lg.players.map(pl => emptyRow(pl.id));
+  const finals = lg.games.filter(g => g.final).sort((x, y) => x.day - y.day || x.id - y.id);
 
   for (const g of finals) {
     const awayWon = g.awayPts > g.homePts;
@@ -90,15 +170,17 @@ function computeStandings(games) {
     const rw = rows[W], rl = rows[L];
     rw.w++; rl.l++;
     if (W === g.home) { rw.hw++; rl.al++; } else { rw.aw++; rl.hl++; }
-    if (divOf(W) === divOf(L)) { rw.dw++; rl.dl++; }
-    if (confOf(W) === confOf(L)) { rw.cw++; rl.cl++; } else { rw.iw++; rl.il++; }
+    if (divs && divOf(lg, W) === divOf(lg, L)) { rw.dw++; rl.dl++; }
+    if (confs) {
+      if (confOf(lg, W) === confOf(lg, L)) { rw.cw++; rl.cl++; } else { rw.iw++; rl.il++; }
+    }
     rows[g.away].pf += g.awayPts; rows[g.away].pa += g.homePts;
     rows[g.home].pf += g.homePts; rows[g.home].pa += g.awayPts;
     rw.results.push(1); rl.results.push(0);
     (rw.h2h[L] = rw.h2h[L] || [0, 0])[0]++;
     (rl.h2h[W] = rl.h2h[W] || [0, 0])[1]++;
   }
-  for (const g of games) if (!g.final) { rows[g.away].left++; rows[g.home].left++; }
+  for (const g of lg.games) if (!g.final) { rows[g.away].left++; rows[g.home].left++; }
 
   for (const r of rows) {
     r.gp = r.w + r.l;
@@ -114,9 +196,10 @@ function computeStandings(games) {
   return rows;
 }
 
-// Rank a group of players. Ties on record are broken by: head-to-head, then division record
+// Rank a group of players. Ties on record are broken by head-to-head, then division record
 // (if all tied players share a division) or conference record, then point differential.
-function rankGroup(rows, ids) {
+function rankGroup(lg, rows, ids) {
+  const confs = hasConfs(lg), divs = hasDivs(lg);
   const list = ids.map(i => rows[i]);
   list.sort((x, y) => y.pct - x.pct || x.l - y.l || y.w - x.w);
   const out = [];
@@ -127,12 +210,12 @@ function rankGroup(rows, ids) {
     const tied = list.slice(i, j);
     if (tied.length > 1) {
       const tiedIds = tied.map(r => r.p);
-      const sameDiv = tiedIds.every(p => divOf(p) === divOf(tiedIds[0]));
+      const sameDiv = divs && tiedIds.every(p => divOf(lg, p) === divOf(lg, tiedIds[0]));
       for (const r of tied) {
         let w = 0, l = 0;
         for (const o of tiedIds) if (r.h2h[o]) { w += r.h2h[o][0]; l += r.h2h[o][1]; }
         r.tbH2H = winPct(w, l);
-        r.tbGroup = sameDiv ? winPct(r.dw, r.dl) : winPct(r.cw, r.cl);
+        r.tbGroup = sameDiv ? winPct(r.dw, r.dl) : confs ? winPct(r.cw, r.cl) : 0;
       }
       tied.sort((x, y) => y.tbH2H - x.tbH2H || y.tbGroup - x.tbGroup || y.diff - x.diff || x.p - y.p);
     }
@@ -144,17 +227,16 @@ function rankGroup(rows, ids) {
   return out;
 }
 
-// Clinch marks within each conference, decided by wins alone (the safe, conservative way):
-//   z  clinched the #1 seed      X  clinched the playoffs (top 6)
-//   PI clinched the play-in (top 10) but can't finish top 6
-//   PS clinched the postseason (top 10)   E  eliminated (can't reach the top 10)
-function raceMarks(rows) {
-  const top = LEAGUE.playoffSpots;
-  const post = LEAGUE.playoffSpots + LEAGUE.playInSpots;
+// Clinch marks within each conference, decided by wins alone (the safe, conservative way).
+// Only leagues with conferences and playoff spots get them.
+function raceMarks(lg, rows) {
   const marks = {};
+  if (!hasConfs(lg) || !lg.playoffSpots) return marks;
+  const top = lg.playoffSpots;
+  const post = lg.playoffSpots + (lg.playInSpots || 0);
   for (const r of rows) {
     const p = r.p;
-    const others = playersInConf(confOf(p)).filter(q => q !== p);
+    const others = playersInConf(lg, confOf(lg, p)).filter(q => q !== p);
     const maxW = q => rows[q].w + rows[q].left;
     const clinchedTop = K => others.filter(q => maxW(q) >= r.w).length < K;
     const cantMakeTop = K => others.filter(q => rows[q].w > maxW(p)).length >= K;

@@ -109,6 +109,59 @@
       </div>
     </section>
 
+    <!-- New league setup (1 vs 1) -->
+    <section id="view-new" class="view" hidden>
+      <div class="wrap section page newlg">
+        <a class="back" href="#1v1"><span aria-hidden="true">←</span> 1 vs 1</a>
+        <p class="eyebrow step" id="nlStepLabel">Step 1 of 2</p>
+        <h1>New league</h1>
+
+        <form id="newStep1" class="form" novalidate>
+          <label class="field" for="nlName">
+            <span class="field-label">League name</span>
+            <input id="nlName" type="text" maxlength="40" autocomplete="off" placeholder="Friday Night League">
+          </label>
+          <div class="field-row">
+            <label class="field" for="nlPlayers">
+              <span class="field-label">Players</span>
+              <input id="nlPlayers" type="number" min="2" max="30" step="1" value="10" inputmode="numeric">
+            </label>
+            <label class="field" for="nlGames">
+              <span class="field-label">Games per player</span>
+              <input id="nlGames" type="number" min="1" max="200" step="1" value="18" inputmode="numeric">
+            </label>
+          </div>
+          <p class="hint" id="nlHint" aria-live="polite"></p>
+          <fieldset class="field split-wrap" id="nlSplitWrap">
+            <legend class="field-label">How to divide the league</legend>
+            <div class="splits" id="nlSplits"></div>
+            <p class="hint" id="nlSplitNote" hidden>This number of players can't be split into equal groups, so it plays as one table.</p>
+          </fieldset>
+          <div id="nlGroupNames" class="group-names" hidden></div>
+          <p class="error" id="nlError" role="alert" hidden></p>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Next: add players</button>
+          </div>
+        </form>
+
+        <form id="newStep2" class="form form-wide" novalidate hidden>
+          <h2 class="form-title" id="nlStep2Title">Players</h2>
+          <div class="ptable">
+            <div class="prow prow-head" aria-hidden="true">
+              <span>#</span><span>Name</span><span>Initials</span><span>Skill</span><span id="nlGroupHead">Group</span>
+            </div>
+            <div id="nlRows"></div>
+          </div>
+          <p class="hint">Initials are used where a short name fits better, like on phones. Skill runs from 1 (best) to 5.</p>
+          <p class="error" id="nlError2" role="alert" hidden></p>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="nlBack">Back</button>
+            <button type="submit" class="btn btn-primary">Create league</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
     <!-- Standings (1 vs 1) -->
     <section id="view-standings" class="view" hidden>
       <div class="wrap section stand">
@@ -125,9 +178,9 @@
             <button type="button" role="tab" data-view="league">League</button>
           </div>
         </div>
-        <p class="sample">Sample results. These games are made up to show how the table works. Real results replace them once game logging is built.</p>
+        <p class="sample" id="standSample">Sample results. These games are made up to show how the table works. Real results replace them once game logging is built.</p>
         <div id="standTables" class="stack"></div>
-        <div class="legend">
+        <div class="legend" id="standLegend">
           <span><span class="mark mark-z">z</span>#1 seed</span>
           <span><span class="mark mark-X">X</span>Playoffs (top 6)</span>
           <span><span class="mark mark-PI">PI</span>Play-in (7–10)</span>
@@ -137,7 +190,7 @@
         <details class="key">
           <summary>What the columns mean</summary>
           <p><b>W</b> and <b>L</b> are wins and losses. <b>PCT</b> is win percentage. <b>GB</b> is games behind first place. <b>Home</b> and <b>Away</b> are records in home and away games. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the player's division, conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points scored and allowed per game, and <b>Diff</b> is the difference. <b>L10</b> is the record in the last 10 games. <b>Strk</b> is the current winning or losing streak.</p>
-          <p>A solid line falls under the 6th seed (playoffs) and a dashed line under the 10th (play-in). Ties are broken by head-to-head record, then division or conference record, then point differential.</p>
+          <p id="standCutNote">A solid line falls under the 6th seed (playoffs) and a dashed line under the 10th (play-in). Ties are broken by head-to-head record, then division or conference record, then point differential.</p>
         </details>
       </div>
     </section>
