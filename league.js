@@ -20,7 +20,7 @@ const divOf = (lg, p) => lg.players[p].div;
 const confOf = (lg, p) => lg.players[p].conf;
 
 // League sizes you can pick, and the ways each one can be divided.
-// c = number of conferences (0 = everyone in one conference), d = divisions (not offered right now).
+// c = number of conferences (0 = everyone in one conference), d = divisions in each conference (0 = none).
 const LEAGUE_SIZES = [5, 10, 15, 20, 24, 30];
 // Games per player, for sizes that have fixed choices. Sizes not listed take any even-enough number.
 const GAME_CHOICES = {
@@ -29,10 +29,10 @@ const GAME_CHOICES = {
 const SPLITS = {
   5: [{ c: 0, d: 0 }],
   10: [{ c: 2, d: 0 }, { c: 0, d: 0 }],
-  15: [{ c: 0, d: 0 }],
+  15: [{ c: 0, d: 3 }],
   20: [{ c: 2, d: 0 }],
-  24: [{ c: 2, d: 0 }],
-  30: [{ c: 2, d: 0 }],
+  24: [{ c: 2, d: 3 }],
+  30: [{ c: 2, d: 3 }],
 };
 function splitOptions(n) {
   return (SPLITS[n] || []).map(sp => ({ ...sp, size: n / Math.max(sp.c, 1) / Math.max(sp.d, 1) }));
@@ -40,7 +40,7 @@ function splitOptions(n) {
 const splitKey = sp => `${sp.c}x${sp.d}`;
 function splitLabel(sp) {
   if (!sp.c && !sp.d) return `1 conference of ${sp.size}`;
-  if (!sp.c) return `${sp.d} divisions of ${sp.size}`;
+  if (!sp.c) return `1 conference with ${sp.d} divisions of ${sp.size}`;
   if (!sp.d) return `${sp.c} conferences of ${sp.size}`;
   return `${sp.c} conferences, each with ${sp.d} divisions of ${sp.size}`;
 }
@@ -131,7 +131,7 @@ function makeSampleLeague({ id, name, seed, playedDays, lastPlayed }) {
   const rand = seededRandom(seed);
   const players = Array.from({ length: 30 }, (_, i) => ({
     id: i, name: 'Player ' + (i + 1), short: 'P' + (i + 1), skill: 1 + Math.floor(rand() * 5),
-    div: null, conf: Math.floor(i / 15),
+    div: Math.floor(i / 5), conf: Math.floor(i / 15),
   }));
   const games = makeSchedule(30, 58);
   // Better skill (lower number) scores a little more on average.
@@ -145,7 +145,10 @@ function makeSampleLeague({ id, name, seed, playedDays, lastPlayed }) {
   return {
     id, name, mode: '1v1', sample: true, gamesPerPlayer: 58, players, games,
     conferences: ['East', 'West'],
-    divisions: [],
+    divisions: [
+      { name: 'Atlantic', conf: 0 }, { name: 'Central', conf: 0 }, { name: 'Southeast', conf: 0 },
+      { name: 'Northwest', conf: 1 }, { name: 'Pacific', conf: 1 }, { name: 'Southwest', conf: 1 },
+    ],
     playoffSpots: 6, playInSpots: 4,
     createdAt: lastPlayed, lastPlayed,
   };
