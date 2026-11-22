@@ -4,7 +4,7 @@
 // A league looks like:
 // {
 //   id, name, mode: '1v1', gamesPerPlayer,
-//   players: [{ id, name, short, skill, conf, div }],  // skill: 1 (best) to 3; conf/div are indexes or null
+//   players: [{ id, name, short, skill, conf, div }],  // skill: stars, 3 (best) to 1; conf/div are indexes or null
 //   conferences: ['East', 'West'] or [],               // none, or 2 or more
 //   divisions: [{ name, conf }] or [],                  // conf is null when there are no conferences
 //   playoffs: { spots: 4 | 6 | 8, playIn: bool },     // per conference (or whole league with one conference)
@@ -12,7 +12,9 @@
 //   createdAt, lastPlayed, sample?
 // }
 
-const SKILLS = [1, 2, 3];
+const SKILLS = [1, 2, 3]; // stars: 3 is the best, 1 the lowest
+const starText = k => `${'★'.repeat(k)}${'☆'.repeat(3 - k)}`;
+const starLabel = k => `${k} star${k === 1 ? '' : 's'}`;
 
 const hasConfs = lg => Boolean(lg.conferences && lg.conferences.length > 1);
 const hasDivs = lg => Boolean(lg.divisions && lg.divisions.length > 0);
@@ -216,10 +218,10 @@ function makeSampleLeague({ id, name, seed, playedShare, lastPlayed }) {
   };
   lg.games = makePairSchedule(30, (a, b) => formatTimes(lg, format, a, b), seed);
   const lastDay = Math.round(Math.max(...lg.games.map(g => g.day)) * playedShare);
-  // Better skill (lower number) scores a little more on average.
+  // More stars scores a little more on average.
   for (const g of lg.games) {
     if (g.day > lastDay) continue;
-    const score = p => Math.round(60 + (3 - players[p].skill) * 4 + rand() * 30);
+    const score = p => Math.round(60 + (players[p].skill - 1) * 4 + rand() * 30);
     let a = score(g.away), h = score(g.home) + 1; // a small home edge
     if (a === h) (rand() < 0.5 ? a++ : h++);
     Object.assign(g, { final: true, awayPts: a, homePts: h });

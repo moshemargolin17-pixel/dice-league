@@ -296,7 +296,7 @@ function playerRow(i) {
     <label class="prow-field prow-skill">
       <span class="sr">Player ${i + 1} skill</span>
       <select id="nlK${i}" data-k="skill">
-        ${SKILLS.map(k => `<option value="${k}"${k === p.skill ? ' selected' : ''}>Skill ${k}${k === 1 ? ' · best' : k === SKILLS[SKILLS.length - 1] ? ' · lowest' : ''}</option>`).join('')}
+        ${SKILLS.slice().reverse().map(k => `<option value="${k}" aria-label="${starLabel(k)}"${k === p.skill ? ' selected' : ''}>${starText(k)}</option>`).join('')}
       </select>
     </label>
     ${groups.length ? `<label class="prow-field prow-group">
