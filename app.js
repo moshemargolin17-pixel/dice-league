@@ -151,6 +151,23 @@ function draftGroups() {
   return [];
 }
 
+// Playoff choices depend on how many players are in each conference.
+function renderPlayoffChoices() {
+  const n = Number($('nlPlayers').value);
+  if (!LEAGUE_SIZES.includes(n) || draft.split.c < 0) return;
+  const size = confSize(n, draft.split);
+  const choices = PLAYOFF_CHOICES[size] || [];
+  const keep = Number($('nlPlayoffs').value);
+  const pick = choices.includes(keep) ? keep : choices[0];
+  $('nlPlayoffs').innerHTML = choices.map(k => `<option value="${k}"${k === pick ? ' selected' : ''}>${
+    k === 4 ? 'Top 4 make it' : k === 6 ? 'Top 6 make it · 1 and 2 get a bye' : 'Top 8 make it'}</option>`).join('');
+  const canPlayIn = PLAY_IN_SIZES.includes(size) && pick === 8;
+  $('nlPlayInWrap').hidden = !canPlayIn;
+  if (!canPlayIn) $('nlPlayIn').checked = false;
+  $('nlPlayoffHint').textContent = playoffSummary(pick, canPlayIn && $('nlPlayIn').checked, draft.split.c > 1);
+}
+['nlPlayoffs', 'nlPlayIn'].forEach(id => $(id).addEventListener('change', renderPlayoffChoices));
+
 // Setups with fixed game formats get a dropdown; the rest get a number box.
 function renderGameChoices() {
   const n = Number($('nlPlayers').value);
@@ -211,6 +228,7 @@ $('nlSplits').addEventListener('change', e => {
   if (opt) draft.split = opt;
   renderGroupNames();
   renderGameChoices();
+  renderPlayoffChoices();
   updateStep1Hint();
 });
 $('nlGroupNames').addEventListener('input', e => {
@@ -240,8 +258,10 @@ function readStep1() {
   const g = format ? formatGames(n, draft.split, format) : Number($('nlGames').value);
   if (!Number.isInteger(g) || g < 1 || g > 200) return { error: 'Games per player must be a whole number from 1 to 200.' };
   if ((n * g) % 2) return { error: `With ${n} players, games per player must be even so everyone gets the same number. Try ${g - 1} or ${g + 1}.` };
+  const spots = Number($('nlPlayoffs').value);
+  const playoffs = spots ? { spots, playIn: spots === 8 && !$('nlPlayInWrap').hidden && $('nlPlayIn').checked } : null;
   if (!name) return { error: 'Give the league a name.', n, g, format, nameMissing: true };
-  return { name, n, g, format };
+  return { name, n, g, format, playoffs };
 }
 
 function updateStep1Hint() {
@@ -307,13 +327,14 @@ function startNewLeague() {
   showError('nlError2', '');
   renderSplits();
   renderGameChoices();
+  renderPlayoffChoices();
   updateStep1Hint();
   showStep(1);
 }
 
 ['nlName', 'nlPlayers', 'nlGames', 'nlGamesPick'].forEach(id => $(id).addEventListener(id === 'nlPlayers' || id === 'nlGamesPick' ? 'change' : 'input', () => {
   showError('nlError', '');
-  if (id === 'nlPlayers') { renderSplits(); renderGameChoices(); }
+  if (id === 'nlPlayers') { renderSplits(); renderGameChoices(); renderPlayoffChoices(); }
   updateStep1Hint();
 }));
 
@@ -418,6 +439,7 @@ $('newStep2').addEventListener('submit', e => {
       ? makePairSchedule(s.n, (a, b) => formatTimes({ players, conferences }, s.format, a, b))
       : makeSchedule(s.n, s.g),
     format: s.format || null,
+    playoffs: s.playoffs,
     createdAt: now, lastPlayed: now,
   };
   if (!saveLeague(lg)) {
@@ -436,11 +458,12 @@ function standingsTable(lg, title, sub, ranked, marks, withCutLines) {
   const cols = [['#', 'l'], ['Player', 'l'], ['W'], ['L'], ['PCT'], ['GB'], ['Home'], ['Away'],
     ...(divs ? [['Div']] : []), ...(confs ? [['Conf'], ['Inter']] : []), ['PF/G'], ['PA/G'], ['Diff'], ['L10'], ['Strk']];
   const head = '<tr>' + cols.map(([t, c]) => `<th${c ? ` class="${c}"` : ''} scope="col">${t}</th>`).join('') + '</tr>';
-  const top = lg.playoffSpots, post = (lg.playoffSpots || 0) + (lg.playInSpots || 0);
+  const lines = playoffLines(lg) || { direct: 0, post: 0 };
+  const texts = markText(lg);
   const body = ranked.map((r, i) => {
-    const cut = withCutLines ? (i === top - 1 ? ' class="cut"' : i === post - 1 ? ' class="cut2"' : '') : '';
+    const cut = withCutLines ? (i === lines.direct - 1 ? ' class="cut"' : i === lines.post - 1 ? ' class="cut2"' : '') : '';
     const m = marks[r.p];
-    const chip = m ? ` <span class="mark mark-${m}" title="${MARKS[m]}">${m}</span>` : '';
+    const chip = m ? ` <span class="mark mark-${m}" title="${texts[m]}">${m}</span>` : '';
     const pl = lg.players[r.p];
     const diff = r.gp ? r.diff / r.gp : 0;
     return `<tr${cut}>
@@ -463,6 +486,62 @@ function standingsTable(lg, title, sub, ranked, marks, withCutLines) {
   </section>`;
 }
 
+// The bracket as it would be if the season ended today.
+function confRounds(lines, finalName) {
+  const W = (a, b) => `Winner ${a}–${b}`;
+  if (lines.spots === 4) {
+    return [
+      { name: 'Semifinals', games: [[1, 4], [2, 3]] },
+      { name: finalName, games: [[W(1, 4), W(2, 3)]] },
+    ];
+  }
+  if (lines.spots === 6) {
+    return [
+      { name: 'Wild card', games: [[3, 6], [4, 5]] },
+      { name: 'Semifinals', games: [[1, W(4, 5)], [2, W(3, 6)]] },
+      { name: finalName, games: [['Semifinal winner', 'Semifinal winner']] },
+    ];
+  }
+  return [
+    ...(lines.playIn ? [{ name: 'Play-in', games: [[7, 8], [9, 10], ['Loser 7–8', 'Winner 9–10']] }] : []),
+    { name: 'First round', games: [[1, 8], [4, 5], [2, 7], [3, 6]] },
+    { name: 'Semifinals', games: [[W(1, 8), W(4, 5)], [W(2, 7), W(3, 6)]] },
+    { name: finalName, games: [['Semifinal winner', 'Semifinal winner']] },
+  ];
+}
+
+function playoffPicture(lg, rows, lines) {
+  const confs = hasConfs(lg);
+  const side = (x, seeds, firstRound) => {
+    if (typeof x !== 'number') return `<span class="bk-slot bk-tbd">${esc(x)}</span>`;
+    const p = seeds[x - 1];
+    const viaPlayIn = lines.playIn && firstRound && (x === 7 || x === 8);
+    return `<span class="bk-slot"><span class="bk-seed">${x}</span>${viaPlayIn ? `<span class="bk-tbd">${x} seed from the play-in</span>` : esc(lg.players[p].name)}</span>`;
+  };
+  const block = (title, seeds) => {
+    const rounds = confRounds(lines, confs ? 'Conference final' : 'Final');
+    return `<div class="bk-conf">
+      ${title ? `<h3 class="bk-title">${esc(title)}</h3>` : ''}
+      <div class="bk-rounds">${rounds.map(rd => `<div class="bk-round">
+        <p class="bk-name">${rd.name}</p>
+        ${rd.games.map(([a, b]) => `<div class="bk-game">${side(a, seeds, rd.name === 'First round')}${side(b, seeds, rd.name === 'First round')}</div>`).join('')}
+      </div>`).join('')}</div>
+    </div>`;
+  };
+  const groups = seedGroups(lg).map(ids => rankGroup(lg, rows, ids).map(r => r.p));
+  const blocks = confs
+    ? lg.conferences.map((c, ci) => block(`${c} Conference`, groups[ci])).join('') +
+      `<div class="bk-conf"><h3 class="bk-title">Finals</h3><div class="bk-rounds"><div class="bk-round"><div class="bk-game">
+        <span class="bk-slot bk-tbd">${esc(lg.conferences[0])} champion</span><span class="bk-slot bk-tbd">${esc(lg.conferences[1])} champion</span>
+      </div></div></div></div>`
+    : block('', groups[0]);
+  return `<section class="panel bk">
+    <h2 class="panel-title">Playoff picture <span class="panel-sub">If the season ended today</span></h2>
+    <p class="bk-summary">${esc(playoffSummary(lines.spots, lines.playIn, confs))}</p>
+    ${blocks}
+  </section>`;
+}
+
 function renderStandings() {
   const lg = currentLeague;
   const confs = hasConfs(lg), divs = hasDivs(lg);
@@ -471,12 +550,21 @@ function renderStandings() {
   const finals = lg.games.filter(g => g.final);
   const views = [...(confs ? ['conf'] : []), ...(divs ? ['div'] : []), 'league'];
   const view = views.includes(standView) ? standView : views[0];
-  const playoffs = Boolean(lg.playoffSpots && confs);
+  const lines = playoffLines(lg);
 
   $('standTabs').hidden = views.length < 2;
   document.querySelectorAll('#standTabs button').forEach(b => { b.hidden = !views.includes(b.dataset.view); });
-  $('standLegend').hidden = !playoffs;
-  $('standCutNote').hidden = !playoffs;
+  $('standLegend').hidden = !lines;
+  $('standCutNote').hidden = !lines;
+  if (lines) {
+    const t = markText(lg);
+    $('standLegend').innerHTML = ['z', 'X', ...(lines.playIn ? ['PI', 'PS'] : []), 'E']
+      .map(k => `<span><span class="mark mark-${k}">${k}</span>${t[k]}</span>`).join('');
+    $('standCutNote').textContent = (lines.playIn
+      ? `A solid line falls under the ${lines.direct}th seed (playoffs) and a dashed line under the 10th (play-in).`
+      : `A solid line falls under the last playoff seed (${lines.direct}).`) +
+      ' Ties are broken by head-to-head record, then division or conference record, then point differential.';
+  }
   $('standSample').hidden = !lg.sample;
   document.querySelectorAll('#standTabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === view)));
   $('standLeague').textContent = lg.name;
@@ -487,14 +575,14 @@ function renderStandings() {
   let html;
   if (view === 'conf') {
     html = lg.conferences.map((c, ci) =>
-      standingsTable(lg, `${c} Conference`, '', rankGroup(lg, rows, playersInConf(lg, ci)), marks, playoffs)).join('');
+      standingsTable(lg, `${c} Conference`, '', rankGroup(lg, rows, playersInConf(lg, ci)), marks, Boolean(lines))).join('');
   } else if (view === 'div') {
     html = lg.divisions.map((d, di) =>
       standingsTable(lg, `${d.name} Division`, confs ? lg.conferences[d.conf] : '', rankGroup(lg, rows, playersInDiv(lg, di)), marks, false)).join('');
   } else {
-    html = standingsTable(lg, views.length > 1 ? 'Whole League' : lg.name, '', rankGroup(lg, rows, allIds(lg)), marks, false);
+    html = standingsTable(lg, views.length > 1 ? 'Whole League' : lg.name, '', rankGroup(lg, rows, allIds(lg)), marks, Boolean(lines) && !confs);
   }
-  $('standTables').innerHTML = html;
+  $('standTables').innerHTML = html + (lines ? playoffPicture(lg, rows, lines) : '');
 }
 
 $('standTabs').addEventListener('click', e => {

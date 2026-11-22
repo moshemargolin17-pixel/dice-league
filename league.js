@@ -7,7 +7,7 @@
 //   players: [{ id, name, short, skill, conf, div }],  // skill: 1 (best) to 5; conf/div are indexes or null
 //   conferences: ['East', 'West'] or [],               // none, or 2 or more
 //   divisions: [{ name, conf }] or [],                  // conf is null when there are no conferences
-//   playoffSpots?, playInSpots?,
+//   playoffs: { spots: 4 | 6 | 8, playIn: bool },     // per conference (or whole league with one conference)
 //   games: [{ id, day, away, home, final, awayPts?, homePts? }],
 //   createdAt, lastPlayed, sample?
 // }
@@ -213,7 +213,7 @@ function makeSampleLeague({ id, name, seed, playedDays, lastPlayed }) {
       { name: 'Atlantic', conf: 0 }, { name: 'Central', conf: 0 }, { name: 'Southeast', conf: 0 },
       { name: 'Northwest', conf: 1 }, { name: 'Pacific', conf: 1 }, { name: 'Southwest', conf: 1 },
     ],
-    playoffSpots: 6, playInSpots: 4,
+    playoffs: { spots: 8, playIn: true },
     createdAt: lastPlayed, lastPlayed,
   };
 }
@@ -298,34 +298,60 @@ function rankGroup(lg, rows, ids) {
   return out;
 }
 
-// Clinch marks within each conference, decided by wins alone (the safe, conservative way).
-// Only leagues with conferences and playoff spots get them.
+// ---------- Playoffs ----------
+// Choices by players per conference (or in the whole league when there is one conference).
+const PLAYOFF_CHOICES = { 5: [4], 10: [4, 6, 8], 12: [6, 8], 15: [6, 8] };
+const PLAY_IN_SIZES = [15]; // only 15-player conferences can add a play-in (with 8 spots)
+
+// Seeds that go straight in, and seeds that go to the play-in.
+function playoffLines(lg) {
+  const po = lg.playoffs;
+  if (!po) return null;
+  const playIn = Boolean(po.playIn && po.spots === 8);
+  return { direct: playIn ? 6 : po.spots, post: playIn ? 10 : po.spots, playIn, spots: po.spots };
+}
+// The groups seeded separately: each conference, or the whole league.
+const seedGroups = lg => (hasConfs(lg) ? lg.conferences.map((_, ci) => playersInConf(lg, ci)) : [allIds(lg)]);
+
+function playoffSummary(spots, playIn, twoConfs) {
+  const end = twoConfs ? ' Conference champions meet in the Finals.' : '';
+  if (spots === 4) return `Top 4 make it. 1 plays 4 and 2 plays 3, and the winners meet.${end}`;
+  if (spots === 6) return `Top 6 make it. 1 and 2 get a bye while 3 plays 6 and 4 plays 5. Then 1 plays the 4–5 winner and 2 plays the 3–6 winner, and those winners meet.${end}`;
+  const pi = playIn ? ' Seeds 7 to 10 play in: 7 plays 8 for the 7 seed, 9 plays 10, and that winner plays the 7–8 loser for the 8 seed.' : '';
+  return `Top 8 make it. 1 plays 8, 4 plays 5, 2 plays 7 and 3 plays 6, then the bracket plays down to one winner.${pi}${end}`;
+}
+
+// Clinch marks, decided by wins alone (the safe, conservative way), within each seeded group.
 function raceMarks(lg, rows) {
   const marks = {};
-  if (!hasConfs(lg) || !lg.playoffSpots) return marks;
-  const top = lg.playoffSpots;
-  const post = lg.playoffSpots + (lg.playInSpots || 0);
-  for (const r of rows) {
-    const p = r.p;
-    const others = playersInConf(lg, confOf(lg, p)).filter(q => q !== p);
-    const maxW = q => rows[q].w + rows[q].left;
-    const clinchedTop = K => others.filter(q => maxW(q) >= r.w).length < K;
-    const cantMakeTop = K => others.filter(q => rows[q].w > maxW(p)).length >= K;
-    let mark = null;
-    if (clinchedTop(1)) mark = 'z';
-    else if (clinchedTop(top)) mark = 'X';
-    else if (clinchedTop(post) && cantMakeTop(top)) mark = 'PI';
-    else if (clinchedTop(post)) mark = 'PS';
-    else if (cantMakeTop(post)) mark = 'E';
-    marks[p] = mark;
+  const lines = playoffLines(lg);
+  if (!lines) return marks;
+  for (const group of seedGroups(lg)) {
+    for (const p of group) {
+      const r = rows[p];
+      const others = group.filter(q => q !== p);
+      const maxW = q => rows[q].w + rows[q].left;
+      const clinchedTop = K => others.filter(q => maxW(q) >= r.w).length < K;
+      const cantMakeTop = K => others.filter(q => rows[q].w > maxW(p)).length >= K;
+      let mark = null;
+      if (clinchedTop(1)) mark = 'z';
+      else if (clinchedTop(lines.direct)) mark = 'X';
+      else if (lines.playIn && clinchedTop(lines.post) && cantMakeTop(lines.direct)) mark = 'PI';
+      else if (lines.playIn && clinchedTop(lines.post)) mark = 'PS';
+      else if (cantMakeTop(lines.post)) mark = 'E';
+      marks[p] = mark;
+    }
   }
   return marks;
 }
 
-const MARKS = {
-  z: '#1 seed',
-  X: 'Playoffs (top 6)',
-  PI: 'Play-in (7–10)',
-  PS: 'Postseason (top 10)',
-  E: 'Eliminated',
-};
+function markText(lg) {
+  const l = playoffLines(lg) || { direct: 0, post: 0 };
+  return {
+    z: '#1 seed',
+    X: `Playoffs (top ${l.direct})`,
+    PI: 'Play-in (7–10)',
+    PS: 'Postseason (top 10)',
+    E: 'Eliminated',
+  };
+}

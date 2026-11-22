@@ -145,6 +145,15 @@
             <div class="splits" id="nlSplits"></div>
           </fieldset>
           <div id="nlGroupNames" class="group-names" hidden></div>
+          <div class="field">
+            <label class="field-label" for="nlPlayoffs">Playoffs</label>
+            <select id="nlPlayoffs"></select>
+            <label class="check" id="nlPlayInWrap" hidden>
+              <input type="checkbox" id="nlPlayIn">
+              <span>Play-in for seeds 7 to 10</span>
+            </label>
+            <p class="hint" id="nlPlayoffHint" aria-live="polite"></p>
+          </div>
           <p class="error" id="nlError" role="alert" hidden></p>
           <div class="form-actions">
             <button type="submit" class="btn btn-primary">Next: add players</button>
@@ -187,13 +196,7 @@
         </div>
         <p class="sample" id="standSample">Sample results. These games are made up to show how the table works. Real results replace them once game logging is built.</p>
         <div id="standTables" class="stack"></div>
-        <div class="legend" id="standLegend">
-          <span><span class="mark mark-z">z</span>#1 seed</span>
-          <span><span class="mark mark-X">X</span>Playoffs (top 6)</span>
-          <span><span class="mark mark-PI">PI</span>Play-in (7–10)</span>
-          <span><span class="mark mark-PS">PS</span>Postseason (top 10)</span>
-          <span><span class="mark mark-E">E</span>Eliminated</span>
-        </div>
+        <div class="legend" id="standLegend"></div>
         <details class="key">
           <summary>What the columns mean</summary>
           <p><b>W</b> and <b>L</b> are wins and losses. <b>PCT</b> is win percentage. <b>GB</b> is games behind first place. <b>Home</b> and <b>Away</b> are records in home and away games. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the player's division, conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points scored and allowed per game, and <b>Diff</b> is the difference. <b>L10</b> is the record in the last 10 games. <b>Strk</b> is the current winning or losing streak.</p>

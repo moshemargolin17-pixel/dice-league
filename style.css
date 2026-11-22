@@ -430,3 +430,20 @@ p { margin: 0; }
   .prow-group { grid-column: 3 / 5; grid-row: 2; }
   .field-row { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
+/* Playoff setting */
+.check { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-weight: 500; cursor: pointer; }
+.form .check input { width: 18px; height: 18px; min-height: 0; margin: 0; padding: 0; accent-color: var(--red); flex: none; }
+
+/* Playoff picture */
+.bk { padding-bottom: 18px; }
+.bk-summary { padding: 0 18px 12px; color: var(--muted); font-size: 14px; max-width: 80ch; }
+.bk-conf { padding: 12px 18px 4px; border-top: 1px solid var(--line); }
+.bk-title { font-size: 16px; font-weight: 800; margin-bottom: 10px; }
+.bk-rounds { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 6px; }
+.bk-round { flex: 1 0 190px; display: flex; flex-direction: column; gap: 8px; justify-content: space-around; min-width: 0; }
+.bk-name { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.bk-game { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--bg); }
+.bk-slot { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-slot + .bk-slot { border-top: 1px solid var(--line); }
+.bk-seed { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 5px; background: var(--felt); color: var(--muted); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bk-tbd { color: var(--muted); font-weight: 400; font-style: italic; }
