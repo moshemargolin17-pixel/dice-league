@@ -469,7 +469,7 @@ function standingsTable(lg, title, sub, ranked, marks, withCutLines) {
     const diff = r.gp ? r.diff / r.gp : 0;
     return `<tr${cut}>
       <td class="l seed">${i + 1}</td>
-      <th class="l" scope="row"><span class="pname pname-full">${esc(pl.name)}</span><span class="pname pname-short" title="${esc(pl.name)}">${esc(pl.short)}</span>${chip}</th>
+      <th class="l" scope="row"><a class="pname pname-full plink" href="#player-${r.p}">${esc(pl.name)}</a><span class="pname pname-short" title="${esc(pl.name)}">${esc(pl.short)}</span>${chip}</th>
       <td class="strong">${r.w}</td><td class="strong">${r.l}</td>
       <td>${fmtPct(r.pct)}</td><td>${r.gb === 0 ? '—' : r.gb.toFixed(1)}</td>
       <td>${rec(r.hw, r.hl)}</td><td>${rec(r.aw, r.al)}</td>
@@ -645,7 +645,7 @@ function postGameCard(lg, post, g, seeds) {
   const hi = slotInfo(lg, post, x.hi, seeds), lo = slotInfo(lg, post, x.lo, seeds);
   const [away, home] = g.hiHome ? [lo, hi] : [hi, lo];
   const row = (t, isHome) => `<div class="gteam">
-      <div class="gc-name"><b class="${t.p == null ? 'tbd' : ''}">${esc(t.text)}</b><small>${isHome ? 'Home' : 'Away'}</small></div>
+      <div class="gc-name"><b class="${t.p == null ? 'tbd' : ''}">${t.p == null ? esc(t.text) : `<a class="plink" href="#player-${t.p}">${esc(t.text)}</a>`}</b><small>${isHome ? 'Home' : 'Away'}</small></div>
       <span class="gsc">–</span>
     </div>`;
   const label = `${x.round}${x.bestOf > 1 ? ` · Game ${g.no}` : ''}`;
@@ -670,10 +670,9 @@ function renderLeagueHeader(lg, tab) {
   $('lgSub').textContent = seasonDone(lg)
     ? `Season 1 · Regular season complete${postText}`
     : `Season 1 · Day ${todayOf(lg)} of ${seasonDays(lg)}${postText}`;
-  $('tabHome').toggleAttribute('aria-current', tab === 'home');
-  $('tabStandings').toggleAttribute('aria-current', tab === 'standings');
-  if (tab === 'home') $('tabHome').setAttribute('aria-current', 'page');
-  if (tab === 'standings') $('tabStandings').setAttribute('aria-current', 'page');
+  document.querySelectorAll('.lgtabs a').forEach(a => {
+    if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+  });
 }
 
 // A player's record going into a game, or right after it once it's final.
@@ -703,7 +702,7 @@ function gameCard(lg, g) {
     const won = g.final && pts > opp;
     const where = isHome ? `${rec(r.hw, r.hl)} home` : `${rec(r.aw, r.al)} away`;
     return `<div class="gteam${won ? ' won' : ''}">
-      <div class="gc-name"><b>${esc(lg.players[p].name)}</b><small>${rec(r.w, r.l)} · ${where}</small></div>
+      <div class="gc-name"><b><a class="plink" href="#player-${p}">${esc(lg.players[p].name)}</a></b><small>${rec(r.w, r.l)} · ${where}</small></div>
       <span class="gsc${g.final ? (won ? ' win' : ' lose') : ''}">${g.final ? pts : '–'}</span>
     </div>`;
   };
@@ -835,23 +834,38 @@ const COMING = {
   '4v4': { title: '4 vs 4', text: 'Teams of four.' },
   '5v5': { title: '5 vs 5', text: 'Full teams of five.' },
 };
-const VIEWS = { '1v1': '1v1', 'new-league': 'new', 'league': 'league', 'standings': 'league' };
+const LEAGUE_TABS = { league: 'home', games: 'games', standings: 'standings', players: 'players', stats: 'stats', 'league-options': 'settings' };
+const VIEWS = { '1v1': '1v1', 'new-league': 'new' };
+for (const k of Object.keys(LEAGUE_TABS)) VIEWS[k] = 'league';
 const TITLES = { '1v1': '1 vs 1', new: 'New league' };
 
 function showPage() {
   const key = location.hash.slice(1);
-  const view = VIEWS[key] || (COMING[key] ? 'page' : 'home');
+  const playerMatch = /^player-(\d+)$/.exec(key);
+  const view = playerMatch ? 'league' : VIEWS[key] || (COMING[key] ? 'page' : 'home');
   for (const v of ['home', '1v1', 'new', 'league', 'page']) $('view-' + v).hidden = v !== view;
 
   let title = view === 'page' ? COMING[key].title : TITLES[view];
   if (view === 'league') {
     currentLeague = findLeague(currentLeague.id) || byLastPlayed()[0];
-    const tab = key === 'standings' ? 'standings' : 'home';
-    renderLeagueHeader(currentLeague, tab);
-    $('lgHome').hidden = tab !== 'home';
-    $('lgStandings').hidden = tab !== 'standings';
-    if (tab === 'home') renderLeagueHome(); else renderStandings();
-    title = `${tab === 'home' ? currentLeague.name : 'Standings'}`;
+    const lg = currentLeague;
+    const tab = playerMatch ? 'players' : LEAGUE_TABS[key];
+    const panel = playerMatch ? 'player' : tab;
+    renderLeagueHeader(lg, tab);
+    const panels = { home: 'lgHome', games: 'lgGames', standings: 'lgStandings', players: 'lgPlayers', player: 'lgPlayer', stats: 'lgStats', settings: 'lgSettings' };
+    for (const [k, id] of Object.entries(panels)) $(id).hidden = k !== panel;
+    const names = { home: lg.name, games: 'Games', standings: 'Standings', players: 'Players', stats: 'Stats', settings: 'Settings' };
+    title = names[tab];
+    if (panel === 'home') renderLeagueHome();
+    else if (panel === 'standings') renderStandings();
+    else if (panel === 'games') renderGamesPage(lg);
+    else if (panel === 'players') renderPlayersPage(lg);
+    else if (panel === 'player') {
+      const p = Number(playerMatch[1]);
+      if (lg.players[p]) { renderPlayerPage(lg, p); title = lg.players[p].name; } else location.hash = 'players';
+    }
+    else if (panel === 'stats') renderStatsPage(lg);
+    else if (panel === 'settings') renderSettingsPage(lg);
   } else if (view === '1v1') {
     selectedLeague = byLastPlayed()[0]; // start on the league played last
     renderSavedLeagues();
@@ -866,4 +880,4 @@ function showPage() {
 }
 
 window.addEventListener('hashchange', showPage);
-showPage();
+// The first showPage() runs at the end of pages.js, once every page is defined.

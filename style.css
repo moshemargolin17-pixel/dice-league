@@ -515,3 +515,101 @@ p { margin: 0; }
 .gcard.is-maybe { border-style: dashed; }
 .gc-name b.tbd { font-weight: 500; font-style: italic; color: var(--muted); padding-right: 3px; }
 .bk-tbd { padding-right: 3px; }
+
+/* ---------- League pages: Games, Players, a player, Stats, Settings ---------- */
+.page-title { font-size: 28px; font-weight: 800; }
+.shead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+.h2 { font-size: 22px; font-weight: 800; margin-top: 8px; }
+.plink { color: inherit; text-decoration: none; }
+.plink:hover { text-decoration: underline; }
+.plink:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 3px; }
+.pick {
+  min-height: 42px; padding: 8px 12px; font: 500 15px var(--f-body); color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; max-width: 100%;
+}
+.backbtn { justify-self: start; text-decoration: none; }
+.stars { font: 500 16px var(--f-body); color: var(--muted); letter-spacing: .05em; vertical-align: middle; margin-left: 6px; }
+.linkbtn { appearance: none; background: none; border: 0; padding: 10px 0 0; color: var(--red); font: 600 14px var(--f-body); cursor: pointer; }
+.linkbtn:hover { text-decoration: underline; }
+
+/* Day strip on the Games page */
+.dstrip { display: flex; align-items: stretch; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 6px; min-width: 0; }
+.dscroll { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; scroll-behavior: smooth; }
+.dscroll::-webkit-scrollbar { display: none; }
+.darrow { appearance: none; flex: none; width: 40px; border: 0; border-radius: 10px; background: var(--felt); color: var(--ink); font-size: 20px; cursor: pointer; }
+.dchip {
+  appearance: none; flex: none; min-width: 84px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 10px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); cursor: pointer; font: inherit; position: relative;
+}
+.dchip b { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dchip small { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.dchip:hover { background: var(--felt); }
+.dchip.on { background: var(--red); color: #FFFFFF; }
+.dchip.on small { color: rgba(255, 255, 255, .85); }
+.dchip.done::after { content: ""; position: absolute; top: 7px; right: 8px; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.dchip.on.done::after { background: #FFFFFF; }
+.dchip:focus-visible, .darrow:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+
+/* Players page */
+.pgroup { display: grid; gap: 10px; }
+.pgroup-title { font-size: 18px; font-weight: 800; }
+.pgroup-title span { font: 500 14px var(--f-body); color: var(--muted); }
+.pgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 10px; }
+.pcard {
+  display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 4px 8px; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 12px; text-decoration: none; color: var(--ink);
+  transition: border-color .15s ease, transform .15s ease;
+}
+.pcard:hover { border-color: var(--ink); transform: translateY(-1px); }
+.pcard:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.pcard-name { grid-column: 1 / -1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pcard-rec { font: 800 22px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.pcard-strk { font-size: 12px; color: var(--muted); }
+
+/* Stat tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: 10px; }
+.panel.tiles { padding: 14px; }
+.tiles-1 { grid-template-columns: 1fr; }
+.tile { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-width: 0; }
+.tile-lab { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.tile-val { font: 800 22px/1.2 var(--f-display); margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.tile-val.pos, .pos { color: var(--good); }
+.tile-val.neg, .neg { color: var(--bad); }
+.tile-sub { font-size: 12px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.bwrow { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; margin-top: 4px; }
+.bwrow b { font-weight: 700; }
+.tile-num { font-weight: 700; font-variant-numeric: tabular-nums; }
+.bw { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 560px) { .bw { grid-template-columns: 1fr; } }
+
+/* Panels with a table or tiles inside */
+.tpanel { padding: 16px 18px; }
+.tpanel .panel-title { padding: 0 0 10px; }
+.tbl-plain tr > :first-child { padding-left: 0; }
+.tbl-plain tr > :last-child { padding-right: 0; }
+.tbl-plain tr > :nth-child(2) { position: static; box-shadow: none; background: transparent; }
+.tbl-plain tr:hover > * { background: transparent; }
+.strong-row td { font-weight: 700; }
+.cols2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+@media (max-width: 760px) { .cols2 { grid-template-columns: 1fr; } }
+.sortbtn { appearance: none; background: none; border: 0; padding: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; }
+.sortbtn.on { color: var(--ink); }
+.sortbtn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Settings */
+.form-panel { display: grid; gap: 14px; }
+.form-panel input, .form-panel select {
+  width: 100%; min-height: 40px; padding: 8px 10px; font: 500 15px var(--f-body); color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+}
+.form-panel input:disabled, .form-panel select:disabled { opacity: .6; }
+.form-panel input:focus-visible, .form-panel select:focus-visible { outline: 3px solid var(--blue); outline-offset: 0; }
+.sgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; }
+.tbl-form td { padding-block: 6px; }
+.tbl-form input { min-width: 140px; }
+.tbl-form .short-in { min-width: 72px; width: 80px; text-transform: uppercase; }
+.tbl-form select { min-width: 92px; }
+.saved-note { align-self: center; color: var(--good); font-weight: 600; }
+.btn-danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+.btn-danger:hover { background: var(--bad); color: #FFFFFF; }
+.btn:disabled { opacity: .5; cursor: default; }
