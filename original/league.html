@@ -3483,8 +3483,7 @@ const E = (() => {
   ];
   const STAT_FLOW = [
     ...[0, 1, 2].map(i => recDef('l' + i, 'Leading after Q' + (i + 1), 'Record when ahead after quarter ' + (i + 1), r => r.ld[i])),
-    ...[0, 1, 2].map(i => recDef('t' + i, 'Trailing after Q' + (i + 1), 'Record when behind after quarter ' + (i + 1), r => r.tr[i])),
-    recDef('cu', 'Clutch', 'Record in games within ' + CLOSE + ' points at any time from the middle of the 4th quarter on', r => r.cu)
+    ...[0, 1, 2].map(i => recDef('t' + i, 'Trailing after Q' + (i + 1), 'Record when behind after quarter ' + (i + 1), r => r.tr[i]))
   ];
   const STAT_MORE = [
     recDef('r90', 'Scoring ' + BIG_GAME + '+', 'Record when scoring ' + BIG_GAME + ' or more', r => r.r90),
