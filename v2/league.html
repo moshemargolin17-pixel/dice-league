@@ -3060,7 +3060,7 @@ const E = (() => {
       '<div class="howtos">' +
       sec('Logging games', [
         'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Roll for whoever has the ball. The big dice are the shot: die 1 (green home, red away) is shot or turnover, die 2 (cyan home, orange away) is make, miss or foul. After a miss or a foul roll the small dice: die 3 (dark green home, maroon away) and die 4 (lime home, orange away). Tap each number as it comes up, then <b>Log roll</b>.',
+        'Roll for whoever has the ball. The big dice are the shot: die 1 (green home, red away) is shot or turnover, die 2 (cyan home, orange away) is make, miss or foul. After a miss or a foul roll the small dice: die 3 (dark green home, maroon away) and die 4 (lime home, orange away). Tap each number as it comes up, then press Enter (<b>Next possession</b>).',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the two dice in the boxes, then press Enter to log them. Auto-rolled games count like any other.']) +
@@ -4398,9 +4398,9 @@ const E = (() => {
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(now.side, k1 + now.dr.pend.length)) + '">' +
         '<div class="chips pk-' + now.side + (k1 + now.dr.pend.length) + '">' +
         [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
-        : '<div class="ppad"><div class="pask">Both possessions are in. Press <b>Enter</b> to log the roll and go on.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
-      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side && now.dr.pend.length < 2 ? ' disabled' : '') + '>Log roll</button></div>' + autoBtns(g) +
-      tip('<div class="note">Roll the two dice shown, press (or tap) each number, then press Enter (or Log roll) to log them and go on. Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
+        : '<div class="ppad"><div class="pask">Both possessions are in. Press <b>Enter</b> for the next possession.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
+      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side && now.dr.pend.length < 2 ? ' disabled' : '') + '>Next possession</button></div>' + autoBtns(g) +
+      tip('<div class="note">Roll the two dice shown, press (or tap) each number, then press Enter (or Next possession) to log them and go on. Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
   }
   function possDie(v) {
     const g = D.byId[S.sheet.gid];
@@ -4409,7 +4409,7 @@ const E = (() => {
     if (!now.side) return;
     const dr = now.dr;
     if (dr.pend.length >= 2) { toast('Press Enter to log these two dice.'); return; }
-    dr.pend.push(v);   // both dice in: Enter (or Log roll) logs them and the game goes on
+    dr.pend.push(v);   // both dice in: Enter (or Next possession) logs them and the game goes on
     renderSheet();
     const box = document.querySelectorAll('#sheetHost .pslot .ps-v')[dr.pend.length - 1];   // a typed number isn't rolled: the die just wiggles a little
     if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) box.classList.add('nudge');
@@ -4820,7 +4820,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll for whoever has the ball: the big dice are the shot (die 1 green home / red away, die 2 cyan home / orange away), the small dice are the rebound or free throws (die 3 dark green / maroon, die 4 lime / orange). Tap each number as it comes up, then press <b>Log roll</b>.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll for whoever has the ball: the big dice are the shot (die 1 green home / red away, die 2 cyan home / orange away), the small dice are the rebound or free throws (die 3 dark green / maroon, die 4 lime / orange). Tap each number as it comes up, then press Enter (<b>Next possession</b>).</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
@@ -4944,7 +4944,7 @@ const E = (() => {
     if (!canAuto(g0)) return;
     if (D.ru.poss) {   // 2.0: roll the two dice in the boxes; Enter logs them, like dice put in by hand
       const now = possNow(g0);
-      if (!now.side) { toast('Both possessions are in. Press Enter to log the roll.'); return; }
+      if (!now.side) { toast('Both possessions are in. Press Enter for the next possession.'); return; }
       const from = now.dr.pend.length;
       while (now.dr.pend.length < 2) now.dr.pend.push(1 + Math.floor(Math.random() * 6));
       renderSheet(); rollAnim(from); return;
