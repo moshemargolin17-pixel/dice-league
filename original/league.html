@@ -3836,7 +3836,7 @@ const E = (() => {
     const rank = order.findIndex(x => x.i === di) + 1;
     // each player: overall record, and record against players outside the division (what they add to the division's record)
     const mem = ids.map(seat => {
-      const t = { w: 0, l: 0, iw: 0, il: 0, pf: 0, pa: 0 };
+      const t = { w: 0, l: 0, cw: 0, cl: 0, iw: 0, il: 0, pf: 0, pa: 0 };
       games.forEach(({ g }) => {
         if (g.a !== seat && g.h !== seat) return;
         const opp = g.a === seat ? g.h : g.a;
@@ -3845,10 +3845,11 @@ const E = (() => {
         if (won) t.w++; else t.l++;
         t.pf += my; t.pa += th;
         if (two && L.confOf(opp) !== L.confOf(seat)) { if (won) t.iw++; else t.il++; }
+        else { if (won) t.cw++; else t.cl++; }
       });
       return { seat, r: D.rows[seat], t, net: t.w - t.l };
     }).sort((x, y) => y.net - x.net || gPct(y.t) - gPct(x.t));
-    const most = mem[0], least = mem[mem.length - 1];
+    const most = mem[0];
     const card = (lab, val, sub) => '<div><small>' + lab + '</small><strong>' + val + '</strong>' + (sub ? '<em class="kvrank">' + sub + '</em>' : '') + '</div>';
     let out = '<div class="backrow"><button type="button" class="btn" data-act="divpage" data-v="">← All divisions</button><div class="hrow" style="width:auto">' + seasonPicker() + '</div></div>' +
       '<div class="shead"><h2 class="h2">' + divName(di) + ' Division' + (D.cur ? '' : ' · Season ' + s.n) + '</h2><div class="pmuted">' + (two ? confName(L.confOf(ids[0])) + ' Conference · ' : '') + ordn(rank) + ' of ' + L.divCount() + ' divisions</div></div>';
@@ -3856,10 +3857,10 @@ const E = (() => {
       card('Point difference', rest.w + rest.l ? (rest.pf - rest.pa > 0 ? '+' : '') + (rest.pf - rest.pa) : '—') +
       (() => { const dp = divDepth(di); return dp ? card('Players .500+', dp.above + ' of ' + dp.n) + card('First to last', dp.gap ? dp.gap + ' games' : 'Level') : ''; })() +
       (most && most.t.w + most.t.l ? card('Top contributor', esc(sname(most.seat))) : '') +
-      (least && least !== most && least.t.w + least.t.l ? card('Least contributor', esc(sname(least.seat))) : '') + '</div></div>';
-    out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Players</h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Player</th><th>Overall</th><th>vs Outside</th><th>PCT</th><th>+/−</th>' + (two ? '<th>vs Inter</th>' : '') + '<th>Diff / game</th></tr>' +
+      '</div></div>';
+    out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Players</h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Player</th><th>Overall</th><th>vs Outside</th><th>PCT</th><th>+/−</th>' + '<th>vs Conf</th>' + (two ? '<th>vs Inter</th>' : '') + '<th>Diff / game</th></tr>' +
       mem.map((x, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + pid(x.seat) + '">' + esc(pname(x.seat)) + '</span>' + (x === most && x.t.w + x.t.l ? ' <span class="bestdiv">Top</span>' : '') + '</td><td>' + x.r.w + '–' + x.r.l + '</td><td>' + gRec(x.t) + '</td><td>' + gPctTxt(x.t) + '</td>' +
-        '<td class="' + (x.net > 0 ? 'pos' : x.net < 0 ? 'neg' : '') + '">' + (x.net > 0 ? '+' : '') + x.net + '</td>' + (two ? '<td>' + (x.t.iw + x.t.il ? x.t.iw + '–' + x.t.il : '—') + '</td>' : '') +
+        '<td class="' + (x.net > 0 ? 'pos' : x.net < 0 ? 'neg' : '') + '">' + (x.net > 0 ? '+' : '') + x.net + '</td>' + '<td>' + (x.t.cw + x.t.cl ? x.t.cw + '–' + x.t.cl : '—') + '</td>' + (two ? '<td>' + (x.t.iw + x.t.il ? x.t.iw + '–' + x.t.il : '—') + '</td>' : '') +
         '<td>' + (x.t.w + x.t.l ? ((x.t.pf - x.t.pa) / (x.t.w + x.t.l) > 0 ? '+' : '') + ((x.t.pf - x.t.pa) / (x.t.w + x.t.l)).toFixed(1) : '—') + '</td></tr>').join('') +
       '</table></div><div class="note" style="margin-top:6px"><b>vs Outside</b> is each player’s record against players outside the division, which is what makes up the division’s record. <b>+/−</b> is wins minus losses there.</div></div>';
     // history: this division every season
