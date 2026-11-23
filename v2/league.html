@@ -7,7 +7,7 @@
   })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="icon" href="../original/icon.svg"><link rel="apple-touch-icon" href="../original/icon-180.png">
+<link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="theme-color" content="#0E1A2B"><meta name="apple-mobile-web-app-capable" content="yes">
 <meta charset="utf-8">
 <title>Dice League 2.0</title>
@@ -74,20 +74,20 @@ html[data-design="v20"]{
   --head-bg:#FFFFFF; --head-ink:#141A26; --head-muted:#5B6478; --head-border:#DCE0E8; --head-border-w:1px;
   --panel:#FFFFFF; --panel-2:#F3F4F7; --border:#DCE0E8; --panel-border:1px solid #DCE0E8; --shadow:none;
   --ink:#141A26; --muted:#5B6478; --line:#E8EBF1;
-  --accent:#D2283C; --accent-ink:#FFFFFF; --link:#2457C5;
+  --accent:#178A3F; --accent-ink:#FFFFFF; --link:#0B7488;
   --live:#D2283C; --good:#1E8A4C; --bad:#C0283A; --warn:#A16207;
   --sc-bg:transparent; --sc-win:#0B1220; --sc-lose:#8A93A3; --sc-win-bg:transparent; --sc-lose-bg:transparent; --sc-live:#0B1220; --sc-live-bg:transparent; --sc-size:26px; --sc-radius:0;
   --num:#141A26;
   --f-display:'Bricolage Grotesque', 'Arial Black', system-ui, sans-serif; --f-body:'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif; --f-num:'Bricolage Grotesque', system-ui, sans-serif;
   --radius:14px; --h-case:none; --h-track:0; --h-weight:800; --h-size:20px;
-  --nav-ink:#5B6478; --nav-on-bg:transparent; --nav-on-ink:#141A26; --nav-on-line:#D2283C; --nav-radius:0; --nav-case:none; --nav-font:var(--f-body); --nav-track:0; --nav-border:transparent;
+  --nav-ink:#5B6478; --nav-on-bg:transparent; --nav-on-ink:#141A26; --nav-on-line:#178A3F; --nav-radius:0; --nav-case:none; --nav-font:var(--f-body); --nav-track:0; --nav-border:transparent;
   --foot-bg:#FFFFFF; --foot-ink:#5B6478; --foot-border:#DCE0E8;
   --season-bg:#FFFFFF; --season-ink:#0B1220; --season-muted:#5B6577; --season-num:#0B1220; --season-line:#EEF1F5;
-  --tonight-bg:#FFFFFF; --tonight-ink:#0B1220; --tonight-muted:#5B6577; --tonight-num:#D2283C; --tonight-line:#EEF1F5;
+  --tonight-bg:#FFFFFF; --tonight-ink:#0B1220; --tonight-muted:#5B6577; --tonight-num:#178A3F; --tonight-line:#EEF1F5;
   --gtop-bg:#F3F4F7; --gtop-live-bg:#FDECEE;
   --input-bg:#FFFFFF; --input-ink:#0B1220; --input-border:#C9CFDB;
   --chip-bg:#EEF1F5; --chip-ink:#0B1220; --chip-on-bg:#141A26; --chip-on-ink:#FFFFFF;
-  --po-mark:#2457C5; --pi-mark:#A16207;
+  --po-mark:#0B7488; --pi-mark:#A16207;
   --overlay:rgba(11,18,32,.5);
 }
 @media (prefers-color-scheme: dark){
@@ -97,18 +97,18 @@ html[data-design="v20"]{
   --head-bg:#181E2A; --head-ink:#EEF1F6; --head-muted:#98A1B3; --head-border:#283043;
   --panel:#181E2A; --panel-2:#131926; --border:#283043; --panel-border:1px solid #283043;
   --ink:#EEF1F6; --muted:#98A1B3; --line:#232B3B;
-  --accent:#FF5A6A; --accent-ink:#0F131B; --link:#6E9BFF;
+  --accent:#3FCB72; --accent-ink:#0F131B; --link:#3ECFE6;
   --live:#FF5A6A; --good:#5FD18B; --bad:#FF7A88;
   --sc-win:#EEF1F6; --sc-lose:#7C8598; --sc-live:#EEF1F6;
   --num:#EEF1F6;
-  --nav-ink:#98A1B3; --nav-on-ink:#EEF1F6; --nav-on-line:#FF5A6A;
+  --nav-ink:#98A1B3; --nav-on-ink:#EEF1F6; --nav-on-line:#3FCB72;
   --foot-bg:#181E2A; --foot-ink:#98A1B3; --foot-border:#283043;
   --season-bg:#181E2A; --season-ink:#EEF1F6; --season-muted:#98A1B3; --season-num:#EEF1F6; --season-line:#232B3B;
-  --tonight-bg:#181E2A; --tonight-ink:#EEF1F6; --tonight-muted:#98A1B3; --tonight-num:#FF5A6A; --tonight-line:#232B3B;
+  --tonight-bg:#181E2A; --tonight-ink:#EEF1F6; --tonight-muted:#98A1B3; --tonight-num:#3FCB72; --tonight-line:#232B3B;
   --gtop-bg:#131926; --gtop-live-bg:#2A1A20;
   --input-bg:#131926; --input-ink:#EEF1F6; --input-border:#3A4357;
   --chip-bg:#232B3B; --chip-ink:#EEF1F6; --chip-on-bg:#EEF1F6; --chip-on-ink:#0F131B;
-  --po-mark:#6E9BFF; --pi-mark:#E0B44A;
+  --po-mark:#3ECFE6; --pi-mark:#E0B44A;
   --overlay:rgba(0,0,0,.6);
 }
 }
@@ -685,9 +685,9 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flow .section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .flow-key{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .flow-key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}
-.flow-key .ka{background:#D33A2C}.flow-key .kh{background:#2E6BD8}
+.flow-key .ka{background:#D2283C}.flow-key .kh{background:#1E9E4A}
 .flowsvg{width:100%;height:auto;display:block}
-.flowsvg .fa{fill:#D33A2C;opacity:.28}.flowsvg .fh{fill:#2E6BD8;opacity:.28}
+.flowsvg .fa{fill:#D2283C;opacity:.28}.flowsvg .fh{fill:#1E9E4A;opacity:.3}
 .flowsvg .fline{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
 .flowsvg .f0{stroke:var(--muted);stroke-width:1}
 .flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
@@ -838,7 +838,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .chips.pk-a1 .chip{border-color:#D2283C}.chips.pk-a2 .chip{border-color:#F07D12}.chips.pk-a3 .chip{border-color:#7A1424}.chips.pk-a4 .chip{border-color:#FF9628}
 .chips[class*=pk-] .chip{border-width:2px}
 .ctag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;font-size:10.5px;font-weight:700;border:1px solid var(--line)}
-.ctag.h{color:#2F6FDB;border-color:#2F6FDB}.ctag.a{color:#D33A2C;border-color:#D33A2C}
+.ctag.h{color:#178A3F;border-color:#178A3F}.ctag.a{color:#D2283C;border-color:#D2283C}
 .shbtns{display:flex;gap:8px;align-items:center}
 .editbox{display:flex;flex-direction:column;gap:8px}
 .esel{min-height:34px;width:64px}
@@ -1795,7 +1795,7 @@ const E = (() => {
   const pad3 = n => String(n).padStart(3, '0');
   const timeStr = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const DESIGNS = [
-    { id: 'v20', name: 'Dice League 2.0', desc: 'Light gray and white with the 2.0 red, and a dark version at night', sw: ['#F3F4F7', '#D2283C', '#FFFFFF', 'Bricolage Grotesque'] },
+    { id: 'v20', name: 'Dice League 2.0', desc: 'Light gray and white with the 2.0 green, and a dark version at night', sw: ['#F3F4F7', '#178A3F', '#FFFFFF', 'Bricolage Grotesque'] },
     { id: 'app', name: 'League App', desc: 'Clean white and blue, like a sports app', sw: ['#F2F4F8', '#1D4ED8', '#FFFFFF', 'Archivo Narrow'] },
     { id: 'chalk', name: 'Chalkboard', desc: 'Coach’s board with chalk lettering', sw: ['#26332B', '#F7E07C', '#2E3D34', 'Permanent Marker'] },
     { id: 'sunset', name: 'Sunset Strip', desc: 'Dusk purple melting into a coral sunset', sw: ['#3A1259', '#FFC93C', '#2A1442', 'Righteous'] },
@@ -4696,7 +4696,7 @@ const E = (() => {
     try { localStorage.setItem(LSK + 'theme', t); } catch (e) { /* ignore */ }
   }
   function brandMark() {
-    return '<svg class="logo" width="38" height="38" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="var(--accent)"></rect><g fill="var(--accent-ink)"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>';
+    return '<svg class="logo" width="38" height="38" viewBox="0 0 44 44" aria-hidden="true"><rect x="17" y="3" width="24" height="24" rx="6" fill="#1E9E4A" stroke="#1E9E4A" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="23" cy="9" r="2.4"></circle><circle cx="29" cy="15" r="2.4"></circle><circle cx="35" cy="21" r="2.4"></circle></g><rect x="3" y="17" width="24" height="24" rx="6" fill="#D2283C" stroke="var(--head-bg)" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="9" cy="23" r="2.4"></circle><circle cx="21" cy="23" r="2.4"></circle><circle cx="15" cy="29" r="2.4"></circle><circle cx="9" cy="35" r="2.4"></circle><circle cx="21" cy="35" r="2.4"></circle></g></svg>';
   }
   function render() {
     if (!S.ready) return;
