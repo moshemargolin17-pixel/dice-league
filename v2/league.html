@@ -3058,7 +3058,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Centers get more offensive rebounds and give up fewer, Guards the other way. Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -4333,10 +4333,11 @@ const E = (() => {
        Miss, two dice: first 1 out of bounds, 2 offensive rebound, 3–6 defensive rebound (second die not used);
               second, on an offensive rebound 1–4 no putback (keeps the ball, rolls again), 5–6 putback for 2;
               on out of bounds 1 the shooter's ball (rolls again), 2–6 the other player's. */
-  // rebounds by type: the shooter's type goes after the ball, the other player's type boxes out.
-  // Offensive rebounds on die 3 run from 2 up: 1 number, +1 for a Center shooter, -1 for a Guard shooter, -1 against a Center, +1 against a Guard (0 to 3 numbers).
-  const REB_ADJ = { b: 1, n: 0, s: -1 };
-  const orebTop = (type, opp) => 1 + Math.max(0, Math.min(3, 1 + (REB_ADJ[type] || 0) - (REB_ADJ[opp] || 0)));
+  // rebounds by type (b = Center, n = Forward, s = Guard). Die 3 offensive rebounds run from 2 up to orebTop:
+  //   Guard shooting: none · Center shooting: 2-3 · Forward shooting: 2-3 against a Guard, otherwise 2.
+  // Die 4 putback: Guard 6 only, Forward 5-6, Center 4-6.
+  const orebTop = (type, opp) => type === 's' ? 1 : type === 'b' ? 3 : opp === 's' ? 3 : 2;
+  const PUTBACK = { b: 4, n: 5, s: 6 };
   function possWalk(dice, fast, type, opp) {
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
@@ -4377,7 +4378,7 @@ const E = (() => {
         if (r2 === 1) { parts.push('out of bounds, still his ball'); continue; }
         parts.push('out of bounds'); return out(true);
       }
-      if (r2 >= 5) { pts += 2; parts.push('offensive rebound and putback'); return out(true); }
+      if (r2 >= (PUTBACK[type] || 5)) { pts += 2; parts.push('offensive rebound and putback'); return out(true); }
       parts.push('offensive rebound'); // keeps the ball and rolls again
     }
   }
