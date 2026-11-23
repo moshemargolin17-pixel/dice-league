@@ -3521,7 +3521,7 @@ const E = (() => {
   const statSection = (title, defs, items, attr) => '<div class="panel"><h3 class="h3" style="margin-bottom:10px">' + title + '</h3><div class="wgrid">' + defs.map(d => statBox(d, items, attr)).join('') + '</div></div>';
   // the Advanced tab of the Stats page
   function advancedStats(items, night, attr, ids) {
-    let out = statSection('Quarters', STAT_Q, items, attr) + statSection('After each quarter', STAT_FLOW, items, attr) + statSection('Scoring and records', STAT_MORE, items, attr);
+    let out = statSection('After each quarter', STAT_FLOW, items, attr) + statSection('Scoring and records', STAT_MORE, items, attr);
     if (!night) out += statSection('Career', STAT_CAREER, ids.map(id => ({ id, r: Object.assign({ gl: {} }, careerOf(id).t) })), ' data-career="1"');
     return out;
   }
