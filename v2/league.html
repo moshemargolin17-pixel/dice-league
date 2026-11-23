@@ -2090,6 +2090,9 @@ const E = (() => {
       pl.rating = Math.max(1, Math.min(10, Math.round(+pl.rating || 5)));
       // Keep the original rating for seasons played under the old rules.
       pl.skillLevel = Math.max(1, Math.min(5, Math.round(+pl.skillLevel || (6 - Math.ceil(pl.rating / 2)))));
+      // 2.0 ratings in stars (5 is best) and the type of player
+      ['off', 'def', 'reb'].forEach(k => { pl[k] = Math.max(1, Math.min(5, Math.round(+pl[k] || 3))); });
+      if (!PTYPES[pl.type]) pl.type = 'n';
       if (!pl.rh) pl.rh = E.initRhythm(L.hashStr((cfg.seed || 'league') + ':' + i + ':' + pl.name));
       if (!pl.short) { pl.short = autoShort(pl.name, taken); pl.shortAuto = true; taken.add(pl.short); }
     });
@@ -2195,6 +2198,9 @@ const E = (() => {
   const nm = id => (S.cfg.players[id] && S.cfg.players[id].name) || 'Player ' + (id + 1);
   const snm = id => (S.cfg.players[id] && S.cfg.players[id].short) || 'P' + (id + 1);
   const P = p => S.cfg.players[pid(p)];
+  // 2.0 player types: they decide which shots are 3-pointers on die 1
+  const PTYPES = { b: 'Big', n: 'Normal', s: 'Shooter' };
+  const RATINGS = [['off', 'Offense'], ['def', 'Defense'], ['reb', 'Rebounding']];
   const pname = p => nm(pid(p));
   const sname = p => snm(pid(p));   // short name, for tight spots
   const rec = (rows, p) => rows[p].w + '–' + rows[p].l;
@@ -2682,7 +2688,8 @@ const E = (() => {
   }
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
-    ensureEntry(g).started = true;
+    const e = ensureEntry(g); e.started = true;
+    if (D.ru.poss) e.ty = [P(g.a).type || 'n', P(g.h).type || 'n'];
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3015,8 +3022,8 @@ const E = (() => {
     const z = { a: 0, h: 0 };
     const dr = D.ru.poss && !g.st.final ? possSaved(g) : null;
     if (!dr) return z;
-    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'));
-    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a)); if (wh.done) z.h = wh.pts; }
+    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'));
+    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a), possTy(g, 'h')); if (wh.done) z.h = wh.pts; }
     return z;
   }
   function gameCard(g) {
@@ -3045,6 +3052,10 @@ const E = (() => {
   const starText = level => '★'.repeat(starsOf(level)) + '☆'.repeat(5 - starsOf(level));
   const starWord = level => starsOf(level) + (starsOf(level) === 1 ? ' star' : ' stars');
   const SKILL_LEVELS = [1, 2, 3, 4, 5]; // best first: 5 stars down to 1 star
+  // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
+  const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
+  const typeSel = (id, v, label) => '<select id="' + id + '" aria-label="' + label + '">' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
+  const RATINGS_TIP = 'Offense, Defense and Rebounding are in stars, 5 is best. Type decides which shots are 3-pointers on die 1: a Shooter on 5 or 6, a Normal player on 6, a Big never (6 is a 2).';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -3100,7 +3111,7 @@ const E = (() => {
         'Titles are decided when the regular season ends; conference champions when the Finals are set; the champion when the Finals end. Each one gets a celebration when you press End Day.',
         'A player’s achievements from every season are listed at the bottom of their page.']) +
       sec('Settings and backups', [
-        TIPS.skill,
+        RATINGS_TIP,
         'Add a player any time in Settings. Everyone keeps their profile and history, but only ' + L.N + ' play each season: you pick them, with their conference and division, when you start a season. A player added mid-season can play from next season on. The schedule is locked once a game has been logged. Before then, you can reshuffle it. Every player plays ' + L.gamesPerPlayer() + ' games with at least one rest day between games.',
         '<b>League setup</b> sets the number of players, the layout (conferences and divisions), the number of games and the playoffs. It can be changed until the first game is logged.',
         'Download an extra copy of your whole league with Backup league. It includes every season, game and setting. To move the league, back up on one computer and restore on the other.',
@@ -4224,9 +4235,9 @@ const E = (() => {
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       (L.hasDivs() ? '<div class="frow">' + divList().map(i => '<div class="field"><label for="div' + i + '">Division ' + (i + 1) + (L.confCount() > 1 ? ' (' + confName(L.confOf(L.divIds(i)[0])) + ')' : '') + '</label><input type="text" id="div' + i + '" value="' + esc(c.divNames[i] || 'Division ' + (i + 1)) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       '<div><button type="submit" class="btn primary">Save names</button></div></form></div>';
-    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + TIPS.skill + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th>Skill</th></tr>' +
-      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td><select id="psk' + p + '" aria-label="Skill in stars, 5 is best">' + SKILL_LEVELS.map(v => '<option value="' + v + '"' + (pl.skillLevel === v ? ' selected' : '') + ' aria-label="' + starWord(v) + '">' + starText(v) + '</option>').join('') + '</select></td></tr>'; }).join('') + '</table></div><button type="submit" class="btn primary">Save players</button></form>' +
-      '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addSkill">Skill</label><select id="addSkill">' + SKILL_LEVELS.map(v => '<option value="' + v + '"' + (v === 3 ? ' selected' : '') + ' aria-label="' + starWord(v) + '">' + starText(v) + '</option>').join('') + '</select></div></div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
+    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th><th>Rebounding</th></tr>' +
+      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name)) + '</td>' + RATINGS.map(([k, t]) => '<td>' + ratingSel('p' + k + p, pl[k], t + ' of ' + esc(pl.name) + ', in stars') + '</td>').join('') + '</tr>'; }).join('') + '</table></div><button type="submit" class="btn primary">Save players</button></form>' +
+      '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + RATINGS.map(([k, t]) => '<div class="field short"><label for="add' + k + '">' + t + '</label>' + ratingSel('add' + k, 3, t + ', in stars') + '</div>').join('') + '</div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
     out += setupPanel();
     const fin = D.games.filter(g => g.st.final).length;
     out += '<div class="panel"><div class="form"><h3 class="h3">Season</h3>' +
@@ -4319,7 +4330,7 @@ const E = (() => {
        Miss, two dice: first 1 out of bounds, 2 offensive rebound, 3–6 defensive rebound (second die not used);
               second, on an offensive rebound 1–4 no putback (keeps the ball, rolls again), 5–6 putback for 2;
               on out of bounds 1 the shooter's ball (rolls again), 2–6 the other player's. */
-  function possWalk(dice, fast) {
+  function possWalk(dice, fast, type) {
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
     const out = (done, need) => ({ done, need: need || null, pts, steal, text: parts.join(', ') });
@@ -4328,7 +4339,7 @@ const E = (() => {
       const d1 = dice[i++];
       if (d1 === 1) { parts.push('turnover (dead ball)'); return out(true); }
       if (d1 === 2) { parts.push('turnover (stolen)'); steal = true; return out(true); }
-      const val = d1 === 6 ? 3 : 2, fb = first && fast;
+      const val = type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2), fb = first && fast;   // Shooter: 5-6 are 3s · Normal: 6 · Big: no 3s
       first = false;
       if (i >= dice.length) return out(false, 'Die 2 · make, miss or foul');
       const d2 = dice[i++];
@@ -4365,6 +4376,7 @@ const E = (() => {
   }
   // dice of every logged possession: entry.p[roll] = [awayDice, homeDice]
   const possOf = g => (recOf(g) && recOf(g).p) || [];
+  const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
   function possFast(g, n, side, draftA) {
     const p = possOf(g);
@@ -4390,8 +4402,8 @@ const E = (() => {
   // the state of the roll being entered: whose ball, what each possession has so far
   function possNow(g) {
     const dr = possDraft(g), n = g.st.n;
-    const wa = possWalk(dr.a, possFast(g, n, 'a'));
-    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a)) : null;
+    const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'));
+    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h')) : null;
     return { dr, wa, wh, side: !wa.done ? 'a' : !wh.done ? 'h' : null };
   }
   // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
@@ -4406,7 +4418,7 @@ const E = (() => {
     const st = g.st, now = possNow(g);
     const side = (sd, w, dice) => {
       const p = sd === 'a' ? g.a : g.h, on = now.side === sd;
-      return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm">' + esc(pname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
+      return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm">' + esc(pname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + ' · ' + PTYPES[possTy(g, sd)] + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
         '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll both dice' : sd === 'h' ? 'After the away possession' : '') + '</span>') + '</div>' +
         (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
     };
@@ -4466,8 +4478,9 @@ const E = (() => {
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
   function possLog(g, dice) {
     const n = g.rolls.length;
-    const wa = possWalk(dice[0], possFast(g, n, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]));
+    const wa = possWalk(dice[0], possFast(g, n, 'a'), possTy(g, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]), possTy(g, 'h'));
     const entry = ensureEntry(g);
+    if (!entry.ty) entry.ty = [possTy(g, 'a'), possTy(g, 'h')];
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
     delete entry.d;   // the roll is logged: nothing in progress
     const rolls = g.rolls.concat([[wa.pts, wh.pts]]);
@@ -4478,8 +4491,8 @@ const E = (() => {
   // one roll for the simulator: real dice by the same rules
   function possSim(g) {
     const n = g.rolls.length, d6 = () => 1 + Math.floor(Math.random() * 6);
-    const a = []; while (!possWalk(a, possFast(g, n, 'a')).done) a.push(d6());
-    const h = []; while (!possWalk(h, possFast(g, n, 'h', a)).done) h.push(d6());
+    const a = []; while (!possWalk(a, possFast(g, n, 'a'), possTy(g, 'a')).done) a.push(d6());
+    const h = []; while (!possWalk(h, possFast(g, n, 'h', a), possTy(g, 'h')).done) h.push(d6());
     possLog(g, [a, h]);
   }
   function entryBlock(g) {
@@ -5144,7 +5157,8 @@ const E = (() => {
         const short = (document.getElementById('psh' + p).value || '').trim().slice(0, 4).toUpperCase();
         if (short && short !== pl.short) { pl.short = short; delete pl.shortAuto; }
         else if (!short || (pl.shortAuto && pl.name !== oldName)) { pl.short = autoShort(pl.name, new Set(c.players.filter(o => o !== pl).map(o => o.short))); pl.shortAuto = true; }
-        const sk = document.getElementById('psk' + p); if (sk) pl.skillLevel = Math.max(1, Math.min(5, parseInt(sk.value, 10) || 3));
+        const ty = document.getElementById('pty' + p); if (ty && PTYPES[ty.value]) pl.type = ty.value;
+        RATINGS.forEach(([k]) => { const el = document.getElementById('p' + k + p); if (el) pl[k] = Math.max(1, Math.min(5, parseInt(el.value, 10) || 3)); });
       });
       if (D.ru.skillCalls) {
         const touchedDays = new Set();
@@ -5162,7 +5176,8 @@ const E = (() => {
       const name = (document.getElementById('addName').value || '').trim().slice(0, 28);
       if (!name) { toast('Type a name for the new player.'); return; }
       const short = (document.getElementById('addShort').value || '').trim().slice(0, 4).toUpperCase();
-      const pl = { name, skillLevel: Math.max(1, Math.min(5, parseInt(document.getElementById('addSkill').value, 10) || 3)) };
+      const pl = { name, type: document.getElementById('addType').value };
+      RATINGS.forEach(([k]) => { pl[k] = Math.max(1, Math.min(5, parseInt(document.getElementById('add' + k).value, 10) || 3)); });
       if (short) pl.short = short;
       const tf = document.querySelector('form[data-form=teams]'); if (tf) tf.requestSubmit();   // keep edits typed in the table above
       c.players.push(pl); normPlayers(c);
