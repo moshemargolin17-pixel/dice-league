@@ -704,17 +704,22 @@ function gameKind(lg, g) {
 function gameCard(lg, g) {
   const side = (p, isHome) => {
     const r = recordAt(lg, p, g);
-    const pts = isHome ? g.homePts : g.awayPts, opp = isHome ? g.awayPts : g.homePts;
+    const pts = isHome ? live.homePts : live.awayPts, opp = isHome ? live.awayPts : live.homePts;
     const won = g.final && pts > opp;
     const where = isHome ? `${rec(r.hw, r.hl)} home` : `${rec(r.aw, r.al)} away`;
     return `<div class="gteam${won ? ' won' : ''}">
       <div class="gc-name"><b><a class="plink" href="#player-${p}">${esc(lg.players[p].name)}</a></b><small>${rec(r.w, r.l)} · ${where}</small></div>
-      <span class="gsc${g.final ? (won ? ' win' : ' lose') : ''}">${g.final ? pts : '–'}</span>
+      <span class="gsc${g.final ? (won ? ' win' : ' lose') : ''}">${g.final || started ? pts : '–'}</span>
     </div>`;
   };
-  return `<article class="gcard${g.final ? ' is-final' : ''}">
-    <div class="gtop"><span class="gst">${g.final ? 'Final' : 'Not started'}</span><span class="gmeta">${gameKind(lg, g)}</span></div>
+  const started = !g.final && g.log && g.log.length > 0;
+  const live = started ? playGame(g) : g;
+  const link = !g.final && g.day === todayOf(lg) ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
+    : g.final && g.log ? `<a class="btn btn-ghost btn-sm" href="#game-${g.id}">Play-by-play</a>` : '';
+  return `<article class="gcard${g.final ? ' is-final' : ''}${started ? ' is-live' : ''}">
+    <div class="gtop"><span class="gst">${g.final ? 'Final' : started ? 'In progress' : 'Not started'}</span><span class="gmeta">${gameKind(lg, g)}</span></div>
     <div class="gbody">${side(g.away, false)}${side(g.home, true)}</div>
+    ${link ? `<div class="gfoot">${link}</div>` : ''}
   </article>`;
 }
 
@@ -808,17 +813,18 @@ const TITLES = { '1v1': '1 vs 1', new: 'New league' };
 function showPage() {
   const key = location.hash.slice(1);
   const playerMatch = /^player-(\d+)$/.exec(key);
-  const view = playerMatch ? 'league' : VIEWS[key] || (COMING[key] ? 'page' : 'home');
+  const gameMatch = /^game-(\w+)$/.exec(key);
+  const view = playerMatch || gameMatch ? 'league' : VIEWS[key] || (COMING[key] ? 'page' : 'home');
   for (const v of ['home', '1v1', 'new', 'league', 'page']) $('view-' + v).hidden = v !== view;
 
   let title = view === 'page' ? COMING[key].title : TITLES[view];
   if (view === 'league') {
     currentLeague = findLeague(currentLeague.id) || byLastPlayed()[0];
     const lg = currentLeague;
-    const tab = playerMatch ? 'players' : LEAGUE_TABS[key];
-    const panel = playerMatch ? 'player' : tab;
+    const tab = playerMatch ? 'players' : gameMatch ? 'home' : LEAGUE_TABS[key];
+    const panel = playerMatch ? 'player' : gameMatch ? 'game' : tab;
     renderLeagueHeader(lg, tab);
-    const panels = { home: 'lgHome', games: 'lgGames', standings: 'lgStandings', bracket: 'lgBracket', players: 'lgPlayers', player: 'lgPlayer', stats: 'lgStats', settings: 'lgSettings' };
+    const panels = { home: 'lgHome', games: 'lgGames', standings: 'lgStandings', bracket: 'lgBracket', players: 'lgPlayers', player: 'lgPlayer', stats: 'lgStats', settings: 'lgSettings', game: 'lgGame' };
     for (const [k, id] of Object.entries(panels)) $(id).hidden = k !== panel;
     const names = { home: lg.name, games: 'Games', standings: 'Standings', bracket: 'Bracket', players: 'Players', stats: 'Stats', settings: 'Settings' };
     title = names[tab];
@@ -832,6 +838,7 @@ function showPage() {
     }
     else if (panel === 'stats') renderStatsPage(lg);
     else if (panel === 'bracket') renderBracketPage(lg);
+    else if (panel === 'game') { renderGamePage(lg, gameMatch[1]); title = 'Game'; }
     else if (panel === 'settings') renderSettingsPage(lg);
   } else if (view === '1v1') {
     selectedLeague = byLastPlayed()[0]; // start on the league played last

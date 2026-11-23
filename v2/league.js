@@ -525,3 +525,67 @@ function markText(lg) {
     E: 'Eliminated',
   };
 }
+
+// ---------- Scoring ----------
+// First to 21, one possession at a time, the home player first. Each possession rolls 3 dice:
+//   score die (the player's color): 1–3 no basket, 4–6 basket
+//   shot die: on a basket, 1–4 is a 2-pointer, 5–6 a 3-pointer
+//   foul die: a 6 is a foul, and the foul die is rolled again for free throws:
+//     after a basket (and-one): 1–3 miss, 4–6 make (+1)
+//     with no basket (2 shots): 1–2 miss both, 3–4 make 1, 5–6 make 2
+// A basket that reaches 21 wins on the spot (no free throw), so the most anyone can finish with is 23.
+// Free throws stop once the shooter reaches 21.
+// A logged possession is { s, t, f, ft }; t is only needed on a basket and ft only when free throws are shot.
+const GAME_TO = 21;
+const DIE_FACES = [1, 2, 3, 4, 5, 6];
+
+function possessionResult(r, before) {
+  const made = r.s >= 4;
+  const shot = made ? (r.t >= 5 ? 3 : 2) : 0;
+  const foul = r.f === 6;
+  // free throws: one after a basket that doesn't win the game, two with no basket
+  const fts = !foul ? 0 : made ? (before + shot < GAME_TO ? 1 : 0) : 2;
+  let ftMade = 0;
+  if (fts === 1) ftMade = r.ft >= 4 ? 1 : 0;
+  if (fts === 2) ftMade = Math.min(r.ft <= 2 ? 0 : r.ft <= 4 ? 1 : 2, GAME_TO - before);
+  return { made, shot, foul, fts, ftMade, pts: shot + ftMade };
+}
+
+// Which dice a possession still needs, given what's been entered.
+function possessionNeeds(r, before) {
+  const need = [];
+  if (!r.s) need.push('s');
+  if (r.s >= 4 && !r.t) need.push('t');
+  if (!r.f) need.push('f');
+  if (r.s && r.f && (r.s < 4 || r.t)) {
+    if (possessionResult(r, before).fts && !r.ft) need.push('ft');
+  }
+  return need;
+}
+
+// Replay a game's log: the score after each possession, who has the ball next, and whether it's over.
+function playGame(g) {
+  const pts = { [g.away]: 0, [g.home]: 0 };
+  const plays = [];
+  let over = false;
+  for (const [i, r] of (g.log || []).entries()) {
+    if (over) break;
+    const p = i % 2 === 0 ? g.home : g.away;
+    const res = possessionResult(r, pts[p]);
+    pts[p] += res.pts;
+    plays.push({ n: i + 1, p, roll: r, ...res, away: pts[g.away], home: pts[g.home] });
+    over = pts[p] >= GAME_TO;
+  }
+  const next = plays.length % 2 === 0 ? g.home : g.away;
+  const winner = over ? (pts[g.home] > pts[g.away] ? g.home : g.away) : null;
+  return { awayPts: pts[g.away], homePts: pts[g.home], plays, next, over, winner };
+}
+
+// "2-pointer, and-one made" and the like.
+function playText(x) {
+  const parts = [x.made ? `${x.shot}-pointer` : 'No basket'];
+  if (x.foul && x.made && !x.fts) parts.push('fouled, no free throw (game won)');
+  else if (x.foul && x.made) parts.push(x.ftMade ? 'and-one made' : 'and-one missed');
+  else if (x.foul) parts.push(x.ftMade ? `fouled, made ${x.ftMade} of 2` : 'fouled, missed both');
+  return parts.join(', ');
+}
