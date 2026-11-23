@@ -666,7 +666,8 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .post-series .season-series{padding:0;border:0;box-shadow:none;background:none}
 .game-aside .post-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;text-align:left;padding:14px 16px;min-height:54px}
 .game-aside .post-series .schip b{font-size:15px}
-.game-aside .post-series .schip small{font-size:13.5px;text-align:right}
+.game-aside .post-series .schip small,.game-aside .post-series .schip .sgs{font-size:13.5px;text-align:right}
+.game-aside .post-series .schip .sgs{font-size:15px}
 .game-aside .post-series .schips{gap:8px}
 .game-aside .season-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;text-align:left;padding:16px 16px;min-height:62px}
 .game-aside .season-series .schip b{font-size:15px}
@@ -3351,7 +3352,7 @@ const E = (() => {
       const z = x.bo === 1 ? gs[0] : gs.find(q => q.no === no);
       if (!z) { const sure = no <= L.winsNeeded(x.bo) + Math.min(inf.wh, inf.wl); chips.push('<span class="schip off"><b>' + (x.bo > 1 ? 'G' + no : 'Game') + '</b><small>' + (inf.done ? 'Not necessary' : sure ? 'Upcoming' : 'If necessary') + '</small></span>'); continue; }
       const st = z.st, w = st.final ? (st.h > st.a ? z.h : z.a) : null;
-      chips.push('<button type="button" class="schip' + (z.id === g.id ? ' on' : '') + '" data-act="game" data-n="' + D.season.n + '" data-id="' + z.id + '"><b>' + (x.bo > 1 ? 'G' + no : 'Game') + '</b><small>' + (st.final ? esc(sname(w)) + ' ' + Math.max(st.a, st.h) + '–' + Math.min(st.a, st.h) : st.live ? 'Live ' + st.a + '–' + st.h : 'Upcoming') + '</small></button>');
+      chips.push('<button type="button" class="schip' + (z.id === g.id ? ' on' : '') + '" data-act="game" data-n="' + D.season.n + '" data-id="' + z.id + '"><span class="sgd">' + (x.bo > 1 ? 'G' + no : 'Game') + '</span>' + (st.final ? '<b class="sgs">' + esc(sname(w)) + ' ' + Math.max(st.a, st.h) + '–' + Math.min(st.a, st.h) + '</b>' : '<small>' + (st.live ? 'Live ' + st.a + '–' + st.h : 'Upcoming') + '</small>') + '</button>');
     }
     return '<div class="sstrip"><div class="sstat">' + seriesText(x, seriesAt(x, g)) + ' <button type="button" class="linkbtn" data-act="series" data-sid="' + x.id + '" data-n="' + D.season.n + '">Series overview</button></div><div class="schips-wrap"><button type="button" class="sarrow" data-act="sscroll" data-dir="-1" aria-label="Earlier games">‹</button><div class="schips">' + chips.join('') + '</div><button type="button" class="sarrow" data-act="sscroll" data-dir="1" aria-label="Later games">›</button></div></div>';
   }
