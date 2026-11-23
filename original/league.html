@@ -899,6 +899,10 @@ button.cday:hover{background:var(--panel-2)}
 @keyframes celfall{to{transform:translateY(560px) rotate(540deg);opacity:0}}
 @keyframes celpop{from{transform:scale(.3)}to{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){.confetti{display:none}.cel .cel-ic{animation:none}}
+.bestdiv{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:99px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.besth{font-weight:700}
+.gpick{align-items:center;gap:10px;flex-wrap:wrap}
+.gpick select{max-width:260px}
 .asof{display:flex;justify-content:center;align-items:center;gap:8px;font-size:13px}
 .asof select{font-size:13px;padding:4px 8px}
 .grow .grec{color:var(--muted);font-size:12px;min-width:44px;text-align:right}
@@ -2939,6 +2943,7 @@ const E = (() => {
         'Tap any player name to open their page. On Stats, tap a column of the leaderboard to sort it.',
         'Every stat box on Stats shows the best and worst player. Tap it to see everyone ranked by that stat alone, flip it best-to-worst or worst-to-best, and tap a number to see the games behind it. Records rank by win percentage; at the same percentage, more wins go first. Career covers all seasons together.',
         '<b>vs .500+</b> and <b>vs Under .500</b> go by the opponent’s regular-season record. <b>Close</b> games ended within ' + CLOSE + ' points. <b>Comebacks</b> are wins after trailing by ' + SIT_PTS + ' or more; <b>Blown leads</b> are losses after leading by ' + SIT_PTS + ' or more. <b>Blowouts</b> are games won by ' + BLOWOUT + ' or more. <b>Early</b>, <b>mid</b> and <b>late season</b> are thirds of the regular season.',
+        'Stats → Advanced → <b>Divisions and conferences</b>: each division’s combined record against the rest of the league (the best one gets ★ Best division), each conference’s interconference record, a head-to-head picker for any two groups, and every season’s history with titles and Finals trips.',
         'Games is a calendar of the whole season: tap a day for its games, and use the arrows to page through. Pick a name under <b>Player schedule</b> for one player’s season, with their record after each game (the series score in the playoffs).',
         'A player’s page has Personal best and worst side by side. Tap a best for the top 5 (ties included), or a worst to go to that game. Season and Career switch the whole page once a player has more than one season. Past seasons are under the <b>Season</b> menu at the top of each page.',
         '<b>Player history</b> on a player’s page: pick an opponent to see the regular-season, playoff and combined records and points per game against them.',
@@ -3739,6 +3744,113 @@ const E = (() => {
     L.use(S.season && S.season.shape);   // back to the current season's shape
     return S.past[n];
   }
+  /* ---------- divisions and conferences: records as a group ----------
+     Keys: 'd<i>' a division, 'c<i>' a conference; compared against another division or conference,
+     'restconf' (the rest of its own conference), 'othconf' (the other conference) or 'rest' (everyone else). */
+  const groupName = k => (k[0] === 'd' ? divName(+k.slice(1)) : confName(+k.slice(1)) + ' Conference');
+  const inGroup = (k, seat) => (k[0] === 'd' ? L.divOf(seat) === +k.slice(1) : L.confOf(seat) === +k.slice(1));
+  const confOfKey = k => (k[0] === 'd' ? L.confOf(L.divIds(+k.slice(1))[0]) : +k.slice(1));
+  function inOther(a, b, seat) {
+    if (inGroup(a, seat)) return false;
+    if (b === 'rest') return true;
+    if (b === 'restconf') return L.confOf(seat) === confOfKey(a);
+    if (b === 'othconf') return L.confOf(seat) !== confOfKey(a);
+    return inGroup(b, seat);
+  }
+  // a group's record against another over a list of { g, d } (each season read with its own league shape)
+  function groupRecord(list, a, b) {
+    const t = { w: 0, l: 0, pf: 0, pa: 0 };
+    let shapeN = null;
+    for (const { g, d } of list) {
+      if (!g.st.final) continue;
+      if (shapeN !== d.season.n) { L.use(d.season.shape); shapeN = d.season.n; }
+      const aIn = inGroup(a, g.a), hIn = inGroup(a, g.h);
+      if (aIn === hIn) continue;
+      const mine = aIn ? g.a : g.h, opp = aIn ? g.h : g.a;
+      if (!inOther(a, b, opp)) continue;
+      const my = mine === g.a ? g.st.a : g.st.h, th = mine === g.a ? g.st.h : g.st.a;
+      if (my > th) t.w++; else t.l++;
+      t.pf += my; t.pa += th;
+    }
+    L.use(D.season.shape);
+    return t;
+  }
+  const gPct = t => (t.w + t.l ? t.w / (t.w + t.l) : -1);
+  const gRec = t => (t.w + t.l ? t.w + '–' + t.l : '—');
+  const gPctTxt = t => (t.w + t.l ? fmtPct(t.w / (t.w + t.l)) : '—');
+  // championships and Finals trips by group, over the seasons in a list of season datas
+  function groupTitles(datas, k) {
+    let titles = 0, finals = 0;
+    datas.forEach(d => {
+      L.use(d.season.shape);
+      const s = d.season;
+      if (s.champion != null && inGroup(k, s.champion)) titles++;
+      if (L.confCount() > 1) {
+        const f = (s.post.series || []).find(x => x.id === 'f');
+        if (f && (inGroup(k, f.hi) || inGroup(k, f.lo))) finals++;
+      }
+    });
+    L.use(D.season.shape);
+    return { titles, finals };
+  }
+  function groupStats(games) {
+    const divs = L.hasDivs(), two = L.confCount() > 1;
+    if (!divs && !two) return '';
+    const datas = [...new Map(games.map(x => [x.d.season.n, x.d])).values()];
+    const divKeys = divs ? divList().map(i => 'd' + i) : [], confKeys = two ? confList().map(i => 'c' + i) : [];
+    let out = '<h3 class="h3 pmuted" style="color:var(--page-ink)">Divisions and conferences</h3>';
+    if (divs) {
+      const rows = divKeys.map(k => ({ k, rest: groupRecord(games, k, 'rest'), conf: groupRecord(games, k, 'restconf'), oth: two ? groupRecord(games, k, 'othconf') : null, t: groupTitles(datas, k) }))
+        .sort((x, y) => gPct(y.rest) - gPct(x.rest) || y.rest.w - x.rest.w);
+      const best = rows[0] && rows[0].rest.w + rows[0].rest.l ? rows[0].k : null;
+      out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Division standings <small class="muted">combined records</small></h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Division</th><th>vs League</th><th>PCT</th><th>vs Conf</th>' + (two ? '<th>vs Other conf</th>' : '') + '<th>Diff</th><th>Titles</th>' + (two ? '<th>Finals</th>' : '') + '</tr>' +
+        rows.map((r, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><b>' + groupName(r.k) + '</b>' + (two ? ' <small class="muted">' + confName(confOfKey(r.k)) + '</small>' : '') + (r.k === best ? ' <span class="bestdiv">★ Best division</span>' : '') + '</td><td>' + gRec(r.rest) + '</td><td>' + gPctTxt(r.rest) + '</td><td>' + gRec(r.conf) + '</td>' + (two ? '<td>' + gRec(r.oth) + '</td>' : '') +
+          '<td class="' + (r.rest.pf > r.rest.pa ? 'pos' : r.rest.pf < r.rest.pa ? 'neg' : '') + '">' + (r.rest.w + r.rest.l ? (r.rest.pf - r.rest.pa > 0 ? '+' : '') + (r.rest.pf - r.rest.pa) : '—') + '</td><td>' + r.t.titles + '</td>' + (two ? '<td>' + r.t.finals + '</td>' : '') + '</tr>').join('') +
+        '</table></div><div class="note" style="margin-top:6px">Each division’s players together: <b>vs League</b> is against everyone outside the division, <b>vs Conf</b> against the rest of its conference' + (two ? ', <b>vs Other conf</b> against the other conference' : '') + '. <b>Titles</b> are championships won by its players' + (two ? '; <b>Finals</b> are trips to the Finals' : '') + '.</div></div>';
+    }
+    if (two) {
+      const rows = confKeys.map(k => ({ k, r: groupRecord(games, k, 'othconf'), t: groupTitles(datas, k) })).sort((x, y) => gPct(y.r) - gPct(x.r));
+      out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Conference vs conference</h3><div class="tscroll"><table class="tbl"><tr><th class="l">Conference</th><th>Interconference</th><th>PCT</th><th>Diff</th><th>Titles</th></tr>' +
+        rows.map(r => '<tr><td class="l"><b>' + groupName(r.k) + '</b></td><td>' + gRec(r.r) + '</td><td>' + gPctTxt(r.r) + '</td><td class="' + (r.r.pf > r.r.pa ? 'pos' : r.r.pf < r.r.pa ? 'neg' : '') + '">' + (r.r.w + r.r.l ? (r.r.pf - r.r.pa > 0 ? '+' : '') + (r.r.pf - r.r.pa) : '—') + '</td><td>' + r.t.titles + '</td></tr>').join('') + '</table></div></div>';
+    }
+    // pick any two
+    const all = divKeys.concat(confKeys);
+    const A = all.includes(S.gA) ? S.gA : all[0];
+    const bOpts = [['rest', 'Rest of the league']].concat(A[0] === 'd' && two ? [['restconf', 'Rest of its conference'], ['othconf', 'Other conference']] : A[0] === 'd' ? [['restconf', 'Rest of the league']] : [])
+      .concat(all.filter(k => k !== A && !(A[0] === 'c' && k[0] === 'd' && confOfKey(k) === +A.slice(1)) && !(A[0] === 'd' && k[0] === 'c' && +k.slice(1) === confOfKey(A))).map(k => [k, groupName(k)]))
+      .filter((o, i, arr) => arr.findIndex(z => z[1] === o[1]) === i);
+    const B = bOpts.some(o => o[0] === S.gB) ? S.gB : bOpts[0][0];
+    const r = groupRecord(games, A, B);
+    const sel = (id, opts, v) => '<select id="' + id + '">' + opts.map(([k, l]) => '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>';
+    out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Head to head</h3><div class="frow gpick">' + sel('gA', all.map(k => [k, groupName(k)]), A) + '<span class="pmuted">vs</span>' + sel('gB', bOpts, B) + '</div>' +
+      '<div class="kv" style="margin-top:10px">' + kv('Record', gRec(r)) + kv('Win %', gPctTxt(r)) + kv('Points for / game', r.w + r.l ? (r.pf / (r.w + r.l)).toFixed(1) : '—') + kv('Points against / game', r.w + r.l ? (r.pa / (r.w + r.l)).toFixed(1) : '—') + kv('Point difference', r.w + r.l ? (r.pf - r.pa > 0 ? '+' : '') + (r.pf - r.pa) : '—') + '</div></div>';
+    // history: every season, each division's record against the rest of the league
+    if (divs) {
+      const hist = allSeasonData();
+      if (!hist) out += '<div class="panel"><h3 class="h3">Division history</h3><div class="loading">Loading all seasons…</div></div>';
+      else {
+        const seasons = hist.slice().sort((x, y) => x.season.n - y.season.n);
+        const rowsH = seasons.map(d => {
+          const list = d.games.filter(g => g.type === 'reg').map(g => ({ g, d }));
+          const recs = divKeys.map(k => groupRecord(list, k, 'rest'));
+          const top = recs.reduce((bi, t, i) => (gPct(t) > gPct(recs[bi]) ? i : bi), 0);
+          return { n: d.season.n, recs, top: recs[top].w + recs[top].l ? top : -1 };
+        });
+        const totals = divKeys.map((k, i) => rowsH.reduce((t, r) => ({ w: t.w + r.recs[i].w, l: t.l + r.recs[i].l }), { w: 0, l: 0 }));
+        const titles = divKeys.map(k => groupTitles(seasons, k));
+        const bests = divKeys.map((k, i) => rowsH.filter(r => r.top === i).length);
+        out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Division history <small class="muted">regular season, every season</small></h3><div class="tscroll"><table class="tbl"><tr><th class="l">Season</th>' + divKeys.map(k => '<th>' + groupName(k) + '</th>').join('') + '</tr>' +
+          rowsH.map(r => '<tr><td class="l">' + r.n + '</td>' + r.recs.map((t, i) => '<td' + (i === r.top ? ' class="besth"' : '') + '>' + gRec(t) + (i === r.top ? ' ★' : '') + '</td>').join('') + '</tr>').join('') +
+          '<tr class="strong-row"><td class="l"><b>All seasons</b></td>' + totals.map(t => '<td><b>' + gRec(t) + '</b></td>').join('') + '</tr>' +
+          '<tr><td class="l">Win %</td>' + totals.map(t => '<td>' + gPctTxt(t) + '</td>').join('') + '</tr>' +
+          '<tr><td class="l">Best division</td>' + bests.map(n => '<td>' + n + '×</td>').join('') + '</tr>' +
+          '<tr><td class="l">Titles</td>' + titles.map(t => '<td>' + t.titles + '</td>').join('') + '</tr>' +
+          (two ? '<tr><td class="l">Finals</td>' + titles.map(t => '<td>' + t.finals + '</td>').join('') + '</tr>' : '') +
+          '</table></div><div class="note" style="margin-top:6px">★ marks the best division that season: the best combined record against the rest of the league.</div></div>';
+      }
+    }
+    return out;
+  }
   function statsData() {
     const scope = S.statsScope;
     if (scope === 'season' || scope === 'night') return [D];
@@ -3802,7 +3914,7 @@ const E = (() => {
     const sit = sitRecords(games.map(x => ({ g: x.g, d: x.d, n: x.n })));
     S.gl = sit; S.statW = {};
     const items = agg.map(r => ({ id: r.p, r: sit[r.p] }));
-    if (stab === 'adv') return '<div class="stack" style="gap:16px">' + out + tip('<div class="note">Tap a box to see everyone ranked by that stat.</div>') + advancedStats(items, night, attr, S.cfg.players.map((_, id) => id)) + '</div>';
+    if (stab === 'adv') return '<div class="stack" style="gap:16px">' + out + tip('<div class="note">Tap a box to see everyone ranked by that stat.</div>') + advancedStats(items, night, attr, S.cfg.players.map((_, id) => id)) + groupStats(games) + '</div>';
     out += '<div class="panel"><div class="shead" style="margin-bottom:8px"><h3 class="h3">Player leaderboard</h3><span class="muted" style="font-size:13px">' + tip('Tap a column to sort') + '</span></div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Player</th>' +
       colsDef.map(([key, l]) => '<th class="sort' + (k === key ? ' on' : '') + '" data-act="sort" data-v="' + key + '">' + l + (k === key ? (dir < 0 ? ' ▾' : ' ▴') : '') + '</th>').join('') + '</tr>' +
       agg.map((r, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + r.p + '"' + attr + '>' + esc(nm(r.p)) + '</span></td>' + colsDef.map(([key]) => '<td>' + cell(r, key) + '</td>').join('') + '</tr>').join('') +
@@ -4641,6 +4753,7 @@ const E = (() => {
     if (e.target && e.target.id === 'histOpp') { S.histOpp = e.target.value === '' ? null : +e.target.value; render(); return; }
     if (e.target && e.target.id === 'gamesTeam') { S.gamesTeam = e.target.value === '' ? null : +e.target.value; render(); return; }
     if (e.target && e.target.id === 'statsDay') { S.statsDay = +e.target.value; render(); }
+    if (e.target && (e.target.id === 'gA' || e.target.id === 'gB')) { S[e.target.id] = e.target.value; render(); return; }
     if (e.target && e.target.id === 'standDay') { S.standDay = e.target.value === '' ? null : +e.target.value; S.standDayN = D.season.n; render(); return; }
     if (e.target && e.target.id === 'restoreFile' && e.target.files && e.target.files[0]) readBackup(e.target.files[0]);
   });
