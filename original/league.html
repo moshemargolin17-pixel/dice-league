@@ -854,6 +854,24 @@ button.cday:hover{background:var(--panel-2)}
 .cday.plan{border-style:dashed;opacity:.6}
 @media (max-width:560px){.calgrid{gap:4px}.cday{min-height:46px;padding:5px;align-items:center}.cday small{display:none}.cday b{font-size:14px}}
 .grow .gr .l{color:var(--muted)}
+.achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,190px),1fr));gap:10px}
+.ach{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center;background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;min-width:0}
+.ach .ach-ic{grid-row:span 2;font-size:22px;line-height:1}
+.ach b{font-size:15px}
+.ach small{color:var(--muted);font-size:12.5px}
+.ach-champ{background:var(--accent);color:var(--accent-ink)}
+.ach-champ small{color:inherit;opacity:.85}
+.cel-bg{align-items:center}
+.cel{max-width:440px;align-items:center;text-align:center;gap:14px;padding:26px 22px;position:relative;overflow:hidden}
+.cel .cel-ic{font-size:64px;line-height:1;animation:celpop .6s cubic-bezier(.2,1.4,.4,1)}
+.cel-list{display:grid;gap:8px;width:100%}
+.cel-list .ach{grid-template-columns:1fr;text-align:left}
+.confetti{position:absolute;inset:0;pointer-events:none}
+.confetti i{position:absolute;top:-12px;width:8px;height:14px;background:var(--accent);opacity:.8;animation:celfall 2.4s linear forwards}
+.confetti i:nth-child(3n){background:var(--muted)}.confetti i:nth-child(4n){background:var(--live)}
+@keyframes celfall{to{transform:translateY(560px) rotate(540deg);opacity:0}}
+@keyframes celpop{from{transform:scale(.3)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.confetti{display:none}.cel .cel-ic{animation:none}}
 .asof{display:flex;justify-content:center;align-items:center;gap:8px;font-size:13px}
 .asof select{font-size:13px;padding:4px 8px}
 .grow .grec{color:var(--muted);font-size:12px;min-width:44px;text-align:right}
@@ -2049,7 +2067,7 @@ const E = (() => {
   // by their regular-season record in that season (.500 or better / under .500). gl keeps the games behind each number.
   const SIT_PTS = 10, BLOWOUT = 15, CLOSE = 5, BIG_GAME = 90, HUGE_GAME = 100, LOW_ALLOWED = 80, MID_Q4 = 21;
   // shape of a game, from the score after every roll (away minus home).
-  // Mid-4th = after 3 of the 4th quarter's 6 rolls. Blowout: a lead of 15+ at mid-4th that stays 15+ to the end.
+  // Mid-4th = after 3 of the 4th quarter's 6 rolls. Blowout: a game won by 15 or more.
   // Close: the game ends within 5. Clutch: within 5 at any point from mid-4th on. qs: the score margin after Q1, Q2 and Q3.
   function lateFlags(g) {
     if (g._lf) return g._lf;
@@ -2057,7 +2075,7 @@ const E = (() => {
     const late = ds.slice(MID_Q4 - 1);
     return (g._lf = {
       close: ds.length > 0 && Math.abs(ds[ds.length - 1]) <= CLOSE,
-      blow: late.length > 0 && (late.every(x => x >= BLOWOUT) || late.every(x => x <= -BLOWOUT)),
+      blow: ds.length > 0 && Math.abs(ds[ds.length - 1]) >= BLOWOUT,
       clutch: late.some(x => Math.abs(x) <= CLOSE),
       qs: [5, 11, 17].map(i => (ds.length > i ? ds[i] : 0))
     });
@@ -2331,6 +2349,8 @@ const E = (() => {
     const s = S.season;
     if (!canEnd()) return;
     const ended = s.day.cur;
+    let had = null;
+    try { had = new Set(awardsOf(D).map(awardKey)); } catch (e) { console.error(e); }
     s.day.active = false; s.day.startedAt = null; s.day.lastFinalAt = null;
     if (s.phase === 'reg') {
       try { const before = E.raceMarks(L.standings(D.reg.filter(g => g.day < ended)), D.reg.map(() => 0).slice(0, L.N).map((_, p) => D.reg.filter(g => g.day >= ended && (g.a === p || g.h === p)).length), L.confOf, L.divOf, L.lines(), meetingsOf(D.reg.filter(g => g.day >= ended))); logMarks(before, marksOf(D), ended); } catch (e) { console.error(e); }
@@ -2344,6 +2364,7 @@ const E = (() => {
     saveCfg();
     saveSeason();
     refresh(); render();
+    if (had) { try { celebrate(awardsOf(D).filter(a => !had.has(awardKey(a)))); } catch (e) { console.error(e); } }
     if (auto) toast('Day ' + ended + ' ended automatically after 12 hours.');
     else if (Store.mode === 'local' && S.cfg.sinceBackup >= BACKUP_EVERY) toast(S.cfg.sinceBackup + ' days since your last backup. Settings → Backup league saves a copy.');
   }
@@ -2498,7 +2519,6 @@ const E = (() => {
       rows: D.rows.map(r => ({ w: r.w, l: r.l, pf: r.pf, pa: r.pa, result: res[r.p] || '—', name: pname(r.p), id: pid(r.p) }))
     };
     saveCfg();
-    toast(pname(fin.winner) + ' won the championship!');
   }
   function checkAutoEnd() {
     if (!S.ready || !S.season) return;
@@ -2882,7 +2902,7 @@ const E = (() => {
       sec('Players and stats', [
         'Tap any player name to open their page. On Stats, tap a column of the leaderboard to sort it.',
         'Every stat box on Stats shows the best and worst player. Tap it to see everyone ranked by that stat alone, flip it best-to-worst or worst-to-best, and tap a number to see the games behind it. Career covers all seasons together.',
-        '<b>vs .500+</b> and <b>vs Under .500</b> go by the opponent’s regular-season record. <b>Close</b> games ended within 5 points; <b>Clutch</b> games were within 5 points at any time from the middle of the 4th quarter on; <b>Comebacks</b> are wins after trailing by ' + SIT_PTS + ' or more; <b>Blown leads</b> are losses after leading by ' + SIT_PTS + ' or more. <b>Blowouts</b> are ' + BLOWOUT + '+ ahead from the middle of the 4th quarter to the end.',
+        '<b>vs .500+</b> and <b>vs Under .500</b> go by the opponent’s regular-season record. <b>Close</b> games ended within 5 points; <b>Clutch</b> games were within 5 points at any time from the middle of the 4th quarter on; <b>Comebacks</b> are wins after trailing by ' + SIT_PTS + ' or more; <b>Blown leads</b> are losses after leading by ' + SIT_PTS + ' or more. <b>Blowouts</b> are games won by ' + BLOWOUT + ' or more.',
         'A player’s page has Personal best and worst side by side. Tap a best for the top 5 (ties included), or a worst to go to that game. Season and Career switch the whole page once a player has more than one season.',
         '<b>Player history</b> on a player’s page: pick an opponent to see the regular-season, playoff and combined records and points per game against them.',
         'Each game shows its season series and, in the postseason, its playoff series, with the record as of that game. Each game chip opens that game.']) +
@@ -3279,6 +3299,7 @@ const E = (() => {
     }
     out += '<div class="panel"><h3 class="h3">Career</h3>' + (car.rows.length ? '<div class="tscroll"><table class="tbl"><tr><th>Season</th><th>W–L</th><th>PF/G</th><th>PA/G</th><th>Finish</th></tr>' + car.rows.map(x => { const n = (x.w + x.l) || 1; return '<tr><td>' + x.n + '</td><td>' + x.w + '–' + x.l + '</td><td>' + (x.pf / n).toFixed(1) + '</td><td>' + (x.pa / n).toFixed(1) + '</td><td>' + esc(x.res) + '</td></tr>'; }).join('') +
       '<tr><td><b>Career</b></td><td><b>' + car.t.w + '–' + car.t.l + '</b></td><td><b>' + (car.t.pf / ((car.t.w + car.t.l) || 1)).toFixed(1) + '</b></td><td><b>' + (car.t.pa / ((car.t.w + car.t.l) || 1)).toFixed(1) + '</b></td><td><b>' + car.t.titles + (car.t.titles === 1 ? ' title' : ' titles') + '</b></td></tr></table></div>' : tip('<div class="empty">Seasons show up here once games are played.</div>')) + '</div>';
+    out += achievementsPanel(id);
     return '<div class="stack" style="gap:16px">' + out + '</div>';
   }
   const ordn = n => n + ((n % 100 >= 11 && n % 100 <= 13) ? 'th' : (['th', 'st', 'nd', 'rd'][n % 10] || 'th'));
@@ -3348,6 +3369,74 @@ const E = (() => {
   const wlPct = x => (x[0] + x[1] ? fmtPct(x[0] / (x[0] + x[1])) : '—');
   const roundTag = g => (g.type === 'playin' ? 'Play-In' : g.type === 'po' ? roundName(g.round) : 'Regular season');
   function bestQuarterIdx(r) { let b = -1; r.qw.forEach((v, i) => { if (v > 0 && (b < 0 || v > r.qw[b])) b = i; }); return b; }
+  /* ---------- achievements ----------
+     Each season: league title (best regular-season record), conference title and division title (best record in
+     each, when the league has them), conference champion (won the conference, so made the Finals) and champion.
+     Ties go by the standings tiebreakers. Titles are decided when the regular season ends. */
+  const ACH = {
+    champ: { name: 'Champion', rank: 0 },
+    confChamp: { name: 'Conference champion', rank: 1 },
+    league: { name: 'League title', rank: 2 },
+    conf: { name: 'Conference title', rank: 3 },
+    div: { name: 'Division title', rank: 4 },
+  };
+  // a season's achievements: [{ k, id (profile), where, n (season) }]
+  function awardsOf(d) {
+    const s = d.season, out = [], back = D ? D.season.shape : undefined;
+    L.use(s.shape);
+    try {
+      const idOf = p => (s.roster ? s.roster[p] : p);
+      const add = (k, p, where) => out.push({ k, id: idOf(p), where: where || '', n: s.n });
+      if (s.phase !== 'reg' && d.reg.length && d.reg.every(g => g.st.final)) {   // decided when the regular season ends
+        add('league', L.rankGroup(d.rows, L.allIds())[0].p);
+        if (L.confCount() > 1) confList().forEach(c => add('conf', L.rankGroup(d.rows, L.confIds(c))[0].p, confName(c)));
+        if (L.hasDivs()) divList().forEach(v => add('div', L.rankGroup(d.rows, L.divIds(v))[0].p, divName(v)));
+      }
+      if (L.confCount() > 1) confList().forEach(c => {
+        const x = s.post.series.find(y => y.id === 'r3-' + c + '-0');
+        const inf = x ? seriesInfo(d, x) : null;
+        // counted once the day ends and the Finals are set
+        if (inf && inf.done && (s.post.series.some(y => y.id === 'f') || s.phase === 'done')) add('confChamp', inf.winner, confName(c));
+      });
+      if (s.champion != null) add('champ', s.champion);
+    } finally { L.use(back); }
+    return out;
+  }
+  // a player's achievements over every season (past seasons load on demand)
+  function careerAwards(id) {
+    const ns = S.cfg.seasons.includes(S.season.n) ? S.cfg.seasons : S.cfg.seasons.concat(S.season.n);
+    const datas = ns.map(n => (n === S.season.n ? HOME_D : S.past[n]));
+    if (!datas.every(Boolean)) { if (allSeasonData() === null) return null; }
+    return datas.filter(Boolean).flatMap(awardsOf).filter(a => a.id === id)
+      .sort((x, y) => ACH[x.k].rank - ACH[y.k].rank || y.n - x.n);
+  }
+  function achievementsPanel(id) {
+    const list = careerAwards(id);
+    if (list === null) return '<div class="panel"><h3 class="h3">Achievements</h3><div class="loading">Loading all seasons…</div></div>';
+    const count = k => list.filter(a => a.k === k).length;
+    const sum = Object.keys(ACH).filter(count).map(k => count(k) + ' × ' + ACH[k].name.toLowerCase()).join(' · ');
+    return '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Achievements' + (sum ? ' <small class="muted">' + sum + '</small>' : '') + '</h3>' +
+      (list.length ? '<div class="achs">' + list.map(a => '<div class="ach ach-' + a.k + '"><span class="ach-ic" aria-hidden="true">' + (a.k === 'champ' ? '🏆' : a.k === 'confChamp' ? '🥇' : '★') + '</span><b>' + ACH[a.k].name + '</b><small>' + (a.where ? a.where + ' · ' : '') + 'Season ' + a.n + '</small></div>').join('') + '</div>'
+        : '<p class="pmuted">No achievements yet.</p>') + '</div>';
+  }
+  // Pop up the achievements won today (a short note while simulating).
+  function celebrate(list) {
+    if (!list.length) return;
+    list.sort((x, y) => ACH[x.k].rank - ACH[y.k].rank);
+    const line = a => esc(S.cfg.players[a.id] ? S.cfg.players[a.id].name : '') + ' · ' + ACH[a.k].name + (a.where ? ' (' + a.where + ')' : '');
+    if (Sim.on && (Sim.mode === 'run' || Sim.mode === 'until')) { toast(list.map(line).join(' · ')); return; }
+    let host = document.getElementById('celebrate');
+    if (!host) { host = document.createElement('div'); host.id = 'celebrate'; document.body.appendChild(host); }
+    const big = list[0];
+    host.innerHTML = '<div class="overlay cel-bg" data-act="celclose"><div class="sheet cel" role="dialog" aria-modal="true" aria-label="Achievements">' +
+      '<div class="cel-ic" aria-hidden="true">' + (big.k === 'champ' ? '🏆' : big.k === 'confChamp' ? '🥇' : '★') + '</div>' +
+      '<h2 class="h2">' + (big.k === 'champ' ? esc(S.cfg.players[big.id].name) + ' won the championship!' : 'Season ' + big.n + ' achievements') + '</h2>' +
+      '<div class="cel-list">' + list.map(a => '<div class="ach ach-' + a.k + '"><b>' + esc(S.cfg.players[a.id] ? S.cfg.players[a.id].name : '') + '</b><small>' + ACH[a.k].name + (a.where ? ' · ' + a.where : '') + '</small></div>').join('') + '</div>' +
+      '<button type="button" class="btn" data-act="celclose">Nice!</button>' +
+      '<div class="confetti" aria-hidden="true">' + Array.from({ length: 36 }, (_, i) => '<i style="left:' + ((i * 37) % 100) + '%;animation-delay:' + ((i % 9) * 0.12).toFixed(2) + 's"></i>').join('') + '</div></div></div>';
+  }
+  const awardKey = a => a.k + ':' + a.where + ':' + a.id;
+
   // career line per player (profile id) from finished seasons (config history) plus the season in progress
   function careerOf(id) {
     const hist = S.cfg.history || {}, rows = [];
@@ -3369,24 +3458,20 @@ const E = (() => {
   const avgDef = (k, l, t, calc, low, signed) => ({ k, l, t, low, v: calc, f: r => { const v = calc(r); return v == null ? '—' : (signed && v > 0 ? '+' : '') + v.toFixed(1); } });
   const perGame = (r, v) => (r.gp ? v / r.gp : null);
   const quarterDef = (k, l, t, get, low, signed) => ({ k, l, t, low, one: get, v: r => (get(r) ? get(r).v : null), f: r => { const x = get(r); return x ? (signed && x.v > 0 ? '+' : '') + x.v + ' (' + qLabel(x.q) + ')' : '—'; } });
+  // home and away first, then the .500 splits and close games (no overtime or blown leads here)
   const STAT_SIT = [
-    ...SIT_COLS.slice(0, 6).map(([k, l, t]) => recDef(k, l, t, r => r[k])),
-    cntDef('cb', 'Comebacks', 'Wins after trailing by ' + SIT_PTS + '+ points'),
-    cntDef('bl', 'Blown leads', 'Losses after leading by ' + SIT_PTS + '+ points (fewest is best)', true)
+    ...['hm', 'aw', 'up', 'dn', 'cl'].map(k => SIT_COLS.find(c => c[0] === k)).map(([k, l, t]) => recDef(k, l, t, r => r[k])),
+    cntDef('cb', 'Comebacks', 'Wins after trailing by ' + SIT_PTS + '+ points')
   ];
   const STAT_PLAYER = [
-    ...[0, 1, 2, 3].map(i => avgDef('q' + i, 'Q' + (i + 1) + ' points', 'Points per game in quarter ' + (i + 1), r => perGame(r, r.q[i]))),
     avgDef('mg', 'Average margin', 'Average points ahead or behind at the end of a game', r => perGame(r, r.mg), false, true),
     avgDef('mov', 'Margin of victory', 'Average margin in wins', r => (r.wins ? r.mw / r.wins : null)),
     avgDef('mol', 'Margin of loss', 'Average margin in losses (smallest is best)', r => (r.losses ? r.ml / r.losses : null), true),
     { k: 'lo', l: 'Lowest score', t: 'The player’s lowest score (highest floor is best)', one: r => r.loG, v: r => r.lo, f: r => (r.lo == null ? '—' : r.lo) },
     cntDef('b90', BIG_GAME + '+ games', 'Games scoring ' + BIG_GAME + ' or more'),
     cntDef('b100', HUGE_GAME + '+ games', 'Games scoring ' + HUGE_GAME + ' or more'),
-    cntDef('bo', 'Blowouts', 'Wins that were ' + BLOWOUT + '+ points up at the middle of the 4th quarter and stayed that way'),
-    cntDef('blo', 'Times blown out', 'Losses that were ' + BLOWOUT + '+ points down at the middle of the 4th quarter and stayed that way (fewest is best)', true),
-    cntDef('otw', 'OT wins', 'Overtime wins'),
-    cntDef('lw', 'Longest win streak', 'Longest winning streak'),
-    cntDef('ll', 'Longest losing streak', 'Longest losing streak (shortest is best)', true)
+    cntDef('bo', 'Blowouts', 'Wins by ' + BLOWOUT + ' or more'),
+    cntDef('blo', 'Times blown out', 'Losses by ' + BLOWOUT + ' or more (fewest is best)', true)
   ];
   const STAT_Q = [
     quarterDef('qb', 'Best quarter', 'Most points scored in one quarter', r => r.qbest),
@@ -3636,19 +3721,18 @@ const E = (() => {
     out += tip('<div class="note">Tap a box to see everyone ranked by that stat.</div>') + statSection('Situational records', STAT_SIT, items, attr) + statSection('Player stats', STAT_PLAYER, items, attr);
     // top 5 of a stat; flip when the leaders are the ones a stat ranks last (most blown leads)
     const leader = (title, key, flip, min) => {
-      const w = S.statW[key], rows = (flip ? w.rows.slice().reverse() : w.rows).filter(x => (min ? min(x.r) : x.v > 0)).slice(0, 5);
+      const w = S.statW[key];
+      if (!w) return '';
+      const rows = (flip ? w.rows.slice().reverse() : w.rows).filter(x => (min ? min(x.r) : x.v > 0)).slice(0, 5);
       return '<div class="panel"><h3 class="h3" style="margin-bottom:6px"><button type="button" class="linkbtn toptitle" data-act="rank" data-k="' + key + '"' + (flip ? ' data-flip="1"' : '') + '>' + title + ' <small>All ›</small></button></h3>' + (rows.length ? rows.map(x => '<div class="rrow click" style="border-top-color:var(--line)" data-act="team" data-p="' + x.id + '"' + attr + '><div style="min-width:0"><div class="who" style="color:var(--ink)">' + esc(nm(x.id)) + '</div></div><div class="val" style="color:var(--num)">' + esc(x.txt) + '</div></div>').join('') : '<div class="scl muted">Nobody yet.</div>') + '</div>';
     };
     out += '<h3 class="h3 pmuted" style="color:var(--page-ink)">League leaders</h3><section class="cols">' +
       leader('Most comebacks', 'cb') +
-      leader('Most blown leads', 'bl', true) +
       leader('Best in close games', 'cl', false, r => r.cl[0] + r.cl[1] >= 3) +
       leader('Best vs .500+', 'up', false, r => r.up[0] + r.up[1] >= 5) +
-      leader('Most overtime wins', 'otw') +
       leader('Most blowout wins', 'bo') +
       leader('Most ' + BIG_GAME + '+ games', 'b90') +
       leader('Most ' + HUGE_GAME + '+ games', 'b100') +
-      leader('Longest win streak', 'lw') +
       '</section>';
         // single-game highs and lows: top 5 here, tap the title for the top 10
     const multi = data.length > 1;
@@ -4198,6 +4282,7 @@ const E = (() => {
       case 'gday': S.gamesDay = +el.dataset.v; S.gamesPage = null; render(); break;
       case 'gpage': S.gamesPage = +el.dataset.v; render(); break;
       case 'standday': S.standDay = null; render(); break;
+      case 'celclose': if (e.target.closest('.cel') && el.classList.contains('overlay')) break; document.getElementById('celebrate').innerHTML = ''; break;
       case 'gclear': S.gamesTeam = null; render(); break;
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
