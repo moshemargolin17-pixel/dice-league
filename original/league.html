@@ -3719,21 +3719,7 @@ const E = (() => {
       agg.map((r, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + r.p + '"' + attr + '>' + esc(nm(r.p)) + '</span></td>' + colsDef.map(([key]) => '<td>' + cell(r, key) + '</td>').join('') + '</tr>').join('') +
       '</table></div></div>';
     out += tip('<div class="note">Tap a box to see everyone ranked by that stat.</div>') + statSection('Situational records', STAT_SIT, items, attr) + statSection('Player stats', STAT_PLAYER, items, attr);
-    // top 5 of a stat; flip when the leaders are the ones a stat ranks last (most blown leads)
-    const leader = (title, key, flip, min) => {
-      const w = S.statW[key];
-      if (!w) return '';
-      const rows = (flip ? w.rows.slice().reverse() : w.rows).filter(x => (min ? min(x.r) : x.v > 0)).slice(0, 5);
-      return '<div class="panel"><h3 class="h3" style="margin-bottom:6px"><button type="button" class="linkbtn toptitle" data-act="rank" data-k="' + key + '"' + (flip ? ' data-flip="1"' : '') + '>' + title + ' <small>All ›</small></button></h3>' + (rows.length ? rows.map(x => '<div class="rrow click" style="border-top-color:var(--line)" data-act="team" data-p="' + x.id + '"' + attr + '><div style="min-width:0"><div class="who" style="color:var(--ink)">' + esc(nm(x.id)) + '</div></div><div class="val" style="color:var(--num)">' + esc(x.txt) + '</div></div>').join('') : '<div class="scl muted">Nobody yet.</div>') + '</div>';
-    };
-    out += '<h3 class="h3 pmuted" style="color:var(--page-ink)">League leaders</h3><section class="cols">' +
-      leader('Most comebacks', 'cb') +
-      leader('Best in close games', 'cl', false, r => r.cl[0] + r.cl[1] >= 3) +
-      leader('Best vs .500+', 'up', false, r => r.up[0] + r.up[1] >= 5) +
-      leader('Most blowout wins', 'bo') +
-      leader('Most ' + BIG_GAME + '+ games', 'b90') +
-      leader('Most ' + HUGE_GAME + '+ games', 'b100') +
-      '</section>';
+    out += '<h3 class="h3 pmuted" style="color:var(--page-ink)">League leaders</h3>';
         // single-game highs and lows: top 5 here, tap the title for the top 10
     const multi = data.length > 1;
     const tag = x => (multi ? 'S' + x.n + ' ' : '') + 'Day ' + x.g.day;
