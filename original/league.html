@@ -3768,7 +3768,7 @@ const E = (() => {
     out += setupPanel();
     const fin = D.games.filter(g => g.st.final).length;
     out += '<div class="panel"><div class="form"><h3 class="h3">Season</h3>' +
-      '<div class="kv">' + kv('Season', s.n) + kv('Phase', { reg: 'Regular season', playin: 'Play-In', playoffs: 'Playoffs', done: 'Complete' }[s.phase]) + kv('Regular-season days', s.totalDays) + kv('Games final', fin + ' / ' + (D.reg.length + s.post.games.length)) + kv('Game rules', D.ru.v >= 2 ? '36-min · dice 0,2–6 · advantages' : '48-min · original') + '</div>' +
+      '<div class="kv">' + kv('Season', s.n) + kv('Phase', { reg: 'Regular season', playin: 'Play-In', playoffs: 'Playoffs', done: 'Complete' }[s.phase]) + kv('Regular-season days', s.totalDays) + kv('Games final', fin + ' / ' + (D.reg.length + s.post.games.length)) + '</div>' +
       '<div class="frow">' +
       (s.phase === 'done' ? '<button type="button" class="btn primary" data-act="newseason">' + 'Start Season ' + (s.n + 1) + '</button>' : '') +
       (!anyRolls && s.phase === 'reg' ? '<button type="button" class="btn" data-act="setupopen">Choose who’s playing</button>' + '<button type="button" class="btn" data-act="regen">' + (S.confirm === 'regen' ? 'Tap again to make a new schedule' : 'Make a new schedule') + '</button>' : '') +
