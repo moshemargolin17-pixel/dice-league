@@ -2887,7 +2887,6 @@ const E = (() => {
         'Press <b>Start Day</b> (bottom left) to open a game night. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
         'Roll the red die for the away player and the blue die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
-        'Press Start Day to begin logging that day’s games. Not started and Up next describe unplayed games. These hints hide after 10 completed game days; Final remains visible.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
         '<b>Simulate</b> (bottom of Home) lets the site roll for you: 1 game, the day, day after day until you press Stop, or up to a day you choose (it stops at the start of that day). Simulated games count like any other.']) +
       sec('Advantages', [
@@ -2897,18 +2896,27 @@ const E = (() => {
         '<b>Automatic</b> (the default) makes the calls for you; switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen says which die to re-roll: offense first, then defense. Enter the numbers that count.']) +
       sec('Standings and the playoffs', [
         'Clinch marks show only when mathematically certain: ' + markKeys().map(k => '<b>' + k + '</b> ' + MARK_SHORT()[k].toLowerCase()).join(', ') + '.',
-        'Equal win percentages favor fewer losses. Identical records are broken by head-to-head, then division record (same division) or conference record, then point differential.',
-        'The bracket and each day’s clinch scenarios are on Standings. ' + playoffText()]) +
+        'Clinch and elimination marks count the tiebreakers: a player who can at best tie, and would lose the tiebreaker, is marked out right away.',
+        'Standings rank by win percentage. Equal win percentages favor fewer losses. Identical records are broken by head-to-head, then division record (same division) or conference record, then point differential.',
+        'At the bottom of Standings, pick a past day to see the standings as they were after that day. <b>Back to today</b> returns to now.',
+        'The bracket and each day’s clinch scenarios are on Standings. ' + playoffText(),
+        'The whole playoff calendar is set when the regular season ends: every possible game has its day, and games a series doesn’t need are skipped. So the season’s last day (the Y in Day X of Y) is known from Day 1 and never goes up.']) +
       sec('Players and stats', [
         'Tap any player name to open their page. On Stats, tap a column of the leaderboard to sort it.',
-        'Every stat box on Stats shows the best and worst player. Tap it to see everyone ranked by that stat alone, flip it best-to-worst or worst-to-best, and tap a number to see the games behind it. Career covers all seasons together.',
-        '<b>vs .500+</b> and <b>vs Under .500</b> go by the opponent’s regular-season record. <b>Close</b> games ended within 5 points; <b>Clutch</b> games were within 5 points at any time from the middle of the 4th quarter on; <b>Comebacks</b> are wins after trailing by ' + SIT_PTS + ' or more; <b>Blown leads</b> are losses after leading by ' + SIT_PTS + ' or more. <b>Blowouts</b> are games won by ' + BLOWOUT + ' or more.',
-        'A player’s page has Personal best and worst side by side. Tap a best for the top 5 (ties included), or a worst to go to that game. Season and Career switch the whole page once a player has more than one season.',
+        'Every stat box on Stats shows the best and worst player. Tap it to see everyone ranked by that stat alone, flip it best-to-worst or worst-to-best, and tap a number to see the games behind it. Records rank by win percentage; at the same percentage, more wins go first. Career covers all seasons together.',
+        '<b>vs .500+</b> and <b>vs Under .500</b> go by the opponent’s regular-season record. <b>Close</b> games ended within ' + CLOSE + ' points. <b>Comebacks</b> are wins after trailing by ' + SIT_PTS + ' or more; <b>Blown leads</b> are losses after leading by ' + SIT_PTS + ' or more. <b>Blowouts</b> are games won by ' + BLOWOUT + ' or more. <b>Early</b>, <b>mid</b> and <b>late season</b> are thirds of the regular season.',
+        'Games is a calendar of the whole season: tap a day for its games, and use the arrows to page through. Pick a name under <b>Player schedule</b> for one player’s season, with their record after each game (the series score in the playoffs).',
+        'A player’s page has Personal best and worst side by side. Tap a best for the top 5 (ties included), or a worst to go to that game. Season and Career switch the whole page once a player has more than one season. Past seasons are under the <b>Season</b> menu at the top of each page.',
         '<b>Player history</b> on a player’s page: pick an opponent to see the regular-season, playoff and combined records and points per game against them.',
         'Each game shows its season series and, in the postseason, its playoff series, with the record as of that game. Each game chip opens that game.']) +
+      sec('Achievements', [
+        'Every season: the <b>League title</b> goes to the best regular-season record, a <b>Conference title</b> to the best record in each conference, and a <b>Division title</b> to the best record in each division (ties go by the standings tiebreakers). The <b>Conference champion</b> wins the conference and makes the Finals, and the <b>Champion</b> wins the Finals.',
+        'Titles are decided when the regular season ends; conference champions when the Finals are set; the champion when the Finals end. Each one gets a celebration when you press End Day.',
+        'A player’s achievements from every season are listed at the bottom of their page.']) +
       sec('Settings and backups', [
         TIPS.skill,
-        'Add a player any time in Settings. Everyone keeps their profile and history, but only 30 play each season: you pick them, with their conference and division, when you start a season. A player added mid-season can play from next season on. The schedule is locked once a game has been logged. Before then, you can reshuffle it. Every player plays ' + L.gamesPerPlayer() + ' games with at least one rest day between games.',
+        'Add a player any time in Settings. Everyone keeps their profile and history, but only ' + L.N + ' play each season: you pick them, with their conference and division, when you start a season. A player added mid-season can play from next season on. The schedule is locked once a game has been logged. Before then, you can reshuffle it. Every player plays ' + L.gamesPerPlayer() + ' games with at least one rest day between games.',
+        '<b>League setup</b> sets the number of players, the layout (conferences and divisions), the number of games and the playoffs. It can be changed until the first game is logged.',
         'Download an extra copy of your whole league with Backup league. It includes every season, game and setting. To move the league, back up on one computer and restore on the other.',
         'Online leagues save to your account automatically. Offline leagues save in this browser; download a backup before changing browsers or clearing browser data.',
         'Restore replaces the league with the file you choose.',
@@ -4073,18 +4081,16 @@ const E = (() => {
         b: '<p>Tap a game to open it. Roll the <b>red die</b> for the away player and the <b>blue die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
-      { view: 'home', t: 'Tonight',
-        b: '<p>Under the games, Tonight keeps the night’s best: top score, biggest win and closest game. Tap any line to open that game.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
         b: '<p>The whole schedule as a calendar. It opens on today; tap a day to see its games, and use the arrows for earlier or later days.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
       { view: 'standings', at: 'main .tbl tr', t: 'Standings',
-        b: '<p><b>W</b> and <b>L</b> are wins and losses, <b>PCT</b> is win percentage, and <b>GB</b> is games behind first place. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the division, the conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points for and against per game, <b>L10</b> is the last 10 games, and <b>Strk</b> is the current streak.</p><p>The line under 6th place is the playoff cut, and the line under 10th is the play-in cut.</p>' },
+        b: '<p><b>W</b> and <b>L</b> are wins and losses, <b>PCT</b> is win percentage, and <b>GB</b> is games behind first place. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the division, the conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points for and against per game, <b>L10</b> is the last 10 games, and <b>Strk</b> is the current streak.</p>' + (linesNow().playIn ? '<p>The line under ' + ordn(linesNow().direct) + ' place is the playoff cut, and the line under ' + ordn(linesNow().post) + ' is the play-in cut.</p>' : '<p>The line under ' + ordn(linesNow().direct) + ' place is the playoff cut.</p>') + '<p>At the bottom, pick a past day to see the standings after it.</p>' },
       { view: 'standings', at: 'main .clkey', t: 'Clinch marks',
         b: '<p>A letter appears next to a name only once it’s mathematically certain:</p><ul class="tlist">' + markKeys().map(k => cl(k, MARK_SHORT()[k])).join('') + '</ul>' },
       { view: 'standings', t: 'The postseason',
         b: '<p>' + playoffText() + '</p><p>Home and Standings show who can clinch or be eliminated each night. Once the postseason starts, the bracket sits at the top of Standings.</p>' },
       { view: 'teams', at: 'main .tgrid .tcard', t: 'Players',
-        b: '<p>Every player by division, with their record and streak. Tap a player for their schedule, results, splits, personal best and worst, and career.</p>' },
+        b: '<p>Every player by division, best record first, with their record and streak. Tap a player for their schedule, results, splits, personal best and worst, career and achievements.</p>' },
       { view: 'stats', at: 'main .tbl tr', t: 'Stats',
         b: '<p>A player leaderboard (tap a column to sort it) and a box for every stat: tap one to see everyone ranked by it. You can switch between one day, a season or career, and between the regular season and the postseason.</p>' },
       { view: 'settings', at: '#tourPanel', t: 'Settings',
