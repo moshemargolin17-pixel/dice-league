@@ -2692,7 +2692,7 @@ const E = (() => {
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
     const e = ensureEntry(g); e.started = true;
-    if (D.ru.poss) e.ty = [P(g.a).type || 'n', P(g.h).type || 'n'];
+    if (D.ru.poss) { e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3025,8 +3025,8 @@ const E = (() => {
     const z = { a: 0, h: 0 };
     const dr = D.ru.poss && !g.st.final ? possSaved(g) : null;
     if (!dr) return z;
-    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'), possTy(g, 'h'));
-    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a')); if (wh.done) z.h = wh.pts; }
+    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
+    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')); if (wh.done) z.h = wh.pts; }
     return z;
   }
   function gameCard(g) {
@@ -3058,7 +3058,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. The shooter’s Offense against the other player’s Defense sets which die 2 numbers are makes: 2–5 when 2 or more stars better, 3–5 when 1 better, 4–5 when even, 5 only when worse. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -4340,7 +4340,10 @@ const E = (() => {
   const rebType = (type, opp) => (type === opp && type !== 'n' ? 'n' : type) || 'n';
   const orebTop = (type, opp) => { const t = rebType(type, opp); return t === 's' ? 1 : t === 'b' ? 3 : opp === 's' && type !== 's' ? 3 : 2; };
   const PUTBACK = { b: 4, n: 5, s: 6 };
-  function possWalk(dice, fast, type, opp) {
+  // Offense vs Defense: edge = the shooter's Offense stars minus the other player's Defense stars.
+  // Die 2 makes from makeLow to 5: +2 or more 2-5, +1 3-5, even 4-5, -1 or less 5 only. A fast break makes one number easier.
+  const makeLow = (edge, fb) => { const low = Math.max(2, Math.min(5, 4 - (edge || 0))); return fb ? low - 1 : low; };
+  function possWalk(dice, fast, type, opp, edge) {
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
     const out = (done, need) => ({ done, need: need || null, pts, steal, text: parts.join(', ') });
@@ -4369,7 +4372,7 @@ const E = (() => {
         }
         return out(true);
       }
-      if (fb ? d2 >= 3 : d2 >= 4) { pts += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
+      if (d2 >= makeLow(edge, fb)) { pts += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
       parts.push((fb ? 'fast break, ' : '') + 'missed ' + val);
       if (i >= dice.length) return out(false, 'Rebound');
       const r1 = dice[i++];
@@ -4386,14 +4389,17 @@ const E = (() => {
   }
   // dice of every logged possession: entry.p[roll] = [awayDice, homeDice]
   const possOf = g => (recOf(g) && recOf(g).p) || [];
+  // a game keeps the ratings it started with; games logged before ratings existed count as even (3 and 3)
+  const possRt = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.rt ? r.rt[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? [3, 3] : [pl.off || 3, pl.def || 3]; };
+  const possEdge = (g, side) => possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
   const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
   function possFast(g, n, side, draftA) {
     const p = possOf(g);
     // the possession just before this one, read the way it was played (its own fast break and both types)
-    if (side === 'h') { const prev = draftA || (p[n] && p[n][0]); return !!(prev && possWalk(prev, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h')).steal); }
+    if (side === 'h') { const prev = draftA || (p[n] && p[n][0]); return !!(prev && possWalk(prev, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).steal); }
     const prev = n > 0 && p[n - 1] ? p[n - 1][1] : null;
-    return !!(prev && possWalk(prev, possFast(g, n - 1, 'h', p[n - 1][0]), possTy(g, 'h'), possTy(g, 'a')).steal);
+    return !!(prev && possWalk(prev, possFast(g, n - 1, 'h', p[n - 1][0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')).steal);
   }
   // the possessions being put in for the next roll. They're saved with the day (entry.d), so closing the page keeps them.
   const possSaved = g => {
@@ -4414,8 +4420,8 @@ const E = (() => {
   // the state of the roll being entered: whose ball, what each possession has so far
   function possNow(g) {
     const dr = possDraft(g), n = g.st.n;
-    const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'));
-    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a')) : null;
+    const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
+    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')) : null;
     return { dr, wa, wh, side: !wa.done ? 'a' : !wh.done ? 'h' : null };
   }
   // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
@@ -4490,9 +4496,10 @@ const E = (() => {
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
   function possLog(g, dice) {
     const n = g.rolls.length;
-    const wa = possWalk(dice[0], possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]), possTy(g, 'h'), possTy(g, 'a'));
+    const wa = possWalk(dice[0], possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h'));
     const entry = ensureEntry(g);
     if (!entry.ty) entry.ty = [possTy(g, 'a'), possTy(g, 'h')];
+    if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
     delete entry.d;   // the roll is logged: nothing in progress
     const rolls = g.rolls.concat([[wa.pts, wh.pts]]);
@@ -4503,8 +4510,8 @@ const E = (() => {
   // one roll for the simulator: real dice by the same rules
   function possSim(g) {
     const n = g.rolls.length, d6 = () => 1 + Math.floor(Math.random() * 6);
-    const a = []; while (!possWalk(a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h')).done) a.push(d6());
-    const h = []; while (!possWalk(h, possFast(g, n, 'h', a), possTy(g, 'h'), possTy(g, 'a')).done) h.push(d6());
+    const a = []; while (!possWalk(a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).done) a.push(d6());
+    const h = []; while (!possWalk(h, possFast(g, n, 'h', a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')).done) h.push(d6());
     possLog(g, [a, h]);
   }
   function entryBlock(g) {
