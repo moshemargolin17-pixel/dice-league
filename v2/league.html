@@ -4588,18 +4588,22 @@ const E = (() => {
     const gg = D.byId[S.sheet.gid];
     const st = gg.st;
     const x = gg.sid ? (D.season.post.series || []).find(s => s.id === gg.sid) : null;
+    // 2.0: the score counts each possession as soon as it's in, before the roll is logged
+    const live = { a: 0, h: 0 };
+    if (D.ru.poss && can && !st.final && !S.sheet.edit && gameStarted(gg)) { const nw = possNow(gg); if (nw.wa.done) live.a = nw.wa.pts; if (nw.wh && nw.wh.done) live.h = nw.wh.pts; }
+    const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
-    let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + st.a + '</div></div>' +
+    let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + '</div></div>' +
       '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
         const si = x && x.bo > 1 ? seriesAt(x, gg) : null, w = p => (p === x.hi ? si.wh : si.wl);
         const wins = p => (si ? '<span class="ls-ser"><small>Series</small><b>' + w(p) + '</b></span>' : '');
-        const ls = st.n && !S.sheet.edit ? (() => {
-        const per = st.periods.length;
+        const ls = (st.n || live.a || live.h) && !S.sheet.edit ? (() => {
+        const per = Math.max(st.periods.length, live.a || live.h ? curPer : 0);
         const ths = Array.from({ length: per }, (_, i) => '<th>' + L.perLabel(i + 1) + '</th>').join('');
-        const tds = side => Array.from({ length: per }, (_, i) => '<td>' + (st.periods[i] ? st.periods[i][side] : 0) + '</td>').join('');
+        const tds = side => Array.from({ length: per }, (_, i) => '<td>' + ((st.periods[i] ? st.periods[i][side] : 0) + (i === curPer - 1 ? live[side ? 'h' : 'a'] : 0)) + '</td>').join('');
         return '<table class="linescore" aria-label="Scoring by quarter"><tr><th></th>' + ths + '</tr>' +
           '<tr><td class="ls-p">' + esc(sname(gg.a)) + '</td>' + tds(0) + '</tr>' +
           '<tr><td class="ls-p">' + esc(sname(gg.h)) + '</td>' + tds(1) + '</tr></table>';
@@ -4607,7 +4611,7 @@ const E = (() => {
         return si || ls ? '<div class="ls-row">' + wins(gg.a) + ls + wins(gg.h) + '</div>' : '';
       })() +
       '</div>' +
-      '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + st.h + '</div></div></div></div>';
+      '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + (st.h + live.h) + '</div></div></div></div>';
     // a playoff game shows its playoff series, with a switch to the regular-season series
     const serTab = x && S.serTab && S.serTab.gid === gg.id ? S.serTab.v : 'po';
     const series = x
