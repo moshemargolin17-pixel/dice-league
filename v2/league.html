@@ -701,6 +701,8 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ptext{font-size:13.5px;color:var(--muted)}.ptext b{color:var(--ink)}
 .ppad{margin-top:12px;display:grid;gap:8px}
 .pask{font-size:15px}
+.pin{width:100%;min-height:46px;font:700 20px var(--f-num);text-align:center;letter-spacing:.04em}
+.pin::placeholder{font:500 15px var(--f-body);letter-spacing:0}
 .fbtag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--accent);color:var(--accent-ink)}
 .ppad .chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
 @media (max-width:560px){.possentry .epair{grid-template-columns:1fr}}
@@ -4350,7 +4352,9 @@ const E = (() => {
   }
   // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
   const pdn = i => (Math.floor(i / 2) % 2 ? 3 : 1) + i % 2;
-  const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="Die ' + n + '"></span>').join('');
+  const DIE_NAMES = { h: ['Green die', 'Cyan die', 'Small dark green die', 'Small lime die'], a: ['Red die', 'Orange die', 'Small maroon die', 'Small orange die'] };
+  const dieName = (sd, n) => DIE_NAMES[sd][n - 1];
+  const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="' + dieName(sd, n) + '"></span>').join('');
   function possEntry(g) {
     const st = g.st, now = possNow(g);
     const side = (sd, w, dice) => {
@@ -4363,11 +4367,13 @@ const E = (() => {
     const fastNow = now.side && (now.side === 'a' ? now.dr.a : now.dr.h).length === 0 && possFast(g, st.n, now.side, now.dr.a);
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
-      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · <span class="die ' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '"></span>Die ' + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + ' · ' + esc(cur.need.replace(/^Die \d · /, '')) + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div><div class="chips pk-' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '">' +
+      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · <span class="die ' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '"></span><b>' + dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length)) + '</b>' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' +
+        '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Type the number" aria-label="' + esc(dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length))) + '">' +
+        '<div class="chips pk-' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '">' +
         [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
-        : '<div class="ppad"><div class="pask">Both possessions are in. Log the roll.</div></div>') +
+        : '<div class="ppad"><div class="pask">Both possessions are in. Log the roll.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
       '<div class="eacts"><button type="button" class="btn" data-act="' + (now.dr.a.length ? 'pback' : 'undo') + '"' + (now.dr.a.length || st.n ? '' : ' disabled') + '>' + (now.dr.a.length ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side ? ' disabled' : '') + '>Log roll</button></div>' + autoBtns(g) +
-      tip('<div class="note">Roll the dice for whoever has the ball and tap what came up; the next die to roll shows above the numbers. Back takes off the last die; Undo takes back the last roll.</div>') + '</div>';
+      tip('<div class="note">Roll the die named above the box and type (or tap) what came up. Enter logs the roll, Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
   }
   function possDie(v) {
     const g = D.byId[S.sheet.gid];
@@ -4377,6 +4383,17 @@ const E = (() => {
     now.dr[now.side].push(v);
     renderSheet();
   }
+  document.addEventListener('input', e => {
+    if (e.target.id !== 'pIn') return;
+    const v = e.target.value.replace(/[^1-6]/g, '').slice(-1);
+    e.target.value = '';
+    if (v) possDie(+v);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.target.id !== 'pIn') return;
+    if (e.key === 'Enter') { e.preventDefault(); const b = document.getElementById('logBtn'); if (b && !b.disabled) b.click(); }
+    else if (e.key === 'Backspace' && !e.target.value) { e.preventDefault(); const b = document.querySelector('#sheetHost [data-act=pback]'); if (b) b.click(); }
+  });
   function possBack() {
     const g = D.byId[S.sheet.gid];
     if (!g) return;
@@ -4470,7 +4487,10 @@ const E = (() => {
   }
   function renderSheet() {
     const wasOpen = !!document.querySelector('.sheet');
+    const hadP = document.activeElement && document.activeElement.id === 'pIn';
     renderSheet0();
+    const pIn = document.getElementById('pIn');
+    if (pIn && (hadP || ((!document.activeElement || document.activeElement === document.body) && matchMedia('(pointer:fine)').matches))) pIn.focus({ preventScroll: true });
     if (!wasOpen && S.sheet && !S.sheet.edit) { const a = document.getElementById('rollA'); if (a) a.focus(); }
   }
   function renderSheet0() {
