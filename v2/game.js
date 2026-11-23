@@ -3,12 +3,7 @@
 // The game saves after every possession and turns final when someone reaches 21.
 const diceOf = lg => (lg.dice === 5 ? 5 : 3);
 
-const DIE_INFO = {
-  s: { name: 'Score', hint: '4–6 scores' },
-  t: { name: 'Shot', hint: '5–6 is a 3' },
-  f: { name: 'Foul', hint: '6 is a foul' },
-  ft: { name: 'Free throws', hint: '' },
-};
+const DIE_INFO = { s: { name: 'Score' }, t: { name: 'Shot' }, f: { name: 'Foul' }, ft: { name: 'Free throws' } };
 let gameDraft = { id: null, r: {} };   // the possession being entered
 
 // A game to show and play: a regular-season game, or a postseason game with its players filled in.
@@ -52,15 +47,12 @@ function gameRef(lg, id) {
   };
 }
 
-function ftHint(res) {
-  return res.made ? '4–6 makes the and-one' : '1–2 misses both, 3–4 makes 1, 5–6 makes 2';
-}
 
-function dieBox(key, value, colorClass, enabled, hint) {
+function dieBox(key, value, colorClass, enabled) {
   const faces = DIE_FACES.map(v => `<button type="button" class="face${value === v ? ' on' : ''}" data-act="face" data-die="${key}" data-v="${v}"${enabled ? '' : ' disabled'} aria-label="${DIE_INFO[key].name} die ${v}">${v}</button>`).join('');
   return `<div class="gdie${enabled ? '' : ' off'}">
     <div class="die die-sm ${colorClass}${value ? '' : ' blank'}" data-die-face="${key}" data-value="${value || ''}" role="img" aria-label="${DIE_INFO[key].name} die${value ? ' showing ' + value : ''}"></div>
-    <b>${DIE_INFO[key].name}</b><small>${hint}</small>
+    <b>${DIE_INFO[key].name}</b>
     <div class="faces">${faces}</div>
   </div>`;
 }
@@ -80,9 +72,22 @@ function diceMeaning(x) {
 }
 const DIE5_COLOR = { Type: 'die-shot', Foul: 'die-foul', Make: 'die-make', 'Free throws': 'die-ft', Rebound: 'die-ft' };
 function dice5Html(lg, g, x) {
-  return `<div class="gdice5">${diceMeaning(x).map(([k, v, what]) => `<div class="gdie${what === 'Not used' ? ' off' : ''}">
-      <div class="die die-sm ${k === 'Shot' ? (x.p === g.home ? 'die-red' : 'die-blue') : DIE5_COLOR[k]}" data-die-value="${v}" role="img" aria-label="${k} die showing ${v}"></div>
-      <b>${k}</b><small>${esc(what)}</small></div>`).join('')}</div>`;
+  // just the dice that were rolled; what they mean is in Settings
+  return `<div class="gdice5">${diceMeaning(x).filter(([, , what]) => what !== 'Not used').map(([k, v]) => `<div class="gdie">
+      <div class="die die-sm ${k === 'Shot' ? (x.p === g.home ? 'die-red' : 'die-blue') : DIE5_COLOR[k]}" data-die-value="${v}" role="img" aria-label="${k} die showing ${v}"></div></div>`).join('')}</div>`;
+}
+// A game's box score: one line per player.
+function boxScoreHtml(lg, g) {
+  const b = boxScore(g);
+  const five = (g.log || []).some(r => r.d);   // turnovers, steals, rebounds and 3-point attempts come from 5 dice
+  const ma = (m, a) => `${m}–${a}`;
+  const cols = [['PTS', x => x.pts], ['FG', x => ma(x.fgm, x.fga)], ['3P', x => (five ? ma(x.tp5m, x.tp5a) : x.tpm)], ['FT', x => ma(x.ftm, x.fta)]]
+    .concat(five ? [['OREB', x => x.oreb], ['DREB', x => x.dreb], ['TO', x => x.to], ['STL', x => x.stl], ['FB', x => x.fbp]] : []);
+  return `<section class="panel"><h2 class="panel-title">Box score</h2>
+    <div class="tscroll"><table class="tbl tbl-plain"><tr><th class="l">Player</th>${cols.map(c => `<th>${c[0]}</th>`).join('')}</tr>
+    ${[g.away, g.home].map(p => `<tr><td class="l"><a class="plink" href="#player-${p}">${esc(lg.players[p].name)}</a></td>${cols.map(c => `<td>${c[1](b[p])}</td>`).join('')}</tr>`).join('')}
+    </table></div>
+    ${five ? '<p class="muted bs-key">FB is fast-break points.</p>' : ''}</section>`;
 }
 const otherOf = (lg, g, p) => lg.players[p === g.home ? g.away : g.home].name;
 
@@ -115,7 +120,7 @@ function renderGamePage(lg, id) {
     `<p class="gresult"><b>${name(last.p)}</b>: ${esc(playText(last, otherOf(lg, g, last.p)))}${last.pts ? ` · <b>+${last.pts}</b>` : ''}</p>` : '';
   if (!st.over && ref.playable && diceOf(lg) === 5) {
     tray = `<section class="panel gtray">
-      <h2 class="panel-title">${name(st.next)} has the ball${st.fastBreak ? ' <span class="panel-sub">Fast break: 3–6 makes it</span>' : ''}</h2>
+      <h2 class="panel-title">${name(st.next)} has the ball${st.fastBreak ? ' <span class="panel-sub">Fast break</span>' : ''}</h2>
       ${lastHtml ? `<p class="glast">Last possession</p>${lastHtml}` : ''}
       <div class="gactions">
         <button type="button" class="btn btn-roll" data-act="roll5">Roll</button>
@@ -131,14 +136,14 @@ function renderGamePage(lg, id) {
     const color = p === g.home ? 'die-red' : 'die-blue';
     const done = need.length === 0;
     const preview = done ? `<p class="gresult"><b>${name(p)}</b>: ${esc(playText({ ...res, old: true }))}${res.pts ? ` · <b>+${res.pts}</b>` : ''}</p>` :
-      showFt ? `<p class="gresult">Foul! Roll the foul die again for free throws.</p>` : '';
+      showFt ? `<p class="gresult">Foul! Free throws.</p>` : '';
     tray = `<section class="panel gtray">
       <h2 class="panel-title">${name(p)} has the ball</h2>
       <div class="gdice">
-        ${dieBox('s', r.s, color, true, DIE_INFO.s.hint)}
-        ${dieBox('t', r.t, 'die-shot', !r.s || r.s >= 4, r.s && r.s < 4 ? 'Not needed' : DIE_INFO.t.hint)}
-        ${dieBox('f', r.f, 'die-foul', true, DIE_INFO.f.hint)}
-        ${showFt ? dieBox('ft', r.ft, 'die-foul', true, ftHint(res)) : ''}
+        ${dieBox('s', r.s, color, true)}
+        ${dieBox('t', r.t, 'die-shot', !r.s || r.s >= 4)}
+        ${dieBox('f', r.f, 'die-foul', true)}
+        ${showFt ? dieBox('ft', r.ft, 'die-foul', true) : ''}
       </div>
       ${preview}
       <div class="gactions">
@@ -166,6 +171,7 @@ function renderGamePage(lg, id) {
       ${st.over ? `<p class="sb-final"><b>${name(st.winner)}</b> wins ${Math.max(st.homePts, st.awayPts)}–${Math.min(st.homePts, st.awayPts)}.</p>` : ''}
     </section>
     ${tray}
+    ${st.plays.length ? boxScoreHtml(lg, g) : ''}
     <section class="panel gplays">
       <div class="gplays-head"><h2 class="panel-title">Play-by-play</h2>
         ${st.plays.length && (ref.playable || (st.over && ref.canUndo)) ? '<button type="button" class="btn btn-ghost btn-sm" data-act="undo">Undo last</button>' : ''}</div>

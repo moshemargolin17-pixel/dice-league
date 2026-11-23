@@ -547,8 +547,13 @@ function possessionResult(r, before) {
   const fts = !foul ? 0 : made ? (before + shot < GAME_TO ? 1 : 0) : 2;
   let ftMade = 0;
   if (fts === 1) ftMade = r.ft >= 4 ? 1 : 0;
-  if (fts === 2) ftMade = Math.min(r.ft <= 2 ? 0 : r.ft <= 4 ? 1 : 2, GAME_TO - before);
-  return { made, shot, foul, fts, ftMade, pts: shot + ftMade };
+  let ftAtt = fts;
+  if (fts === 2) {
+    const raw = r.ft <= 2 ? 0 : r.ft <= 4 ? 1 : 2;
+    ftMade = Math.min(raw, GAME_TO - before);
+    if (ftMade < raw) ftAtt = ftMade;   // stopped at 21
+  }
+  return { made, shot, foul, fts, ftMade, ftAtt, pts: shot + ftMade };
 }
 
 // Which dice a possession still needs, given what's been entered.
@@ -587,7 +592,9 @@ function possession5(d, before, fastBreak) {
   const x = { turnover: false, fastBreak: !!fastBreak, shot, foul, made, fts: 0, ftMade: 0, reb: null, pts: made ? shot : 0, used: 4 };
   if (foul && !(made && before + shot >= GAME_TO)) {
     x.fts = made ? 1 : shot;
-    x.ftMade = Math.min(ftMadeOf(x.fts, d[4]), GAME_TO - before - x.pts);
+    const raw = ftMadeOf(x.fts, d[4]);
+    x.ftMade = Math.min(raw, GAME_TO - before - x.pts);
+    x.ftAtt = x.ftMade < raw ? x.ftMade : x.fts;   // free throws stop at 21
     x.pts += x.ftMade;
     x.used = 5;
     // a missed last free throw is a live ball, unless the free throws already won it
@@ -645,4 +652,44 @@ function playText(x, other) {
   else if (x.reb === 'def') parts.push(`defensive rebound${other ? ' by ' + other : ''}`);
   else if (x.reb === 'oob') parts.push('out of bounds');
   return parts.join(', ');
+}
+
+// ---------- Box score ----------
+// Counted from a game's possession log. A missed shot that drew a foul isn't a field-goal attempt
+// (as in basketball). 3-dice possessions don't say what kind of shot a miss was, so 3-point attempts
+// come from 5-dice possessions only (tp5m/tp5a).
+const BOX_KEYS = ['poss', 'poss5', 'pts', 'fgm', 'fga', 'tpm', 'tp5m', 'tp5a', 'ftm', 'fta', 'oreb', 'dreb', 'to', 'stl', 'fouled', 'and1', 'fbp'];
+const emptyBox = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0]));
+
+function boxScore(g) {
+  const box = { [g.away]: emptyBox(), [g.home]: emptyBox() };
+  const st = playGame(g);
+  for (const x of st.plays) {
+    const me = box[x.p], them = box[x.p === g.home ? g.away : g.home];
+    me.poss++; me.pts += x.pts;
+    if (!x.old) me.poss5++;
+    if (x.turnover) { me.to++; if (x.steal) them.stl++; continue; }
+    if (x.fastBreak) me.fbp += x.pts;
+    const attempt = x.made || !x.foul;
+    if (attempt) { me.fga++; if (x.made) me.fgm++; }
+    if (x.made && x.shot === 3) me.tpm++;
+    if (!x.old && attempt && x.shot === 3) { me.tp5a++; if (x.made) me.tp5m++; }
+    if (x.foul) me.fouled++;
+    if (x.foul && x.made && x.fts) me.and1++;
+    me.ftm += x.ftMade || 0; me.fta += x.ftAtt != null ? x.ftAtt : x.fts || 0;
+    if (x.reb === 'off') me.oreb++;
+    if (x.reb === 'def') them.dreb++;
+  }
+  return box;
+}
+
+// Each player's totals over a set of games (only games with a possession log count), and how many games that was.
+function boxTotals(lg, games) {
+  const tot = lg.players.map(() => ({ ...emptyBox(), gp: 0 }));
+  for (const g of games) {
+    if (!g.final || !g.log || !g.log.length) continue;
+    const b = boxScore(g);
+    for (const p of [g.away, g.home]) { tot[p].gp++; for (const k of BOX_KEYS) tot[p][k] += b[p][k]; }
+  }
+  return tot;
 }

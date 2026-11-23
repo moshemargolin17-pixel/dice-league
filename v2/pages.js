@@ -1,5 +1,5 @@
 // Dice League: the league's Games, Players, player, Stats and Settings pages.
-// Built from final scores only. Quarter, overtime and roll stats come once game logging exists.
+// Records come from final scores; box score stats come from games played with a possession log.
 
 const CLOSE_MARGIN = 5;    // a game decided by 5 or fewer is close
 const BLOWOUT_MARGIN = 20; // a win by 20 or more is a blowout
@@ -78,6 +78,20 @@ const at = (lg, x) => `${x.home ? 'vs' : '@'} ${pname(lg, x.vs)} · Day ${x.day}
 const tile = (label, value, sub, tone) =>
   `<div class="tile"><p class="tile-lab">${esc(label)}</p><p class="tile-val${tone ? ' ' + tone : ''}">${value}</p>${sub ? `<p class="tile-sub">${sub}</p>` : ''}</div>`;
 const fmt1 = v => (v == null ? '—' : v.toFixed(1));
+// Box score stats per player, from games with a possession log (regular season).
+const shotPct = (m, a) => (a ? m / a : null);
+const fmtShot = v => (v == null ? '—' : (v * 100).toFixed(1) + '%');
+// turnovers, steals, rebounds and fast breaks only exist in 5-dice possessions
+const FIVE_ONLY = ['to', 'stl', 'oreb', 'dreb', 'reb', 'fbp'];
+const boxPer = (t, k) => (t.gp && (t.poss5 || !FIVE_ONLY.includes(k)) ? t[k] / t.gp : null);
+function boxStats(lg) {
+  return boxTotals(lg, lg.games).map(t => ({
+    ...t,
+    fgp: shotPct(t.fgm, t.fga), tpp: shotPct(t.tp5m, t.tp5a), ftp: shotPct(t.ftm, t.fta),
+    ppp: t.poss ? t.pts / t.poss : null,
+    reb: t.oreb + t.dreb,
+  }));
+}
 const toneOf = v => (v == null || v === 0 ? '' : v > 0 ? 'pos' : 'neg');
 
 // ---------- Games ----------
@@ -246,6 +260,21 @@ function renderPlayerPage(lg, p) {
         ${tile('Home points / game', fmt1(f.homePpg))}${tile('Away points / game', fmt1(f.awayPpg))}
       </div>
     </section>
+    ${(() => {
+      const t = boxStats(lg)[p];
+      if (!t.gp) return '';
+      const g1 = k => fmt1(boxPer(t, k));
+      return `<section class="panel tpanel"><h3 class="panel-title">Box score <span class="panel-sub">${t.gp} logged ${t.gp === 1 ? 'game' : 'games'}, per game</span></h3>
+      <div class="tiles">
+        ${tile('Field goals', fmtShot(t.fgp), `${g1('fgm')} of ${g1('fga')}`)}
+        ${tile('3-pointers', fmtShot(t.tpp), t.tp5a ? `${fmt1(t.tp5m / t.gp)} of ${fmt1(t.tp5a / t.gp)}` : `${g1('tpm')} made`)}
+        ${tile('Free throws', fmtShot(t.ftp), `${g1('ftm')} of ${g1('fta')}`)}
+        ${tile('Points per possession', t.ppp == null ? '—' : t.ppp.toFixed(2))}
+        ${tile('Rebounds', g1('reb'), t.poss5 ? `${g1('oreb')} offensive · ${g1('dreb')} defensive` : '')}
+        ${tile('Turnovers', g1('to'))}${tile('Steals', g1('stl'))}
+        ${tile('Fouls drawn', g1('fouled'))}${tile('And-ones', t.and1, 'Total')}${tile('Fast-break points', g1('fbp'))}
+      </div></section>`;
+    })()}
     <h3 class="h2">Schedule</h3>
     ${scheduleTables(lg, p, false)}
     <section class="panel tpanel"><h3 class="panel-title">Career</h3>
@@ -336,6 +365,7 @@ function renderStatsPage(lg) {
     ${any ? '' : '<p class="sample">Stats fill in as games are played.</p>'}
     <section class="panel"><h3 class="panel-title">Player leaderboard</h3>
       <div class="tscroll"><table class="tbl tbl-lead">${head}${body}</table></div></section>
+    ${boxTableHtml(lg)}
     <section class="panel tpanel"><h3 class="panel-title">Situational records</h3><div class="tiles">${situational.join('')}</div></section>
     <section class="panel tpanel"><h3 class="panel-title">Player stats</h3><div class="tiles">${playerStats.join('')}</div></section>
     <h3 class="h2">League leaders</h3>
@@ -347,6 +377,7 @@ function renderStatsPage(lg) {
       ${leaders('Most 100+ games', f => f.games100.length, f => f.games100.length, f => f.games100.length)}
       ${leaders('Longest win streak', f => f.winRun, f => f.winRun, f => f.winRun)}
       ${leaders('Longest losing streak', f => f.loseRun, f => f.loseRun, f => f.loseRun)}
+      ${boxLeaders(lg)}
       ${gameList('Highest scores', hiPts, hiPts, g => `${pname(lg, W(g))} vs ${pname(lg, L(g))}`)}
       ${gameList('Biggest wins', g => hiPts(g) - loPts(g), g => '+' + (hiPts(g) - loPts(g)), g => `${pname(lg, W(g))} over ${pname(lg, L(g))}`)}
       ${gameList('Highest combined', g => g.homePts + g.awayPts, g => g.homePts + g.awayPts, scoreLine)}
@@ -503,6 +534,7 @@ function renderSettingsPage(lg) {
       <label class="field"><span class="field-label">Dice</span>
         <select id="sDice"${ro}><option value="3"${diceOf(lg) === 3 ? ' selected' : ''}>3 dice</option><option value="5"${diceOf(lg) === 5 ? ' selected' : ''}>5 dice</option></select></label>
       <p class="muted">A change counts from the next possession. Games already played keep their results.</p>
+      <details class="key"><summary>What the dice mean</summary>${diceRulesHtml(diceOf(lg))}</details>
       <span class="saved-note" id="sDiceOk" hidden>Saved</span>
     </section>
     ${leagueSetupPanel(lg)}
@@ -652,5 +684,73 @@ document.addEventListener('change', e => {
   const lg = currentLeague;
   if (lg.sample) return;
   lg.dice = Number(e.target.value) === 5 ? 5 : 3;
-  saveLeague(lg).then(() => { $('sDiceOk').hidden = false; }).catch(err => { console.error(err); alert('The dice setting couldn’t be saved. Check your connection and try again.'); });
+  saveLeague(lg).then(() => { renderSettingsPage(lg); $('sDiceOk').hidden = false; }).catch(err => { console.error(err); alert('The dice setting couldn’t be saved. Check your connection and try again.'); });
+});
+
+// The face rules for each system, shown in Settings.
+function diceRulesHtml(n) {
+  const rows = n === 5 ? [
+    ['Die 1', '1–2 turnover · 3–6 a shot'],
+    ['Die 2', 'On a turnover: 1–3 dead ball · 4–6 steal. On a shot: 1–4 a 2-pointer · 5–6 a 3-pointer'],
+    ['Die 3', '6 is a foul'],
+    ['Die 4', '4–6 makes it (3–6 on a fast break, the possession after a steal). Made and fouled is an and-one; missed and fouled is 2 or 3 free throws'],
+    ['Die 5, free throws', 'And-one: 4–6 makes it. 2 shots: 1–2 none · 3–4 one · 5–6 both. 3 shots: 1 none · 2 one · 3–4 two · 5–6 three'],
+    ['Die 5, rebound', 'On a miss with no foul: 1 out of bounds · 2–4 defense · 5–6 offense (keeps the ball). After a missed last free throw, die 5 is rolled again for the rebound'],
+  ] : [
+    ['Score die', '1–3 no basket · 4–6 a basket'],
+    ['Shot die', 'On a basket: 1–4 a 2-pointer · 5–6 a 3-pointer'],
+    ['Foul die', '6 is a foul, and the foul die is rolled again for free throws'],
+    ['Free throws', 'After a basket (and-one): 4–6 makes it. With no basket: 1–2 none · 3–4 one · 5–6 both'],
+  ];
+  return `<table class="tbl tbl-plain"><tr><th class="l">Die</th><th class="l">Faces</th></tr>${rows.map(([a, b]) => `<tr><td class="l">${a}</td><td class="l">${b}</td></tr>`).join('')}</table>
+    <p class="muted">First to 21. A basket that reaches 21 wins on the spot, with no free throw; free throws stop at 21.</p>`;
+}
+
+// ---------- Box score stats on the Stats page ----------
+let boxSort = { key: 'fgp', asc: false };
+const BOX_COLS = [
+  ['gp', 'GP', t => t.gp, t => t.gp],
+  ['fgp', 'FG%', t => t.fgp ?? -1, t => fmtShot(t.fgp)],
+  ['tpp', '3P%', t => t.tpp ?? -1, t => fmtShot(t.tpp)],
+  ['ftp', 'FT%', t => t.ftp ?? -1, t => fmtShot(t.ftp)],
+  ['tpm', '3PM', t => boxPer(t, 'tpm') ?? -1, t => fmt1(boxPer(t, 'tpm'))],
+  ['reb', 'REB', t => boxPer(t, 'reb') ?? -1, t => fmt1(boxPer(t, 'reb'))],
+  ['oreb', 'OREB', t => boxPer(t, 'oreb') ?? -1, t => fmt1(boxPer(t, 'oreb'))],
+  ['to', 'TO', t => boxPer(t, 'to') ?? 999, t => fmt1(boxPer(t, 'to'))],
+  ['stl', 'STL', t => boxPer(t, 'stl') ?? -1, t => fmt1(boxPer(t, 'stl'))],
+  ['ppp', 'PPP', t => t.ppp ?? -1, t => (t.ppp == null ? '—' : t.ppp.toFixed(2))],
+];
+function boxTableHtml(lg) {
+  const stats = boxStats(lg).map((t, p) => ({ ...t, p })).filter(t => t.gp);
+  if (!stats.length) return '';
+  const col = BOX_COLS.find(c => c[0] === boxSort.key) || BOX_COLS[1];
+  const sorted = stats.sort((a, b) => (boxSort.asc ? col[2](a) - col[2](b) : col[2](b) - col[2](a)) || a.p - b.p);
+  const head = `<tr><th class="l">#</th><th class="l">Player</th>${BOX_COLS.map(c => `<th><button type="button" class="sortbtn${c[0] === boxSort.key ? ' on' : ''}" data-boxsort="${c[0]}">${c[1]}${c[0] === boxSort.key ? (boxSort.asc ? ' ▲' : ' ▼') : ''}</button></th>`).join('')}</tr>`;
+  const body = sorted.map((t, i) => `<tr><td class="l seed">${i + 1}</td><th class="l" scope="row"><a class="plink" href="#player-${t.p}">${esc(pname(lg, t.p))}</a></th>${BOX_COLS.map(c => `<td>${c[3](t)}</td>`).join('')}</tr>`).join('');
+  return `<section class="panel"><h3 class="panel-title">Box score <span class="panel-sub">Per game, from logged games</span></h3>
+    <div class="tscroll"><table class="tbl tbl-lead">${head}${body}</table></div></section>`;
+}
+function boxLeaders(lg) {
+  const stats = boxStats(lg).map((t, p) => ({ ...t, p })).filter(t => t.gp);
+  if (!stats.length) return '';
+  const panel = (title, fn, show, keep = () => true) => {
+    const list = stats.filter(keep).sort((a, b) => fn(b) - fn(a) || a.p - b.p).slice(0, 5);
+    return `<section class="panel rpanel"><h3 class="panel-title">${esc(title)}</h3>
+      ${list.length ? list.map(t => `<div class="rrow"><p class="rlab"><a class="plink" href="#player-${t.p}">${esc(pname(lg, t.p))}</a></p><p class="rval">${show(t)}</p></div>`).join('') : '<p class="rempty">Nothing yet.</p>'}</section>`;
+  };
+  return [
+    panel('Best field goal %', t => t.fgp, t => fmtShot(t.fgp), t => t.fga),
+    panel('Best 3-point %', t => t.tpp, t => fmtShot(t.tpp), t => t.tp5a),
+    panel('Best free throw %', t => t.ftp, t => fmtShot(t.ftp), t => t.fta),
+    panel('Most rebounds', t => boxPer(t, 'reb'), t => fmt1(boxPer(t, 'reb')) + ' a game', t => t.poss5),
+    panel('Most steals', t => boxPer(t, 'stl'), t => fmt1(boxPer(t, 'stl')) + ' a game', t => t.poss5),
+    panel('Fewest turnovers', t => -boxPer(t, 'to'), t => fmt1(boxPer(t, 'to')) + ' a game', t => t.poss5),
+  ].join('');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('#lgStats [data-boxsort]');
+  if (!b) return;
+  const k = b.dataset.boxsort;
+  boxSort = boxSort.key === k ? { key: k, asc: !boxSort.asc } : { key: k, asc: k === 'to' };
+  renderStatsPage(currentLeague);
 });

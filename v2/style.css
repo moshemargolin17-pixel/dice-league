@@ -683,9 +683,10 @@ p { margin: 0; }
   .sb-side { padding: 8px; }
 }
 /* 5-dice tray */
-.gdice5 { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 12px; }
+.gdice5 { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; margin: 4px 0 8px; }
 .gdice5 .die-sm { --size: 56px; }
 .glast { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
 .die-make { background: var(--good); }
 .die-ft { background: #7A4FD0; }
-@media (max-width: 520px) { .gdice5 { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 520px) { .gdice5 { gap: 10px; } }
+.bs-key { padding: 8px 18px 4px; font-size: 12px; }
