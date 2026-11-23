@@ -4368,7 +4368,7 @@ const E = (() => {
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
       (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · <span class="die ' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '"></span><b>' + dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length)) + '</b>' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' +
-        '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Type the number" aria-label="' + esc(dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length))) + '">' +
+        '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length))) + '">' +
         '<div class="chips pk-' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '">' +
         [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
         : '<div class="ppad"><div class="pask">Both possessions are in. Log the roll.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
@@ -4388,6 +4388,14 @@ const E = (() => {
     const v = e.target.value.replace(/[^1-6]/g, '').slice(-1);
     e.target.value = '';
     if (v) possDie(+v);
+  });
+  // number keys work anywhere while a game is open: no need to click the box first
+  document.addEventListener('keydown', e => {
+    if (e.target.id === 'pIn' || e.ctrlKey || e.metaKey || e.altKey || !document.getElementById('pIn')) return;
+    if (e.target.closest && e.target.closest('input, select, textarea, [contenteditable]')) return;
+    if (/^[1-6]$/.test(e.key)) { e.preventDefault(); possDie(+e.key); }
+    else if (e.key === 'Enter' && !(e.target.closest && e.target.closest('button, a'))) { const b = document.getElementById('logBtn'); if (b && !b.disabled) { e.preventDefault(); b.click(); } }
+    else if (e.key === 'Backspace') { const b = document.querySelector('#sheetHost [data-act=pback]'); if (b) { e.preventDefault(); b.click(); } }
   });
   document.addEventListener('keydown', e => {
     if (e.target.id !== 'pIn') return;
