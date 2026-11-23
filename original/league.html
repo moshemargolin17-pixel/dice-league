@@ -2839,6 +2839,13 @@ const E = (() => {
     return (sd ? '(' + sd + ') ' : '') + esc(pname(p));
   }
   const teamLink = (p, g) => '<button type="button" class="teamlink" data-act="team" data-p="' + pid(p) + '" data-n="' + D.season.n + '">' + teamLabel(p, g) + '</button>';
+  // what kind of game: Division, Conference or Interconference (in the playoffs, the conference)
+  function gameKind(g) {
+    if (g.sid) { const x = findSeries(g.sid); return x && x.conf < 2 && L.confCount() > 1 ? confName(x.conf) : ''; }
+    if (L.hasDivs() && L.divOf(g.a) === L.divOf(g.h)) return 'Division';
+    if (L.confCount() > 1) return L.confOf(g.a) === L.confOf(g.h) ? 'Conference' : 'Interconference';
+    return '';
+  }
   function gameCard(g) {
     const st = g.st, live = st.live, fin = st.final;
     const score = (p, side) => '<div class="gteam"><div class="gname">' + teamLink(p, g) + '<small>' + recLine(g, p) + '</small></div><span class="sc ' + (fin ? (st[side] > st[side === 'a' ? 'h' : 'a'] ? 'win' : 'lose') : live ? 'live' : 'up') + '">' + (st.n ? st[side] : '–') + '</span></div>';
@@ -2848,7 +2855,7 @@ const E = (() => {
       foot = '<div class="gfoot">' + esc(roundName(x.round)) + (x.bo > 1 ? ' · Game ' + g.no + ' · ' + seriesText(x, seriesAt(x, g)) : '') + '</div>';
     }
     return '<article class="gcard' + (live ? ' is-live' : '') + '" data-act="game" data-n="' + D.season.n + '" data-id="' + g.id + '" tabindex="0" role="button" aria-label="Open ' + esc(vsLine(g)) + '">' +
-      '<div class="gtop"><span class="gst">' + (live ? '<span class="dot" aria-hidden="true"></span>' : '') + (st.n ? esc(st.short) : tip(esc(st.short))) + '</span><span class="gmeta">Day ' + g.day + '</span></div>' +
+      '<div class="gtop"><span class="gst">' + (live ? '<span class="dot" aria-hidden="true"></span>' : '') + (st.n ? esc(st.short) : tip(esc(st.short))) + '</span><span class="gmeta">' + gameKind(g) + '</span></div>' +
       '<div class="gbody">' + score(g.a, 'a') + score(g.h, 'h') + foot + '</div></article>';
   }
   function recPanel(title, cls, list, emptyMsg) {
