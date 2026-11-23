@@ -3,279 +3,98 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Dice League</title>
-  <meta name="description" content="Pick a mode and start rolling.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Inter:wght@400;500;600&display=swap">
-  <link rel="stylesheet" href="style.css">
+  <title>Dice League 2.0</title>
+  <meta name="theme-color" content="#F3F4F7">
+  <link rel="icon" href="../original/icon.svg">
+  <link rel="apple-touch-icon" href="../original/icon-180.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* Dice League 2.0's look: light gray, white panels and the 2.0 red (with a dark version at night). */
+    :root {
+      color-scheme: light;
+      --bg: #F3F4F7; --head-bg: #FFFFFF; --panel: #FFFFFF; --panel-2: #F3F4F7;
+      --ink: #141A26; --muted: #5B6478; --line: #DCE0E8;
+      --accent: #D2283C; --accent-ink: #FFFFFF;
+      --f-display: 'Bricolage Grotesque', 'Arial Black', system-ui, sans-serif;
+      --f-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --radius: 16px;
+      --gut-l: max(16px, env(safe-area-inset-left, 0px));
+      --gut-r: max(16px, env(safe-area-inset-right, 0px));
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --bg: #0F131B; --head-bg: #181E2A; --panel: #181E2A; --panel-2: #131926;
+        --ink: #EEF1F6; --muted: #98A1B3; --line: #283043;
+        --accent: #FF5A6A; --accent-ink: #0F131B;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--f-body);
+      padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding-left: var(--gut-l); padding-right: var(--gut-r); }
+    header.top { background: var(--head-bg); border-bottom: 1px solid var(--line); }
+    header.top .wrap { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; padding-block: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; text-decoration: none; }
+    .brand h1 { margin: 0; font: 800 22px/1.05 var(--f-display); letter-spacing: -.01em; }
+    .brand .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .switch { font: 600 14px var(--f-body); color: var(--muted); text-decoration: none; padding: 9px 12px; border-radius: 10px; }
+    .switch:hover { color: var(--ink); background: var(--panel-2); }
+    main .wrap { padding-block: 28px 48px; display: grid; gap: 14px; }
+    .h2 { margin: 12px 0 0; font: 800 24px/1.1 var(--f-display); }
+    .modes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+    .modes-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .mode {
+      display: flex; flex-direction: column; gap: 10px; padding: 20px; min-height: 120px;
+      background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); text-decoration: none;
+    }
+    .mode h3 { margin: 0; font: 800 28px/1 var(--f-display); }
+    .mode .tag {
+      align-self: flex-start; font: 600 12px var(--f-body); text-transform: uppercase; letter-spacing: .06em;
+      padding: 3px 9px; border-radius: 99px; background: var(--panel-2); color: var(--muted);
+    }
+    a.mode:hover { border-color: var(--accent); }
+    a.mode:focus-visible, .switch:focus-visible, .brand:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .mode-live { grid-column: 1 / -1; min-height: 150px; }
+    .mode-live h3 { font-size: 44px; }
+    .mode-live .tag { background: var(--accent); color: var(--accent-ink); }
+    .mode-soon { background: transparent; border-style: dashed; }
+    .mode-soon h3 { color: var(--muted); }
+    @media (max-width: 760px) { .modes { grid-template-columns: repeat(2, minmax(0, 1fr)); } .modes-3 { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="wrap topbar-inner">
-      <a class="brand" href="#">
-        <span class="brand-die" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
-        Dice League 2.0
+  <header class="top">
+    <div class="wrap">
+      <a class="brand" href="index.html">
+        <svg width="38" height="38" viewBox="0 0 44 44" aria-hidden="true"><rect x="2" y="2" width="40" height="40" rx="9" fill="#D2283C"></rect><g fill="#FFFFFF"><circle cx="13" cy="13" r="4"></circle><circle cx="31" cy="13" r="4"></circle><circle cx="22" cy="22" r="4"></circle><circle cx="13" cy="31" r="4"></circle><circle cx="31" cy="31" r="4"></circle></g></svg>
+        <div><h1>Dice League</h1><div class="sub">2.0</div></div>
       </a>
-      <div class="acct">
-        <span class="acct-who" id="acctWho" hidden></span>
-        <button type="button" class="switch" id="acctOut" hidden>Sign out</button>
-        <a class="switch" href="../index.html">Switch to Original</a>
-      </div>
+      <a class="switch" href="../original/index.html">Switch to Original</a>
     </div>
   </header>
-
   <main>
-    <!-- Home -->
-    <section id="view-home" class="view">
-      <div class="hero">
-        <div class="wrap hero-inner">
-          <div class="hero-copy">
-            <h1>Dice League 2.0</h1>
-          </div>
-
-          <div class="table" aria-label="Dice tray">
-            <div class="dice">
-              <div class="die die-red" id="dieA" data-value="5" role="img" aria-label="Red die showing 5"></div>
-              <div class="die die-blue" id="dieB" data-value="3" role="img" aria-label="Blue die showing 3"></div>
-            </div>
-            <div class="tray-foot">
-              <button type="button" class="btn btn-roll" id="rollBtn">Roll</button>
-            </div>
-          </div>
-        </div>
+    <div class="wrap">
+      <h2 class="h2">Choose a mode</h2>
+      <div class="modes">
+        <a class="mode mode-live" href="league.html"><span class="tag">Open now</span><h3>1 vs 1</h3></a>
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>2 vs 2</h3></div>
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>3 vs 3</h3></div>
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>4 vs 4</h3></div>
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>5 vs 5</h3></div>
       </div>
-
-      <div class="wrap section">
-        <div class="section-head">
-          <h2>Choose a mode</h2>
-        </div>
-
-        <div class="modes">
-          <a class="mode mode-live" href="#1v1">
-            <span class="mode-badge">Open now</span>
-            <h3>1 vs 1</h3>
-          </a>
-          <a class="mode mode-soon" href="#2v2">
-            <span class="mode-badge">Coming soon</span>
-            <h3>2 vs 2</h3>
-          </a>
-          <a class="mode mode-soon" href="#3v3">
-            <span class="mode-badge">Coming soon</span>
-            <h3>3 vs 3</h3>
-          </a>
-          <a class="mode mode-soon" href="#4v4">
-            <span class="mode-badge">Coming soon</span>
-            <h3>4 vs 4</h3>
-          </a>
-          <a class="mode mode-soon" href="#5v5">
-            <span class="mode-badge">Coming soon</span>
-            <h3>5 vs 5</h3>
-          </a>
-        </div>
-
-        <div class="section-head section-head-2">
-          <h2>More ways to play</h2>
-        </div>
-
-        <div class="modes modes-3">
-          <a class="mode" href="#quick-game">
-            <h3>Quick Game</h3>
-          </a>
-          <a class="mode" href="#tournament">
-            <h3>Tournament</h3>
-          </a>
-          <a class="mode" href="#practice">
-            <h3>Practice</h3>
-          </a>
-        </div>
+      <h2 class="h2">More ways to play</h2>
+      <div class="modes modes-3">
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>Quick Game</h3></div>
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>Tournament</h3></div>
+        <div class="mode mode-soon"><span class="tag">Coming soon</span><h3>Practice</h3></div>
       </div>
-    </section>
-
-    <!-- 1 vs 1: continue or start a league -->
-    <section id="view-1v1" class="view" hidden>
-      <div class="wrap section page">
-        <h1>1 vs 1</h1>
-        <div class="choices">
-          <button type="button" class="choice choice-main" id="continueBtn">
-            Continue league
-            <span class="choice-sub" id="continueName"></span>
-          </button>
-          <a class="choice" href="#new-league">New league</a>
-        </div>
-        <h2 class="saved-title" id="savedTitle">Saved leagues</h2>
-        <div class="saved-list">
-          <div class="saved saved-head" aria-hidden="true">
-            <span>League</span><span>Players</span><span>Progress</span><span>Leader</span><span>Last played</span>
-          </div>
-          <div id="savedLeagues" role="radiogroup" aria-labelledby="savedTitle"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- New league setup (1 vs 1) -->
-    <section id="view-new" class="view" hidden>
-      <div class="wrap section page newlg">
-        <p class="eyebrow step" id="nlStepLabel">Step 1 of 2</p>
-        <h1>New league</h1>
-
-        <form id="newStep1" class="form" novalidate>
-          <label class="field" for="nlName">
-            <span class="field-label">League name</span>
-            <input id="nlName" type="text" maxlength="40" autocomplete="off" placeholder="Friday Night League">
-          </label>
-          <div class="field-row">
-            <label class="field" for="nlPlayers">
-              <span class="field-label">Players</span>
-              <select id="nlPlayers">
-                <option value="5">5</option>
-                <option value="10" selected>10</option>
-                <option value="15">15</option>
-                <option value="20">20</option>
-                <option value="24">24</option>
-                <option value="30">30</option>
-              </select>
-            </label>
-            <label class="field" for="nlGames" id="nlGamesLabel">
-              <span class="field-label">Games per player</span>
-              <input id="nlGames" type="number" min="1" max="200" step="1" value="18" inputmode="numeric">
-              <select id="nlGamesPick" hidden></select>
-            </label>
-          </div>
-          <p class="hint" id="nlHint" aria-live="polite"></p>
-          <fieldset class="field split-wrap" id="nlSplitWrap">
-            <legend class="field-label">How to divide the league</legend>
-            <div class="splits" id="nlSplits"></div>
-          </fieldset>
-          <div id="nlGroupNames" class="group-names" hidden></div>
-          <div class="field">
-            <label class="field-label" for="nlPlayoffs">Playoffs</label>
-            <select id="nlPlayoffs"></select>
-            <label class="check" id="nlPlayInWrap" hidden>
-              <input type="checkbox" id="nlPlayIn">
-              <span>Play-in for seeds 7 to 10</span>
-            </label>
-          </div>
-          <div class="field">
-            <label class="field-label" for="nlDice">Dice</label>
-            <select id="nlDice"><option value="3">3 dice</option><option value="5">5 dice</option></select>
-          </div>
-          <p class="error" id="nlError" role="alert" hidden></p>
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Next: add players</button>
-          </div>
-        </form>
-
-        <form id="newStep2" class="form form-wide" novalidate hidden>
-          <h2 class="form-title" id="nlStep2Title">Players</h2>
-          <div class="ptable">
-            <div class="prow prow-head" aria-hidden="true">
-              <span>#</span><span>Name</span><span>Initials</span><span>Skill</span><span id="nlGroupHead">Group</span>
-            </div>
-            <div id="nlRows"></div>
-          </div>
-          <p class="error" id="nlError2" role="alert" hidden></p>
-          <div class="form-actions">
-            <button type="button" class="btn btn-ghost" id="nlBack">Back</button>
-            <button type="submit" class="btn btn-primary">Create league</button>
-          </div>
-        </form>
-      </div>
-    </section>
-
-    <!-- A league: its home page and standings, under one header -->
-    <section id="view-league" class="view" hidden>
-      <div class="lghead">
-        <div class="wrap lghead-inner">
-          <div class="lgtitle">
-            <h1 id="lgName">League</h1>
-            <p class="lgsub" id="lgSub"></p>
-          </div>
-          <nav class="lgtabs" aria-label="League pages">
-            <a href="#league" data-tab="home">Home</a>
-            <a href="#games" data-tab="games">Games</a>
-            <a href="#standings" data-tab="standings">Standings</a>
-            <a href="#bracket" data-tab="bracket" id="tabBracket" hidden>Bracket</a>
-            <a href="#players" data-tab="players">Players</a>
-            <a href="#stats" data-tab="stats">Stats</a>
-            <a href="#league-options" data-tab="settings">Settings</a>
-          </nav>
-        </div>
-      </div>
-
-      <!-- League home -->
-      <div class="wrap section lgpage" id="lgHome">
-        <p class="sample" id="homeSample">Sample league. Its games were rolled by the app to show how everything works.</p>
-        <div class="dayhead">
-          <div>
-            <h2 id="dayTitle">Day 1</h2>
-            <p class="muted" id="daySummary"></p>
-          </div>
-          <div class="dayact" id="dayAction"></div>
-          <div class="daynav">
-            <button type="button" class="btn btn-ghost btn-sm" id="dayPrev" aria-label="Previous day">←</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="dayToday">Today</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="dayNext" aria-label="Next day">→</button>
-          </div>
-        </div>
-        <div class="panel scen" id="dayScen" hidden></div>
-        <div class="ggrid" id="dayGames"></div>
-      </div>
-
-      <!-- Games, Players, a player, Stats and Settings (filled by pages.js) -->
-      <div class="wrap section lgpage" id="lgGames" hidden></div>
-      <div class="wrap section lgpage" id="lgPlayers" hidden></div>
-      <div class="wrap section lgpage" id="lgPlayer" hidden></div>
-      <div class="wrap section lgpage" id="lgStats" hidden></div>
-      <div class="wrap section lgpage" id="lgBracket" hidden></div>
-      <div class="wrap section lgpage" id="lgGame" hidden></div>
-      <div class="wrap section lgpage" id="lgSettings" hidden></div>
-
-      <!-- Standings -->
-      <div class="wrap section stand lgpage" id="lgStandings" hidden>
-        <div class="stand-head">
-          <div>
-            <h2 class="stand-title">Standings</h2>
-            <p class="muted" id="standMeta"></p>
-          </div>
-          <div class="seg" id="standTabs" role="tablist" aria-label="Group standings by">
-            <button type="button" role="tab" data-view="conf">Conference</button>
-            <button type="button" role="tab" data-view="div">Division</button>
-            <button type="button" role="tab" data-view="league">League</button>
-          </div>
-        </div>
-        <p class="sample" id="standSample">Sample league. Its games were rolled by the app to show how the table works.</p>
-        <div id="standTables" class="stack"></div>
-        <div class="legend" id="standLegend"></div>
-        <details class="key">
-          <summary>What the columns mean</summary>
-          <p><b>W</b> and <b>L</b> are wins and losses. <b>PCT</b> is win percentage. <b>GB</b> is games behind first place. <b>Home</b> and <b>Away</b> are records in home and away games. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the player's division, conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points scored and allowed per game, and <b>Diff</b> is the difference. <b>L10</b> is the record in the last 10 games. <b>Strk</b> is the current winning or losing streak.</p>
-          <p id="standCutNote">A solid line falls under the 6th seed (playoffs) and a dashed line under the 10th (play-in). Ties are broken by head-to-head record, then division or conference record, then point differential.</p>
-        </details>
-      </div>
-    </section>
-
-    <!-- Placeholder page used by every mode and menu link until it is built -->
-    <section id="view-page" class="view" hidden>
-      <div class="wrap section page">
-        <h1 id="pageTitle">Mode</h1>
-        <p class="lede" id="pageText"></p>
-        <div class="soon">Coming soon</div>
-      </div>
-    </section>
+    </div>
   </main>
-
-  <footer class="foot">
-    <div class="wrap">Dice League</div>
-  </footer>
-
-  <script src="../original/supabase.js"></script>
-  <script src="../original/config.js"></script>
-  <script src="../account.js"></script>
-  <script src="league.js"></script>
-  <script src="cloud.js"></script>
-  <script src="app.js"></script>
-  <script src="game.js"></script>
-  <script src="pages.js"></script>
 </body>
 </html>
