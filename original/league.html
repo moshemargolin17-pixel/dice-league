@@ -836,6 +836,23 @@ html[data-design="chalk"] .sc,html[data-design="chalk"] .board .big,html[data-de
 .dst{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%}
 .dst.live{background:var(--live)}.dst.fin{background:var(--muted);opacity:.5}.dst.up{background:transparent}
 .pbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cal{background:var(--panel);border:var(--panel-border);box-shadow:var(--shadow);border-radius:var(--radius);padding:8px}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.calhead b{font-size:15px}
+.calhead .darrow{height:36px}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cday{appearance:none;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:62px;padding:7px 8px;border:1px solid var(--line);border-radius:calc(var(--radius) - 2px);background:transparent;color:var(--ink);text-align:left;font:inherit;min-width:0}
+button.cday{cursor:pointer}
+button.cday:hover{background:var(--panel-2)}
+.cday b{font-size:15px}
+.cday small{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.cday.post small{color:var(--accent)}
+.cday.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cday.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cday.on small{color:inherit;opacity:.85}
+.cday.off{opacity:.35}
+.cday.plan{border-style:dashed;opacity:.6}
+@media (max-width:560px){.calgrid{gap:4px}.cday{min-height:46px;padding:5px;align-items:center}.cday small{display:none}.cday b{font-size:14px}}
 .grow .gr .l{color:var(--muted)}
 .phrow{align-items:center}
 .smalllink{font-size:13px;opacity:.8}
@@ -2985,19 +3002,33 @@ const E = (() => {
       out += '<div class="glist">' + list.map(g => gameRow(g, tp)).join('') + '</div>';
       return '<div class="stack" style="gap:14px">' + out + '</div>';
     }
-    // day strip
-    const i = days.indexOf(day);
-    const chip = d => {
+    // calendar: 4 weeks a page, 7 days a row
+    const PAGE = 28;
+    const planned = new Set();   // postseason days on the calendar that don't have games yet
+    if (D.cur && s.phase !== 'done' && L.lines()) {
+      const plan = s.phase === 'reg' ? postPlan(s.totalDays) : s.post.plan;
+      if (plan) Object.values(plan.days).forEach(ds => ds.forEach(d => { if (!days.includes(d)) planned.add(d); }));
+    }
+    const lastCal = Math.max(days[days.length - 1], ...planned);
+    // the page with the picked day, unless the arrows moved to another page
+    const lastPage = Math.floor((lastCal - 1) / PAGE);
+    const page = S.gamesPage != null && S.gamesPage <= lastPage && S.gamesDayN === s.n ? S.gamesPage : Math.floor((day - 1) / PAGE);
+    const from = page * PAGE + 1, to = Math.min(from + PAGE - 1, lastCal);
+    const cell = d => {
       const gs = D.games.filter(g => g.day === d);
+      if (!gs.length) return '<div class="cday ' + (planned.has(d) ? 'plan' : 'off') + '"><b>' + d + '</b>' + (planned.has(d) ? '<small>Playoffs</small>' : '') + '</div>';
       const fin = gs.every(g => g.st.final), live = gs.some(g => g.st.live);
       const post = gs.some(g => g.type !== 'reg');
-      const tag = post ? (gs.some(g => g.type === 'playin') ? 'Play-In' : roundName(Math.max(...gs.map(g => g.round)))) : gs.length + ' games';
+      const tag = post ? (gs.some(g => g.type === 'playin') ? 'Play-In' : roundName(Math.max(...gs.map(g => g.round)))) : gs.length + (gs.length === 1 ? ' game' : ' games');
       const today = D.cur && d === curDay && s.phase !== 'done';
-      return '<button type="button" class="dchip' + (d === day ? ' on' : '') + (today ? ' today' : '') + '" data-act="gday" data-v="' + d + '" id="dchip-' + d + '"><b>Day ' + d + '</b><small>' + (today ? (s.day.active ? 'Today' : (tipsOn() ? 'Up next' : '')) : tag) + '</small><i class="dst ' + (live ? 'live' : fin ? 'fin' : 'up') + '"></i></button>';
+      return '<button type="button" class="cday' + (d === day ? ' on' : '') + (today ? ' today' : '') + (post ? ' post' : '') + '" data-act="gday" data-v="' + d + '" aria-pressed="' + (d === day) + '" aria-label="Day ' + d + ', ' + esc(tag) + (today ? ', today' : '') + '"><b>' + d + '</b><small>' + esc(tag) + '</small><i class="dst ' + (live ? 'live' : fin ? 'fin' : 'up') + '"></i></button>';
     };
-    out += '<div class="dstrip"><button type="button" class="darrow" data-act="gday" data-v="' + (days[i - 1] ?? day) + '"' + (i > 0 ? '' : ' disabled') + ' aria-label="Previous day">‹</button>' +
-      '<div class="dscroll" id="dscroll">' + days.map(chip).join('') + '</div>' +
-      '<button type="button" class="darrow" data-act="gday" data-v="' + (days[i + 1] ?? day) + '"' + (i < days.length - 1 ? '' : ' disabled') + ' aria-label="Next day">›</button></div>';
+    const cells = [];
+    for (let d = from; d <= to; d++) cells.push(cell(d));
+    out += '<section class="cal"><div class="calhead"><button type="button" class="darrow" data-act="gpage" data-v="' + (page - 1) + '"' + (page > 0 ? '' : ' disabled') + ' aria-label="Earlier days">‹</button>' +
+      '<b>Days ' + from + '–' + to + '</b>' +
+      '<button type="button" class="darrow" data-act="gpage" data-v="' + (page + 1) + '"' + (page < lastPage ? '' : ' disabled') + ' aria-label="Later days">›</button></div>' +
+      '<div class="calgrid">' + cells.join('') + '</div></section>';
     const gs = D.games.filter(g => g.day === day).sort((x, y) => x.idx - y.idx);
     const nf = gs.filter(g => g.st.final).length;
     out += '<div class="shead"><h3 class="h3" style="color:var(--page-ink)">Day ' + day + (D.cur && day === curDay && s.phase !== 'done' ? (s.day.active ? ' · Today' : (tipsOn() ? ' · Up next' : '')) : '') + '</h3><div class="pmuted" style="font-size:14px">' + gs.length + (gs.length === 1 ? ' game' : ' games') + (nf ? ' · ' + nf + ' final' : '') + (D.cur && day !== curDay && s.phase !== 'done' ? ' · <button type="button" class="linkbtn" data-act="gday" data-v="' + curDay + '">Back to Day ' + curDay + '</button>' : '') + '</div></div>';
@@ -3933,8 +3964,6 @@ const E = (() => {
       '<main><div class="wrap">' + (Store.mode === 'demo' ? '<div class="banner demo">Preview league: ' + esc(window.__DL_DEMO_LABEL__ || 'simulated') + '. Look around and log rolls; nothing here saves, and your real league isn’t touched.</div>' : '') + main + '</div></main>' + (Sim.on ? simBar() : S.view === 'home' ? dayBar() : '');
     cleanHints(app);
     window.scrollTo(sx, sy);
-    const dc = app.querySelector('.dchip.on'), ds = app.querySelector('#dscroll');
-    if (dc && ds) { ds.style.scrollBehavior = 'auto'; ds.scrollLeft = Math.max(0, dc.getBoundingClientRect().left - ds.getBoundingClientRect().left + ds.scrollLeft - (ds.clientWidth - dc.offsetWidth) / 2); ds.style.scrollBehavior = ''; }
     const on = app.querySelector('.tab.on'), bar = app.querySelector('.tabs');
     if (on && bar && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = Math.max(0, on.offsetLeft - (bar.clientWidth - on.offsetWidth) / 2);
     if (Tour.cur) tourPlace();
@@ -3964,8 +3993,8 @@ const E = (() => {
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'home', t: 'Tonight',
         b: '<p>Under the games, Tonight keeps the night’s best: top score, biggest win and closest game. Tap any line to open that game.</p>' },
-      { view: 'games', at: 'main .dstrip', t: 'Games',
-        b: '<p>The whole schedule, one day at a time. It opens on today; use the arrows or tap a day to move around.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
+      { view: 'games', at: 'main .cal', t: 'Games',
+        b: '<p>The whole schedule as a calendar. It opens on today; tap a day to see its games, and use the arrows for earlier or later days.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
       { view: 'standings', at: 'main .tbl tr', t: 'Standings',
         b: '<p><b>W</b> and <b>L</b> are wins and losses, <b>PCT</b> is win percentage, and <b>GB</b> is games behind first place. <b>Div</b>, <b>Conf</b> and <b>Inter</b> are records against the division, the conference and the other conference. <b>PF/G</b> and <b>PA/G</b> are points for and against per game, <b>L10</b> is the last 10 games, and <b>Strk</b> is the current streak.</p><p>The line under 6th place is the playoff cut, and the line under 10th is the play-in cut.</p>' },
       { view: 'standings', at: 'main .clkey', t: 'Clinch marks',
@@ -4145,7 +4174,8 @@ const E = (() => {
     switch (act) {
       case 'nav': S.view = el.dataset.v; if (S.view !== 'teams') S.team = null; S.confirm = null; try { localStorage.setItem(LSK + 'view', S.view); } catch (x) { /* */ } render(); window.scrollTo(0, 0); break;
       case 'game': if (el.dataset.id) { const n = +el.dataset.n || S.season.n, cur = S.sheet; S.sheet = { gid: el.dataset.id, n, back: cur ? (cur.gid ? cur.back : cur.list || cur.rank ? cur : null) : null }; renderSheet(); } break;
-      case 'gday': S.gamesDay = +el.dataset.v; render(); break;
+      case 'gday': S.gamesDay = +el.dataset.v; S.gamesPage = null; render(); break;
+      case 'gpage': S.gamesPage = +el.dataset.v; render(); break;
       case 'gclear': S.gamesTeam = null; render(); break;
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
