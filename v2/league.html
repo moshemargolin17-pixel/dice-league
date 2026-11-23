@@ -3058,7 +3058,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. The shooter’s Offense against the other player’s Defense sets which die 2 numbers are makes: 2–5 when 2 or more stars better, 3–5 when 1 better, 4–5 when even, 5 only when worse. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. The shooter’s Offense against the other player’s Defense sets which die 2 numbers are makes: 4–5 when within 1 star, 3–5 when 2 stars better, 2–5 when 3 or more better, and 5 only when 2 or more worse. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -4341,8 +4341,9 @@ const E = (() => {
   const orebTop = (type, opp) => { const t = rebType(type, opp); return t === 's' ? 1 : t === 'b' ? 3 : opp === 's' && type !== 's' ? 3 : 2; };
   const PUTBACK = { b: 4, n: 5, s: 6 };
   // Offense vs Defense: edge = the shooter's Offense stars minus the other player's Defense stars.
-  // Die 2 makes from makeLow to 5: +2 or more 2-5, +1 3-5, even 4-5, -1 or less 5 only. A fast break makes one number easier.
-  const makeLow = (edge, fb) => { const low = Math.max(2, Math.min(5, 4 - (edge || 0))); return fb ? low - 1 : low; };
+  // Die 2 makes from makeLow to 5. Within 1 star: no shift (4-5). 2 stars: 1 shift (better 3-5, worse 5 only).
+  // 3 or more: 2 shifts (better 2-5; worse would leave no makes, so it stays at 1 shift, 5 only). A fast break makes one number easier, at best 2-5.
+  const makeLow = (edge, fb) => { const d = edge || 0, sh = Math.sign(d) * (Math.abs(d) >= 3 ? 2 : Math.abs(d) === 2 ? 1 : 0); const low = Math.max(2, Math.min(5, 4 - sh)); return fb ? Math.max(2, low - 1) : low; };   // a fast break makes at best on 2-5
   function possWalk(dice, fast, type, opp, edge) {
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
