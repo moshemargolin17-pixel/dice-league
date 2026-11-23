@@ -3453,8 +3453,8 @@ const E = (() => {
   }
   // A stat box: label k, tip t, v(r) a number to rank by (null = not ranked), f(r) the text shown, low = lower is better.
   // g names the games behind the number (r.gl[g]); one(r) a single game behind it.
-  // records rank by wins minus losses (games over .500); level ones go to the player with more wins
-  const recDef = (k, l, t, get, g) => ({ k, l, t, g: g || k, v: r => { const x = get(r); return x[0] + x[1] ? x[0] - x[1] + x[0] / 10000 : null; }, f: r => wlTxt(get(r)) });
+  // records rank by win percentage; at the same percentage, more wins first (4–2 before 2–1)
+  const recDef = (k, l, t, get, g) => ({ k, l, t, g: g || k, v: r => { const x = get(r); return x[0] + x[1] ? x[0] / (x[0] + x[1]) + x[0] / 1e7 : null; }, f: r => wlTxt(get(r)) });
   const cntDef = (k, l, t, low) => ({ k, l, t, g: k, low, v: r => (r.gp ? r[k] : null), f: r => r[k] });
   const avgDef = (k, l, t, calc, low, signed) => ({ k, l, t, low, v: calc, f: r => { const v = calc(r); return v == null ? '—' : (signed && v > 0 ? '+' : '') + v.toFixed(1); } });
   const perGame = (r, v) => (r.gp ? v / r.gp : null);
@@ -3492,7 +3492,7 @@ const E = (() => {
   const STAT_CAREER = [
     { k: 'ctitles', l: 'Titles', t: 'Championships won', v: t => (t.seasons ? t.titles : null), f: t => t.titles },
     { k: 'cseasons', l: 'Seasons', t: 'Seasons played', v: t => (t.seasons ? t.seasons : null), f: t => t.seasons },
-    { k: 'crec', l: 'Career record', t: 'Regular-season record, all seasons', v: t => (t.gp ? t.w - t.l + t.w / 10000 : null), f: t => t.w + '–' + t.l },
+    { k: 'crec', l: 'Career record', t: 'Regular-season record, all seasons', v: t => (t.gp ? t.w / t.gp + t.w / 1e7 : null), f: t => t.w + '–' + t.l },
     { k: 'cppg', l: 'Career points', t: 'Regular-season points per game, all seasons', v: t => (t.gp ? t.pf / t.gp : null), f: t => (t.gp ? (t.pf / t.gp).toFixed(1) : '—') },
     { k: 'cpa', l: 'Career allowed', t: 'Regular-season points allowed per game, all seasons (fewest is best)', low: true, v: t => (t.gp ? t.pa / t.gp : null), f: t => (t.gp ? (t.pa / t.gp).toFixed(1) : '—') }
   ];
