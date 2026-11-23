@@ -3724,9 +3724,9 @@ const E = (() => {
     const hiLo = g => (g.st.a > g.st.h ? [g.st.a, g.st.h] : [g.st.h, g.st.a]);
     const LDEFS = [
       ['hs', 'Highest scores', -1, g => hiLo(g)[0], v => v, g => nm(winId(g)) + ' vs ' + nm(loseId(g))],
+      ['hc', 'Highest combined', -1, g => g.st.a + g.st.h, v => v, g => nm(g.pa) + ' ' + g.st.a + ', ' + nm(g.ph) + ' ' + g.st.h],
       ['bw', 'Biggest wins', -1, g => hiLo(g)[0] - hiLo(g)[1], v => '+' + v, winLoseLine],
       ['cb', 'Biggest comebacks', -1, g => g.st.comeback, v => v, winLoseLine],
-      ['hc', 'Highest combined', -1, g => g.st.a + g.st.h, v => v, g => nm(g.pa) + ' ' + g.st.a + ', ' + nm(g.ph) + ' ' + g.st.h],
       ['ls', 'Lowest scores', 1, g => hiLo(g)[1], v => v, g => nm(loseId(g)) + ' vs ' + nm(winId(g))],
       ['lc', 'Lowest combined', 1, g => g.st.a + g.st.h, v => v, g => nm(g.pa) + ' ' + g.st.a + ', ' + nm(g.ph) + ' ' + g.st.h]
     ];
