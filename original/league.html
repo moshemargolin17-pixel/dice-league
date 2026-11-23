@@ -4384,7 +4384,7 @@ const E = (() => {
     if (liveGame) aside = '<section class="matchup-panel game-stats live-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
       '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
     if (st.final && !S.sheet.edit) {
-      main += flowChart(gg, st) + gameStatsPanel(gg, st);
+      main += gameStatsPanel(gg, st) + flowChart(gg, st);
     }
     if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
