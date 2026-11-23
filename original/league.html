@@ -650,6 +650,12 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .gstats>div{background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px;align-content:start}
 .gstats small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
 .gstats strong{font-size:18px}
+@media (min-width:640px){.gstats .gwide{grid-column:span 2}}
+/* game screen: the season series lists every game, top to bottom */
+.game-aside .season-series .sarrow{display:none}
+.game-aside .season-series .schips{flex-direction:column;overflow:visible;gap:6px}
+.game-aside .season-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;padding:8px 12px}
+.game-aside .season-series .schip small:last-child{text-align:right}
 .gstats span{font-size:12px;color:var(--muted)}
 .qruns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:10px}
 .qruns .qrun{margin-top:0}
@@ -4399,7 +4405,7 @@ const E = (() => {
     return '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
       stat('Lead changes', st.lc) + stat('Largest lead · ' + esc(sname(gg.a)), st.bigA) + stat('Largest lead · ' + esc(sname(gg.h)), st.bigH) +
       stat('Biggest run', big ? name(big.who) + ' ' + Math.max(big.a, big.h) + '–' + Math.min(big.a, big.h) : '—', big ? span(big.from, big.to) : '') +
-      stat('Most unanswered points', un ? name(un.who) + ' ' + un.pts + '–0' : '—', un ? span(un.from, un.to) : '') +
+      stat('Most unanswered points', un ? name(un.who) + ' ' + un.pts + '–0' : '—', un ? span(un.from, un.to) : '').replace('<div>', '<div class="gwide">') +
       '</div></section>';
   }
   const mini = (k, v) => '<div><small>' + k + '</small><strong class="num">' + v + '</strong></div>';
