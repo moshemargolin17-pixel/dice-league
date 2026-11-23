@@ -526,7 +526,7 @@ function markText(lg) {
   };
 }
 
-// ---------- Scoring ----------
+// ---------- Scoring, 3 dice (the first system; games logged with it still replay) ----------
 // First to 21, one possession at a time, the home player first. Each possession rolls 3 dice:
 //   score die (the player's color): 1–3 no basket, 4–6 basket
 //   shot die: on a basket, 1–4 is a 2-pointer, 5–6 a 3-pointer
@@ -563,29 +563,86 @@ function possessionNeeds(r, before) {
   return need;
 }
 
+// ---------- Scoring, 5 dice (the current system) ----------
+// The app rolls every possession. d = [d1, d2, d3, d4, d5] plus d6 when a missed last free throw is rebounded.
+//   d1 shot or turnover: 1–2 turnover, 3–6 a shot
+//   d2 on a turnover: 1–3 dead ball, 4–6 steal (either way the other player gets the ball)
+//      on a shot: 1–4 a 2-pointer, 5–6 a 3-pointer
+//   d3 foul: 6
+//   d4 make: 4–6 (a make with a foul is an and-one; a miss with a foul is 2 or 3 free throws).
+//      Right after a steal it's a fast break for the stealer: 3–6 makes it.
+//   d5 free throws: and-one 4–6 makes it; 2 shots 1–2 none, 3–4 one, 5–6 both;
+//                   3 shots 1 none, 2 one, 3–4 two, 5–6 three
+//      or, after a missed shot with no foul, the rebound: 1 out of bounds, 2–4 defense, 5–6 offense
+//   d6 (d5 rolled again) the rebound after a missed last free throw
+// An offensive rebound keeps the ball; anything else gives it to the other player.
+// A basket that reaches 21 wins on the spot (no free throw); free throws stop at 21.
+const DICE5 = ['Shot', 'Type', 'Foul', 'Make', 'Free throws'];
+const reboundOf = v => (v === 1 ? 'oob' : v <= 4 ? 'def' : 'off');
+const ftMadeOf = (n, v) => (n === 1 ? (v >= 4 ? 1 : 0) : n === 2 ? (v <= 2 ? 0 : v <= 4 ? 1 : 2) : (v === 1 ? 0 : v === 2 ? 1 : v <= 4 ? 2 : 3));
+
+function possession5(d, before, fastBreak) {
+  if (d[0] <= 2) return { turnover: true, steal: d[1] >= 4, pts: 0, keep: false, used: 2, fastBreak: !!fastBreak };
+  const shot = d[1] >= 5 ? 3 : 2, foul = d[2] === 6, made = d[3] >= (fastBreak ? 3 : 4);
+  const x = { turnover: false, fastBreak: !!fastBreak, shot, foul, made, fts: 0, ftMade: 0, reb: null, pts: made ? shot : 0, used: 4 };
+  if (foul && !(made && before + shot >= GAME_TO)) {
+    x.fts = made ? 1 : shot;
+    x.ftMade = Math.min(ftMadeOf(x.fts, d[4]), GAME_TO - before - x.pts);
+    x.pts += x.ftMade;
+    x.used = 5;
+    // a missed last free throw is a live ball, unless the free throws already won it
+    if (x.ftMade < x.fts && before + x.pts < GAME_TO) { x.reb = reboundOf(d[5]); x.used = 6; }
+  } else if (!made && !foul) { x.reb = reboundOf(d[4]); x.used = 5; }
+  x.keep = x.reb === 'off';
+  return x;
+}
+
+// Roll a possession for whoever has `before` points: 5 dice, and the 6th only when it's needed.
+function rollPossession(before, roll, fastBreak) {
+  const d = [roll(), roll(), roll(), roll(), roll()];
+  const x = possession5(d.concat([1]), before, fastBreak);   // would the free throws leave a live ball?
+  if (x.used === 6) d.push(roll());
+  return d;
+}
+
 // Replay a game's log: the score after each possession, who has the ball next, and whether it's over.
+// Logs hold 5-dice possessions ({ d }) or, for games played before it, 3-dice ones ({ s, t, f, ft }).
 function playGame(g) {
   const pts = { [g.away]: 0, [g.home]: 0 };
+  const other = p => (p === g.home ? g.away : g.home);
   const plays = [];
-  let over = false;
+  let over = false, p = g.home, fast = false;
   for (const [i, r] of (g.log || []).entries()) {
     if (over) break;
-    const p = i % 2 === 0 ? g.home : g.away;
-    const res = possessionResult(r, pts[p]);
+    const res = r.d ? possession5(r.d, pts[p], fast) : { ...possessionResult(r, pts[p]), old: true };
+    fast = !!res.steal;   // the stealer's next possession is a fast break
     pts[p] += res.pts;
     plays.push({ n: i + 1, p, roll: r, ...res, away: pts[g.away], home: pts[g.home] });
     over = pts[p] >= GAME_TO;
+    if (!res.keep) p = other(p);
   }
-  const next = plays.length % 2 === 0 ? g.home : g.away;
   const winner = over ? (pts[g.home] > pts[g.away] ? g.home : g.away) : null;
-  return { awayPts: pts[g.away], homePts: pts[g.home], plays, next, over, winner };
+  return { awayPts: pts[g.away], homePts: pts[g.home], plays, next: p, over, winner, fastBreak: fast };
 }
 
-// "2-pointer, and-one made" and the like.
-function playText(x) {
-  const parts = [x.made ? `${x.shot}-pointer` : 'No basket'];
-  if (x.foul && x.made && !x.fts) parts.push('fouled, no free throw (game won)');
-  else if (x.foul && x.made) parts.push(x.ftMade ? 'and-one made' : 'and-one missed');
-  else if (x.foul) parts.push(x.ftMade ? `fouled, made ${x.ftMade} of 2` : 'fouled, missed both');
+// "Made 3, fouled, and-one made" and the like. other: the name of the player without the ball.
+function playText(x, other) {
+  if (x.old) {
+    const parts = [x.made ? `${x.shot}-pointer` : 'No basket'];
+    if (x.foul && x.made && !x.fts) parts.push('fouled, no free throw (game won)');
+    else if (x.foul && x.made) parts.push(x.ftMade ? 'and-one made' : 'and-one missed');
+    else if (x.foul) parts.push(x.ftMade ? `fouled, made ${x.ftMade} of 2` : 'fouled, missed both');
+    return parts.join(', ');
+  }
+  if (x.turnover) return x.steal ? `Turnover, stolen${other ? ' by ' + other : ''}` : 'Turnover, dead ball';
+  const parts = [`${x.fastBreak ? 'Fast break: ' : ''}${x.made ? 'Made' : 'Missed'} ${x.shot}`];
+  if (x.foul) {
+    if (x.made && !x.fts) parts.push('fouled (game won, no free throw)');
+    else if (x.fts === 1) parts.push(`and-one ${x.ftMade ? 'made' : 'missed'}`);
+    else parts.push(`fouled, ${x.ftMade} of ${x.fts} free throws`);
+  }
+  if (x.reb === 'off') parts.push('offensive rebound');
+  else if (x.reb === 'def') parts.push(`defensive rebound${other ? ' by ' + other : ''}`);
+  else if (x.reb === 'oob') parts.push('out of bounds');
   return parts.join(', ');
 }

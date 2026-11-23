@@ -1,6 +1,7 @@
 // Dice League 2.0: playing a game, one possession at a time (see Scoring in league.js).
-// Dice can be rolled here or entered from real dice. The game saves after every possession and
-// turns final when someone reaches 21.
+// A league plays with 3 dice (rolled here or entered from real dice) or 5 dice (rolled by the app).
+// The game saves after every possession and turns final when someone reaches 21.
+const diceOf = lg => (lg.dice === 5 ? 5 : 3);
 
 const DIE_INFO = {
   s: { name: 'Score', hint: '4–6 scores' },
@@ -64,6 +65,27 @@ function dieBox(key, value, colorClass, enabled, hint) {
   </div>`;
 }
 
+// What each die meant on a 5-dice possession.
+function diceMeaning(x) {
+  const d = x.roll.d, reb = v => (v === 'off' ? 'Offense' : v === 'def' ? 'Defense' : 'Out of bounds');
+  const out = [['Shot', d[0], x.turnover ? 'Turnover' : 'Shot'],
+    ['Type', d[1], x.turnover ? (x.steal ? 'Steal' : 'Dead ball') : `${x.shot}-pointer`]];
+  if (x.turnover) return out.concat([['Foul', d[2], 'Not used'], ['Make', d[3], 'Not used'], ['Free throws', d[4], 'Not used']]);
+  out.push(['Foul', d[2], x.foul ? 'Foul' : 'No foul'], ['Make', d[3], (x.made ? 'Make' : 'Miss') + (x.fastBreak ? ' (fast break)' : '')]);
+  if (x.fts) out.push(['Free throws', d[4], `${x.ftMade} of ${x.fts}`]);
+  else if (!x.foul && !x.made) out.push(['Rebound', d[4], reb(x.reb)]);
+  else out.push(['Free throws', d[4], 'Not used']);
+  if (x.used === 6) out.push(['Rebound', d[5], reb(x.reb)]);
+  return out;
+}
+const DIE5_COLOR = { Type: 'die-shot', Foul: 'die-foul', Make: 'die-make', 'Free throws': 'die-ft', Rebound: 'die-ft' };
+function dice5Html(lg, g, x) {
+  return `<div class="gdice5">${diceMeaning(x).map(([k, v, what]) => `<div class="gdie${what === 'Not used' ? ' off' : ''}">
+      <div class="die die-sm ${k === 'Shot' ? (x.p === g.home ? 'die-red' : 'die-blue') : DIE5_COLOR[k]}" data-die-value="${v}" role="img" aria-label="${k} die showing ${v}"></div>
+      <b>${k}</b><small>${esc(what)}</small></div>`).join('')}</div>`;
+}
+const otherOf = (lg, g, p) => lg.players[p === g.home ? g.away : g.home].name;
+
 function renderGamePage(lg, id) {
   const ref = gameRef(lg, id);
   if (!ref) { location.hash = 'league'; return; }
@@ -88,7 +110,19 @@ function renderGamePage(lg, id) {
   };
   const status = st.over ? 'Final' : st.plays.length ? `Possession ${st.plays.length + 1}` : 'Not started';
   let tray = '';
-  if (!st.over && ref.playable) {
+  const last = st.plays.length ? st.plays[st.plays.length - 1] : null;
+  const lastHtml = last && last.roll.d ? dice5Html(lg, g, last) +
+    `<p class="gresult"><b>${name(last.p)}</b>: ${esc(playText(last, otherOf(lg, g, last.p)))}${last.pts ? ` · <b>+${last.pts}</b>` : ''}</p>` : '';
+  if (!st.over && ref.playable && diceOf(lg) === 5) {
+    tray = `<section class="panel gtray">
+      <h2 class="panel-title">${name(st.next)} has the ball${st.fastBreak ? ' <span class="panel-sub">Fast break: 3–6 makes it</span>' : ''}</h2>
+      ${lastHtml ? `<p class="glast">Last possession</p>${lastHtml}` : ''}
+      <div class="gactions">
+        <button type="button" class="btn btn-roll" data-act="roll5">Roll</button>
+        <button type="button" class="btn btn-ghost" data-act="sim">Roll to the end</button>
+      </div>
+    </section>`;
+  } else if (!st.over && ref.playable) {
     const p = st.next, before = p === g.home ? st.homePts : st.awayPts;
     const r = gameDraft.r;
     const need = possessionNeeds(r, before);
@@ -96,7 +130,7 @@ function renderGamePage(lg, id) {
     const showFt = res && res.fts > 0;
     const color = p === g.home ? 'die-red' : 'die-blue';
     const done = need.length === 0;
-    const preview = done ? `<p class="gresult"><b>${name(p)}</b>: ${esc(playText(res))}${res.pts ? ` · <b>+${res.pts}</b>` : ''}</p>` :
+    const preview = done ? `<p class="gresult"><b>${name(p)}</b>: ${esc(playText({ ...res, old: true }))}${res.pts ? ` · <b>+${res.pts}</b>` : ''}</p>` :
       showFt ? `<p class="gresult">Foul! Roll the foul die again for free throws.</p>` : '';
     tray = `<section class="panel gtray">
       <h2 class="panel-title">${name(p)} has the ball</h2>
@@ -116,10 +150,12 @@ function renderGamePage(lg, id) {
     </section>`;
   } else if (!st.over) {
     tray = `<p class="muted gwait">${ref.post && ref.g.notNeeded ? 'This game wasn’t needed: the series is over.' : `This game is on Day ${g.day}. Games are played on their day, in order.`}</p>`;
+  } else if (st.over && lastHtml) {
+    tray = `<section class="panel gtray"><h2 class="panel-title">Last possession</h2>${lastHtml}</section>`;
   }
   const plays = st.plays.slice().reverse().map(x => `<li><span class="pn">${x.n}</span>
-      <span class="pw"><b>${name(x.p)}</b> ${esc(playText(x))}${x.pts ? ` <b class="pp">+${x.pts}</b>` : ''}
-      <small>Rolled ${x.roll.s}${x.made ? ' · ' + x.roll.t : ''} · ${x.roll.f}${x.fts ? ' · FT ' + x.roll.ft : ''}</small></span>
+      <span class="pw"><b>${name(x.p)}</b> ${esc(playText(x, otherOf(lg, g, x.p)))}${x.pts ? ` <b class="pp">+${x.pts}</b>` : ''}
+      <small>Rolled ${x.roll.d ? x.roll.d.slice(0, x.used).join(' · ') : `${x.roll.s}${x.made ? ' · ' + x.roll.t : ''} · ${x.roll.f}${x.fts ? ' · FT ' + x.roll.ft : ''}`}</small></span>
       <span class="ps">${x.away}–${x.home}</span></li>`).join('');
   $('lgGame').innerHTML = `
     <a class="back" href="#league"><span aria-hidden="true">←</span> Day ${g.day}</a>
@@ -133,12 +169,17 @@ function renderGamePage(lg, id) {
     <section class="panel gplays">
       <div class="gplays-head"><h2 class="panel-title">Play-by-play</h2>
         ${st.plays.length && (ref.playable || (st.over && ref.canUndo)) ? '<button type="button" class="btn btn-ghost btn-sm" data-act="undo">Undo last</button>' : ''}</div>
-      ${plays ? `<ol class="plays">${plays}</ol>` : '<p class="muted gnone">No possessions yet. The home player has the ball first.</p>'}
+      ${plays ? `<ol class="plays">${plays}</ol>` : `<p class="muted gnone">No possessions yet. The home player has the ball first${diceOf(lg) === 5 ? '; press Roll' : ''}.</p>`}
     </section>`;
   $('lgGame').querySelectorAll('[data-die-face]').forEach(el => {
     const v = Number(el.dataset.value);
     if (v) drawDie(el, v); else el.innerHTML = '';
     el.setAttribute('aria-label', `${DIE_INFO[el.dataset.dieFace].name} die${v ? ' showing ' + v : ', not rolled'}`);
+  });
+  $('lgGame').querySelectorAll('[data-die-value]').forEach(el => {
+    const label = el.getAttribute('aria-label');
+    drawDie(el, Number(el.dataset.dieValue));
+    el.setAttribute('aria-label', label);
   });
 }
 
@@ -165,7 +206,21 @@ $('lgGame').addEventListener('click', e => {
   const st = playGame(g), r = gameDraft.r;
   const before = st.next === g.home ? st.homePts : st.awayPts;
   const act = b.dataset.act;
-  if (act === 'face') {
+  if (act === 'roll5' || act === 'sim') {
+    if (!ref.playable) return;
+    if (act === 'sim' && !confirm('Roll every possession until the game is over?')) return;
+    const one = () => {
+      const s2 = playGame(g);
+      if (s2.over) return false;
+      const bf = s2.next === g.home ? s2.homePts : s2.awayPts;
+      g.log = (g.log || []).concat([{ d: rollPossession(bf, rollD6, s2.fastBreak) }]);
+      return true;
+    };
+    if (act === 'sim') { while (one()) {} } else one();
+    saveGame(lg, ref);
+    renderGamePage(lg, g.id); renderLeagueHeader(lg, 'home');
+    $('lgGame').querySelectorAll('.gdice5 .die').forEach(el => { el.classList.remove('rolling'); void el.offsetWidth; el.classList.add('rolling'); });
+  } else if (act === 'face') {
     r[b.dataset.die] = Number(b.dataset.v);
     if (r.s && r.s < 4) delete r.t;
     const res = r.s && r.f && (r.s < 4 || r.t) ? possessionResult(r, before) : null;

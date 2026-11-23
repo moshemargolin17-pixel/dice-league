@@ -56,10 +56,10 @@ $('rollBtn').addEventListener('click', () => {
 // Leagues you create are saved in this browser. The three sample leagues are always listed
 // so there is something to look at.
 const SAMPLE_LEAGUES = [
-  { id: 'sample-dice-league', name: 'Dice League', seed: 2026, playedShare: 0.6, lastPlayed: '2026-11-21T21:00:00.000Z' },
+  { id: 'sample-dice-league', name: 'Dice League', seed: 2026, playedShare: 0.6, lastPlayed: '2026-11-21T21:00:00.000Z', dice: 5 },
   { id: 'sample-friday-night', name: 'Friday Night League', seed: 77, playedShare: 0.2, lastPlayed: '2026-11-14T22:30:00.000Z' },
   { id: 'sample-summer', name: 'Summer League', seed: 413, playedShare: 1, lastPlayed: '2026-08-30T19:15:00.000Z' },
-].map(makeSampleLeague);
+].map(x => Object.assign(makeSampleLeague(x), x.dice ? { dice: x.dice } : {}));
 
 const myLeagues = () => Saved.leagues; // see cloud.js: the account's leagues, or this browser's
 const allLeagues = () => [...myLeagues(), ...SAMPLE_LEAGUES];
@@ -257,7 +257,7 @@ function readStep1() {
   const spots = Number($('nlPlayoffs').value);
   const playoffs = spots ? { spots, playIn: spots === 8 && !$('nlPlayInWrap').hidden && $('nlPlayIn').checked } : null;
   if (!name) return { error: 'Give the league a name.', n, g, format, nameMissing: true };
-  return { name, n, g, format, playoffs };
+  return { name, n, g, format, playoffs, dice: Number($('nlDice').value) === 5 ? 5 : 3 };
 }
 
 function updateStep1Hint() {
@@ -436,6 +436,7 @@ $('newStep2').addEventListener('submit', e => {
       : makePairSchedule(s.n, () => Math.max(1, Math.round(s.g / (s.n - 1)))),
     format: s.format || null,
     playoffs: s.playoffs,
+    dice: s.dice,
     createdAt: now, lastPlayed: now,
   };
   const btn = e.submitter;

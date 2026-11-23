@@ -498,6 +498,13 @@ function renderSettingsPage(lg) {
       <p class="error" id="sNamesErr" role="alert" hidden></p>
       <div class="form-actions"><button type="submit" class="btn btn-primary"${ro}>Save names</button><span class="saved-note" id="sNamesOk" hidden>Saved</span></div>
     </form>
+    <section class="panel tpanel form-panel">
+      <h3 class="panel-title">Dice</h3>
+      <label class="field"><span class="field-label">Dice</span>
+        <select id="sDice"${ro}><option value="3"${diceOf(lg) === 3 ? ' selected' : ''}>3 dice</option><option value="5"${diceOf(lg) === 5 ? ' selected' : ''}>5 dice</option></select></label>
+      <p class="muted">A change counts from the next possession. Games already played keep their results.</p>
+      <span class="saved-note" id="sDiceOk" hidden>Saved</span>
+    </section>
     ${leagueSetupPanel(lg)}
     <form class="panel tpanel form-panel" id="sPlayers" novalidate>
       <h3 class="panel-title">Players</h3>
@@ -637,4 +644,13 @@ function alertBar(text) {
 $('acctOut').addEventListener('click', async () => {
   await window.DLAccount.signOut();
   location.href = '../index.html';
+});
+
+// Dice: 3 or 5, changeable any time.
+document.addEventListener('change', e => {
+  if (e.target.id !== 'sDice') return;
+  const lg = currentLeague;
+  if (lg.sample) return;
+  lg.dice = Number(e.target.value) === 5 ? 5 : 3;
+  saveLeague(lg).then(() => { $('sDiceOk').hidden = false; }).catch(err => { console.error(err); alert('The dice setting couldn’t be saved. Check your connection and try again.'); });
 });
