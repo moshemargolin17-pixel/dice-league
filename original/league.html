@@ -3217,7 +3217,7 @@ const E = (() => {
     let out = '<div class="shead"><h2 class="h2">Players' + (D.cur ? '' : ' · Season ' + D.season.n) + '</h2><div class="hrow">' + seasonPicker() + tip('<div class="pmuted" style="font-size:14px">Tap a player for their full page</div>') + '</div></div>';
     seatGroups().forEach(gr => {
       out += '<section class="section"><h3 class="h3 pmuted" style="color:var(--page-ink)">' + gr.title + (gr.sub ? ' <span style="font-size:13px;opacity:.75;text-transform:none;letter-spacing:0">· ' + gr.sub + '</span>' : '') + '</h3><div class="tgrid">' +
-        gr.ids.map(p => {
+        L.rankGroup(D.rows, gr.ids).map(x => x.p).map(p => {   // best win percentage first, as in the standings
           const r = D.rows[p], pl = P(p);
           return '<button type="button" class="tcard" data-act="team" data-p="' + pid(p) + '"><b>' + esc(pl.name) + '</b>' +
             '<div class="trow"><span class="num" style="font-size:18px;color:var(--ink)">' + r.w + '–' + r.l + '</span><span>' + r.streak + '</span></div>' +
