@@ -205,7 +205,8 @@ function seededRandom(seed) {
 }
 
 // 30 players, 2 conferences with 3 divisions each, 80 games. playedShare is how much of the season is done.
-function makeSampleLeague({ id, name, seed, playedShare, lastPlayed }) {
+// The games played so far are rolled with the real dice (3 or 5), possession by possession.
+function makeSampleLeague({ id, name, seed, playedShare, lastPlayed, dice }) {
   const rand = seededRandom(seed);
   const players = Array.from({ length: 30 }, (_, i) => ({
     id: i, name: 'Player ' + (i + 1), short: 'P' + (i + 1), skill: 1 + Math.floor(rand() * 3),
@@ -220,19 +221,42 @@ function makeSampleLeague({ id, name, seed, playedShare, lastPlayed }) {
       { name: 'Northwest', conf: 1 }, { name: 'Pacific', conf: 1 }, { name: 'Southwest', conf: 1 },
     ],
     playoffs: { spots: 8, playIn: true },
+    dice: dice === 5 ? 5 : 3,
     createdAt: lastPlayed, lastPlayed,
   };
   lg.games = makePairSchedule(30, (a, b) => formatTimes(lg, format, a, b), seed);
   const lastDay = Math.round(Math.max(...lg.games.map(g => g.day)) * playedShare);
-  // More stars scores a little more on average.
-  for (const g of lg.games) {
-    if (g.day > lastDay) continue;
-    const score = p => Math.round(60 + (players[p].skill - 1) * 4 + rand() * 30);
-    let a = score(g.away), h = score(g.home) + 1; // a small home edge
-    if (a === h) (rand() < 0.5 ? a++ : h++);
-    Object.assign(g, { final: true, awayPts: a, homePts: h });
-  }
+  const roll = () => 1 + Math.floor(rand() * 6);
+  for (const g of lg.games) if (g.day <= lastDay) simulateGame(g, lg.dice, roll);
   return lg;
+}
+
+// Roll a whole game (the same rules as playing it on the game page) and store its log and final score.
+function simulateGame(g, dice, roll) {
+  const pts = { [g.away]: 0, [g.home]: 0 };
+  let p = g.home, fast = false;
+  g.log = [];
+  for (;;) {
+    const before = pts[p];
+    let x;
+    if (dice === 5) {
+      const d = rollPossession(before, roll, fast);
+      x = possession5(d, before, fast);
+      g.log.push({ d });
+      fast = !!x.steal;
+    } else {
+      const r = { s: roll() };
+      if (r.s >= 4) r.t = roll();
+      r.f = roll();
+      if (possessionResult(r, before).fts) r.ft = roll();
+      x = possessionResult(r, before);
+      g.log.push(r);
+    }
+    pts[p] += x.pts;
+    if (pts[p] >= GAME_TO) break;
+    if (!x.keep) p = p === g.home ? g.away : g.home;
+  }
+  Object.assign(g, { final: true, awayPts: pts[g.away], homePts: pts[g.home] });
 }
 
 // ---------- Standings ----------

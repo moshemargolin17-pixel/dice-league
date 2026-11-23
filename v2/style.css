@@ -690,3 +690,6 @@ p { margin: 0; }
 .die-ft { background: #7A4FD0; }
 @media (max-width: 520px) { .gdice5 { gap: 10px; } }
 .bs-key { padding: 8px 18px 4px; font-size: 12px; }
+.boxhead { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-right: 18px; }
+.boxhead .panel-title { padding-bottom: 10px; }
+.boxhead .seg { margin: 0 0 10px 18px; }

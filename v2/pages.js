@@ -2,7 +2,9 @@
 // Records come from final scores; box score stats come from games played with a possession log.
 
 const CLOSE_MARGIN = 5;    // a game decided by 5 or fewer is close
-const BLOWOUT_MARGIN = 20; // a win by 20 or more is a blowout
+const BLOWOUT_MARGIN = 10; // a win by 10 or more is a blowout
+const CLUTCH_POINTS = 18;  // a clutch game: the loser scored 18 or more, so it came down to the last possessions
+const HELD_UNDER = 10;     // holding the other player under 10
 
 // ---------- Shared helpers ----------
 const pname = (lg, p) => lg.players[p].name;
@@ -63,8 +65,8 @@ function playerFacts(lg) {
       vsGood: fin.filter(x => pct(x.vs) >= 0.5), vsBad: fin.filter(x => pct(x.vs) < 0.5),
       close: fin.filter(x => Math.abs(x.margin) <= CLOSE_MARGIN),
       blowWins: wins.filter(x => x.margin >= BLOWOUT_MARGIN), blownOut: losses.filter(x => x.margin <= -BLOWOUT_MARGIN),
-      games90: fin.filter(x => x.pts >= 90), games100: fin.filter(x => x.pts >= 100),
-      allow80: fin.filter(x => x.opp < 80),
+      clutch: fin.filter(x => Math.min(x.pts, x.opp) >= CLUTCH_POINTS),
+      held: fin.filter(x => x.opp < HELD_UNDER), max23: fin.filter(x => x.pts >= GAME_TO + 2),
       winRun: longestRun(fin, true), loseRun: longestRun(fin, false),
       early: part(0), mid: part(1), late: part(2),
       rest1: fin.filter((x, i) => restDays(x, i) === 1), rest2: fin.filter((x, i) => restDays(x, i) >= 2),
@@ -84,8 +86,25 @@ const fmtShot = v => (v == null ? '—' : (v * 100).toFixed(1) + '%');
 // turnovers, steals, rebounds and fast breaks only exist in 5-dice possessions
 const FIVE_ONLY = ['to', 'stl', 'oreb', 'dreb', 'reb', 'fbp'];
 const boxPer = (t, k) => (t.gp && (t.poss5 || !FIVE_ONLY.includes(k)) ? t[k] / t.gp : null);
-function boxStats(lg) {
-  return boxTotals(lg, lg.games).map(t => ({
+// Played postseason games, shaped like regular-season games.
+function postGamesPlayed(lg) {
+  if (!seasonDone(lg) || !playoffLines(lg)) return [];
+  const post = postOf(lg), res = lg.postResults || {};
+  return post.games.filter(g => res[g.id] && res[g.id].final).map(g => ({ id: g.id, day: g.day, series: g.series, ...res[g.id] }));
+}
+// How a player's postseason went: "Champion", "Lost in the Finals", "Missed the postseason"...
+function postFinish(lg, p) {
+  if (!seasonDone(lg) || !playoffLines(lg)) return null;
+  const ps = postState(lg);
+  if (ps.champion === p) return 'Champion';
+  const mine = Object.values(ps.series).filter(s => s.hi === p || s.lo === p);
+  if (!mine.length) return 'Missed the postseason';
+  const lost = mine.find(s => s.loser === p && !(s.x.round === 'Play-in' && Object.values(ps.series).some(t => (t.hi === p || t.lo === p) && t.x.stage > s.x.stage)));
+  if (lost) return `Lost in the ${lost.x.round === 'Play-in' ? 'play-in' : lost.x.round === 'Finals' ? 'Finals' : lost.x.round.toLowerCase()}`;
+  return 'Still playing';
+}
+function boxStats(lg, games) {
+  return boxTotals(lg, games || lg.games).map(t => ({
     ...t,
     fgp: shotPct(t.fgm, t.fga), tpp: shotPct(t.tp5m, t.tp5a), ftp: shotPct(t.ftm, t.fta),
     ppp: t.poss ? t.pts / t.poss : null,
@@ -216,7 +235,7 @@ function renderPlayerPage(lg, p) {
     ...(f.div ? [['Division', f.div]] : []),
     ...(f.conf ? [['Conference', f.conf], ['Interconference', f.other]] : []),
     ['Last 10', f.last10], ['vs .500+', f.vsGood], ['vs under .500', f.vsBad],
-    ['Close', f.close],
+    ['Close', f.close], ['Clutch', f.clutch],
   ];
   const pb = (label, x, value) => tile(label, x ? value(x) : '—', x ? esc(at(lg, x)) : '');
   const pf = f.fin.length ? (f.ppg).toFixed(1) : '—', pa = f.fin.length ? f.opg.toFixed(1) : '—';
@@ -251,10 +270,9 @@ function renderPlayerPage(lg, p) {
     </div>
     <section class="panel tpanel"><h3 class="panel-title">Advanced <span class="panel-sub">Regular season</span></h3>
       <div class="tiles">
-        ${tile('90+ games', f.games90.length)}${tile('100+ games', f.games100.length)}
+        ${recTile('Clutch', f.clutch)}${tile('Held under 10', f.held.length)}${tile('23-point games', f.max23.length)}
         ${tile('Blowouts', f.blowWins.length, `Wins by ${BLOWOUT_MARGIN}+`)}${tile('Times blown out', f.blownOut.length)}
         ${tile('Longest win streak', f.winRun)}${tile('Longest losing streak', f.loseRun)}
-        ${recTile('Scoring 90+', f.games90)}${recTile('Scoring 100+', f.games100)}${recTile('Allowing under 80', f.allow80)}
         ${recTile('Early season', f.early)}${recTile('Mid season', f.mid)}${recTile('Late season', f.late)}
         ${recTile('1 day of rest', f.rest1)}${recTile('2+ days of rest', f.rest2)}
         ${tile('Home points / game', fmt1(f.homePpg))}${tile('Away points / game', fmt1(f.awayPpg))}
@@ -275,12 +293,28 @@ function renderPlayerPage(lg, p) {
         ${tile('Fouls drawn', g1('fouled'))}${tile('And-ones', t.and1, 'Total')}${tile('Fast-break points', g1('fbp'))}
       </div></section>`;
     })()}
+    ${(() => {
+      const pg = postGamesPlayed(lg).filter(g => g.away === p || g.home === p);
+      const finish = postFinish(lg, p);
+      if (!pg.length && !finish) return '';
+      const won = pg.filter(g => (g.homePts > g.awayPts ? g.home : g.away) === p).length;
+      const series = Object.values(postState(lg).series).filter(x => x.winner === p).length;
+      const t = boxStats(lg, pg)[p];
+      const ptsFor = pg.reduce((a, g) => a + (g.home === p ? g.homePts : g.awayPts), 0);
+      return `<section class="panel tpanel"><h3 class="panel-title">Postseason</h3><div class="tiles">
+        ${tile('Finish', esc(finish || '—'))}
+        ${tile('Record', rec(won, pg.length - won))}${tile('Series won', series)}
+        ${tile('Points / game', pg.length ? fmt1(ptsFor / pg.length) : '—')}
+        ${t.gp ? tile('Field goals', fmtShot(t.fgp)) + tile('Free throws', fmtShot(t.ftp)) : ''}
+        ${t.gp && t.poss5 ? tile('3-pointers', fmtShot(t.tpp)) + tile('Rebounds', fmt1(boxPer(t, 'reb'))) + tile('Steals', fmt1(boxPer(t, 'stl'))) + tile('Turnovers', fmt1(boxPer(t, 'to'))) : ''}
+      </div></section>`;
+    })()}
     <h3 class="h2">Schedule</h3>
     ${scheduleTables(lg, p, false)}
     <section class="panel tpanel"><h3 class="panel-title">Career</h3>
       <div class="tscroll"><table class="tbl tbl-plain"><tr><th class="l">Season</th><th>W–L</th><th>PF/G</th><th>PA/G</th><th>Finish</th></tr>
-        <tr><td class="l">1</td><td>${rec(r.w, r.l)}</td><td>${pf}</td><td>${pa}</td><td>${done ? `#${seedPos} seed` : 'In progress'}</td></tr>
-        <tr class="strong-row"><td class="l">Career</td><td>${rec(r.w, r.l)}</td><td>${pf}</td><td>${pa}</td><td>0 titles</td></tr>
+        <tr><td class="l">1</td><td>${rec(r.w, r.l)}</td><td>${pf}</td><td>${pa}</td><td>${done ? esc(postFinish(lg, p) || `#${seedPos} seed`) : 'In progress'}</td></tr>
+        <tr class="strong-row"><td class="l">Career</td><td>${rec(r.w, r.l)}</td><td>${pf}</td><td>${pa}</td><td>${(() => { const n = postFinish(lg, p) === 'Champion' ? 1 : 0; return `${n} ${n === 1 ? 'title' : 'titles'}`; })()}</td></tr>
       </table></div>
     </section>`;
 }
@@ -328,7 +362,7 @@ function renderStatsPage(lg) {
   const recBW = (label, key) => bw(label, f => recPct(f[key]) + f[key].length / 1e4, f => recText(f[key]), f => f[key] && f[key].length);
   const situational = [
     recBW('vs .500+', 'vsGood'), recBW('vs under .500', 'vsBad'), recBW('Home', 'home'), recBW('Away', 'away'),
-    recBW('Close', 'close'),
+    recBW('Close', 'close'), recBW('Clutch', 'clutch'),
     ...(hasDivs(lg) ? [recBW('Division', 'div')] : []), ...(hasConfs(lg) ? [recBW('Conference', 'conf'), recBW('Interconference', 'other')] : []),
   ];
   const playerStats = [
@@ -337,8 +371,8 @@ function renderStatsPage(lg) {
     // closest losses are best (margins in losses are negative, so the highest is the smallest loss)
     bw('Margin of loss', f => f.mol ?? -99, f => sign1(f.mol), f => f.mol != null),
     bw('Lowest score', f => -Math.min(...f.fin.map(x => x.pts)), f => Math.min(...f.fin.map(x => x.pts))),
-    bw('90+ games', f => f.games90.length, f => f.games90.length),
-    bw('100+ games', f => f.games100.length, f => f.games100.length),
+    bw('Held under 10', f => f.held.length, f => f.held.length),
+    bw('23-point games', f => f.max23.length, f => f.max23.length),
     bw('Blowouts', f => f.blowWins.length, f => f.blowWins.length),
     bw('Times blown out', f => -f.blownOut.length, f => f.blownOut.length),
     bw('Longest win streak', f => f.winRun, f => f.winRun),
@@ -373,8 +407,8 @@ function renderStatsPage(lg) {
       ${leaders(`Best in close games`, f => recPct(f.close) + f.close.length / 1e4, f => recText(f.close), f => f.close.length)}
       ${leaders('Best vs .500+', f => recPct(f.vsGood) + f.vsGood.length / 1e4, f => recText(f.vsGood), f => f.vsGood.length)}
       ${leaders('Most blowout wins', f => f.blowWins.length, f => f.blowWins.length, f => f.blowWins.length)}
-      ${leaders('Most 90+ games', f => f.games90.length, f => f.games90.length, f => f.games90.length)}
-      ${leaders('Most 100+ games', f => f.games100.length, f => f.games100.length, f => f.games100.length)}
+      ${leaders('Best in clutch games', f => recPct(f.clutch) + f.clutch.length / 1e4, f => recText(f.clutch), f => f.clutch.length)}
+      ${leaders('Most times holding under 10', f => f.held.length, f => f.held.length, f => f.held.length)}
       ${leaders('Longest win streak', f => f.winRun, f => f.winRun, f => f.winRun)}
       ${leaders('Longest losing streak', f => f.loseRun, f => f.loseRun, f => f.loseRun)}
       ${boxLeaders(lg)}
@@ -708,6 +742,7 @@ function diceRulesHtml(n) {
 
 // ---------- Box score stats on the Stats page ----------
 let boxSort = { key: 'fgp', asc: false };
+let boxScope = 'reg';   // 'reg' or 'post'
 const BOX_COLS = [
   ['gp', 'GP', t => t.gp, t => t.gp],
   ['fgp', 'FG%', t => t.fgp ?? -1, t => fmtShot(t.fgp)],
@@ -721,13 +756,18 @@ const BOX_COLS = [
   ['ppp', 'PPP', t => t.ppp ?? -1, t => (t.ppp == null ? '—' : t.ppp.toFixed(2))],
 ];
 function boxTableHtml(lg) {
-  const stats = boxStats(lg).map((t, p) => ({ ...t, p })).filter(t => t.gp);
+  const postGames = postGamesPlayed(lg);
+  const scope = boxScope === 'post' && postGames.length ? 'post' : 'reg';
+  const stats = boxStats(lg, scope === 'post' ? postGames : null).map((t, p) => ({ ...t, p })).filter(t => t.gp);
   if (!stats.length) return '';
+  const toggle = postGames.length ? `<div class="seg" role="tablist" aria-label="Box score for">
+      <button type="button" role="tab" data-boxscope="reg" aria-selected="${scope === 'reg'}">Regular season</button>
+      <button type="button" role="tab" data-boxscope="post" aria-selected="${scope === 'post'}">Postseason</button></div>` : '';
   const col = BOX_COLS.find(c => c[0] === boxSort.key) || BOX_COLS[1];
   const sorted = stats.sort((a, b) => (boxSort.asc ? col[2](a) - col[2](b) : col[2](b) - col[2](a)) || a.p - b.p);
   const head = `<tr><th class="l">#</th><th class="l">Player</th>${BOX_COLS.map(c => `<th><button type="button" class="sortbtn${c[0] === boxSort.key ? ' on' : ''}" data-boxsort="${c[0]}">${c[1]}${c[0] === boxSort.key ? (boxSort.asc ? ' ▲' : ' ▼') : ''}</button></th>`).join('')}</tr>`;
   const body = sorted.map((t, i) => `<tr><td class="l seed">${i + 1}</td><th class="l" scope="row"><a class="plink" href="#player-${t.p}">${esc(pname(lg, t.p))}</a></th>${BOX_COLS.map(c => `<td>${c[3](t)}</td>`).join('')}</tr>`).join('');
-  return `<section class="panel"><h3 class="panel-title">Box score <span class="panel-sub">Per game, from logged games</span></h3>
+  return `<section class="panel"><div class="boxhead"><h3 class="panel-title">Box score <span class="panel-sub">Per game, from logged games</span></h3>${toggle}</div>
     <div class="tscroll"><table class="tbl tbl-lead">${head}${body}</table></div></section>`;
 }
 function boxLeaders(lg) {
@@ -748,6 +788,8 @@ function boxLeaders(lg) {
   ].join('');
 }
 document.addEventListener('click', e => {
+  const sc = e.target.closest('#lgStats [data-boxscope]');
+  if (sc) { boxScope = sc.dataset.boxscope; renderStatsPage(currentLeague); return; }
   const b = e.target.closest('#lgStats [data-boxsort]');
   if (!b) return;
   const k = b.dataset.boxsort;

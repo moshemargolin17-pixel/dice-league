@@ -59,7 +59,7 @@ const SAMPLE_LEAGUES = [
   { id: 'sample-dice-league', name: 'Dice League', seed: 2026, playedShare: 0.6, lastPlayed: '2026-11-21T21:00:00.000Z', dice: 5 },
   { id: 'sample-friday-night', name: 'Friday Night League', seed: 77, playedShare: 0.2, lastPlayed: '2026-11-14T22:30:00.000Z' },
   { id: 'sample-summer', name: 'Summer League', seed: 413, playedShare: 1, lastPlayed: '2026-08-30T19:15:00.000Z' },
-].map(x => Object.assign(makeSampleLeague(x), x.dice ? { dice: x.dice } : {}));
+].map(makeSampleLeague);
 
 const myLeagues = () => Saved.leagues; // see cloud.js: the account's leagues, or this browser's
 const allLeagues = () => [...myLeagues(), ...SAMPLE_LEAGUES];
