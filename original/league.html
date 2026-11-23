@@ -1119,6 +1119,8 @@ html[data-design="mono"] .tab:focus-visible{outline:2px solid #FFFFFF;outline-of
 a.brand-home{text-decoration:none;color:inherit}
 a.brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
 .autorow{display:flex;gap:8px;margin-top:10px}.autorow .btn{flex:1}
+.autorow .kbd{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border:1px solid currentColor;border-radius:4px;font-size:11px;line-height:16px;opacity:.6}
+@media (pointer:coarse){.autorow .kbd{display:none}}
 .autoset{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head><body><div id="app"></div>
@@ -2957,7 +2959,7 @@ const E = (() => {
         'Roll the black die for the away player and the white die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
-        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the next roll, <b>Roll the rest</b> finishes the game. Auto-rolled games count like any other.']) +
+        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the next roll for you. Auto-rolled games count like any other.']) +
       sec('Advantages', [
         'Better players get calls: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one.',
         D.ru.skillCalls ? 'Skill runs from 1 star to 5 stars (best). ' + skillCallsText(D.ru) + ' Equal levels get no skill calls. ' + homeCallsText(D.ru) : 'Under this season’s original rules, one skill tier up gets 3 calls; two tiers up gets 6. A 10 gets 3 over a 7 or 8. The home player gets 1 extra call.',
@@ -4101,7 +4103,7 @@ const E = (() => {
       '<button type="button" class="theme' + (c.theme === d.id ? ' on' : '') + '" data-act="theme" data-v="' + d.id + '" aria-pressed="' + (c.theme === d.id) + '">' +
       '<div class="sw" style="background:' + d.sw[0] + '"><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif">112</span><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif;opacity:.55">97</span></div>' +
       '<div class="tx"><b>' + d.name + (c.theme === d.id ? ' · in use' : '') + '</b><small>' + d.desc + '</small></div></button>').join('') + '</div></div>';
-    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b> (the site rolls the next roll for you) and <b>Roll the rest</b> (it finishes the game). You can still enter dice yourself.</div>' +
+    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b>: the site rolls the next roll for you. You can still enter dice yourself.</div>' +
       '<div class="seg autoset" role="group" aria-label="Auto roll"><button type="button" class="' + (c.autoRoll ? 'on' : '') + '" data-act="autoset" data-v="1" aria-pressed="' + !!c.autoRoll + '">On</button><button type="button" class="' + (c.autoRoll ? '' : 'on') + '" data-act="autoset" data-v="0" aria-pressed="' + !c.autoRoll + '">Off</button></div></div></div>';
     out += '<div class="panel"><form class="form" data-form="league"><h3 class="h3">League names</h3>' +
       '<div class="frow"><div class="field"><label for="lgName">League name</label><input type="text" id="lgName" value="' + esc(c.leagueName) + '" maxlength="40"></div></div>' +
@@ -4649,17 +4651,24 @@ const E = (() => {
     return D.byId[g.id];
   }
   // Auto roll: one roll, or every roll left in the game
-  function autoRoll(all) {
+  function autoRoll() {
     const g0 = D.byId[S.sheet && S.sheet.gid];
     if (!canAuto(g0)) return;
     S.poss = null;
-    let g = simRoll(g0);
-    while (all && !g.st.final) g = simRoll(g);
+    const g = simRoll(g0);
     renderSheet(); render();
     if (g.st.final) toast('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
     else if (g.st.n === 24) toast('Tied after regulation. Overtime!');
   }
-  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll">Auto roll</button><button type="button" class="btn" data-act="autorest">Roll the rest</button></div>' : '';
+  // the 7 key is Auto roll (1-6 are the dice), when Auto roll is on in Settings
+  document.addEventListener('keydown', e => {
+    if (e.key !== '7' || e.ctrlKey || e.metaKey || e.altKey || !S.sheet) return;
+    if (e.target.closest && e.target.closest('select, textarea, [contenteditable]') ) return;
+    if (e.target.tagName === 'INPUT' && !['rollA', 'rollH', 'pIn'].includes(e.target.id)) return;
+    if (!document.querySelector('#sheetHost [data-act=autoroll]')) return;
+    e.preventDefault(); e.stopPropagation(); autoRoll();
+  }, true);
+  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll" aria-keyshortcuts="7">Auto roll <small class="kbd">7</small></button></div>' : '';
 
   document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('schips')) syncChips(e.target.parentElement.parentElement); }, true);
   window.addEventListener('resize', () => { syncChips(); if (Tour.cur) tourPlace(); });
@@ -4683,8 +4692,7 @@ const E = (() => {
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
       case 'tour': tourStart(); break;
-      case 'autoroll': autoRoll(false); break;
-      case 'autorest': autoRoll(true); break;
+      case 'autoroll': autoRoll(); break;
       case 'autoset': S.cfg.autoRoll = el.dataset.v === '1'; saveCfg(); render(); toast('Auto roll is ' + (S.cfg.autoRoll ? 'on.' : 'off.')); break;
       case 'tnext': tourShow(Tour.i + 1); break;
       case 'tback': tourShow(Math.max(0, Tour.i - 1)); break;

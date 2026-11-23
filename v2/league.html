@@ -1205,6 +1205,8 @@ html[data-design="mono"] .tab:focus-visible{outline:2px solid #FFFFFF;outline-of
 a.brand-home{text-decoration:none;color:inherit}
 a.brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
 .autorow{display:flex;gap:8px;margin-top:10px}.autorow .btn{flex:1}
+.autorow .kbd{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border:1px solid currentColor;border-radius:4px;font-size:11px;line-height:16px;opacity:.6}
+@media (pointer:coarse){.autorow .kbd{display:none}}
 .autoset{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head><body><div id="app"></div>
@@ -4933,7 +4935,7 @@ const E = (() => {
       }, 70);
     });
   }
-  function autoRoll(all) {
+  function autoRoll() {
     const g0 = D.byId[S.sheet && S.sheet.gid];
     if (!canAuto(g0)) return;
     if (D.ru.poss) {   // 2.0: roll the two dice in the boxes; Enter logs them, like dice put in by hand
@@ -4944,13 +4946,20 @@ const E = (() => {
       renderSheet(); rollAnim(from); return;
     }
     S.poss = null;
-    let g = simRoll(g0);
-    while (all && !g.st.final) g = simRoll(g);
+    const g = simRoll(g0);
     renderSheet(); render();
     if (g.st.final) toast('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
     else if (g.st.n === 24) toast('Tied after regulation. Overtime!');
   }
-  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll">Auto roll</button></div>' : '';
+  // the 7 key is Auto roll (1-6 are the dice), when Auto roll is on in Settings
+  document.addEventListener('keydown', e => {
+    if (e.key !== '7' || e.ctrlKey || e.metaKey || e.altKey || !S.sheet) return;
+    if (e.target.closest && e.target.closest('select, textarea, [contenteditable]') ) return;
+    if (e.target.tagName === 'INPUT' && !['rollA', 'rollH', 'pIn'].includes(e.target.id)) return;
+    if (!document.querySelector('#sheetHost [data-act=autoroll]')) return;
+    e.preventDefault(); e.stopPropagation(); autoRoll();
+  }, true);
+  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll" aria-keyshortcuts="7">Auto roll <small class="kbd">7</small></button></div>' : '';
 
   document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('schips')) syncChips(e.target.parentElement.parentElement); }, true);
   window.addEventListener('resize', () => { syncChips(); if (Tour.cur) tourPlace(); });
@@ -4974,8 +4983,7 @@ const E = (() => {
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
       case 'tour': tourStart(); break;
-      case 'autoroll': autoRoll(false); break;
-      case 'autorest': autoRoll(true); break;
+      case 'autoroll': autoRoll(); break;
       case 'autoset': S.cfg.autoRoll = el.dataset.v === '1'; saveCfg(); render(); toast('Auto roll is ' + (S.cfg.autoRoll ? 'on.' : 'off.')); break;
       case 'tnext': tourShow(Tour.i + 1); break;
       case 'tback': tourShow(Math.max(0, Tour.i - 1)); break;
