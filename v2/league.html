@@ -2,7 +2,7 @@
 <script>
   // Show the saved design right away (Dice League 2.0 until one is chosen), so the page never flashes another look.
   (function () {
-    var ok = ['v20','app','chalk','sunset','blueprint','popart','wildwest','usa','civilwar','revolution','confederate','bauhaus','mono'];
+    var ok = ['v20','app','chalk','sunset','blueprint','popart','wildwest','usa','civilwar','revolution','confederate','bauhaus'];
     try { var t = localStorage.getItem('diceLeague2:theme'); if (ok.indexOf(t) >= 0) document.documentElement.setAttribute('data-design', t); } catch (e) {}
   })();
 </script>
@@ -1794,7 +1794,6 @@ const E = (() => {
   const timeStr = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
   const DESIGNS = [
     { id: 'v20', name: 'Dice League 2.0', desc: 'Light gray and white with the 2.0 red, and a dark version at night', sw: ['#F3F4F7', '#D2283C', '#FFFFFF', 'Bricolage Grotesque'] },
-    { id: 'mono', name: 'Black & White', desc: 'Black type and borders on white, no color at all', sw: ['#FFFFFF', '#000000', '#F2F2F2', 'Archivo Narrow'] },
     { id: 'app', name: 'League App', desc: 'Clean white and blue, like a sports app', sw: ['#F2F4F8', '#1D4ED8', '#FFFFFF', 'Archivo Narrow'] },
     { id: 'chalk', name: 'Chalkboard', desc: 'Coach’s board with chalk lettering', sw: ['#26332B', '#F7E07C', '#2E3D34', 'Permanent Marker'] },
     { id: 'sunset', name: 'Sunset Strip', desc: 'Dusk purple melting into a coral sunset', sw: ['#3A1259', '#FFC93C', '#2A1442', 'Righteous'] },
