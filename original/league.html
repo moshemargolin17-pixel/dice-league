@@ -653,6 +653,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .pgt td:first-child{text-align:left}.pgt td:last-child{text-align:right}
 .pgt th{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:center}
 .pgt .pgn{font-size:13px;color:var(--muted)}
+.live-stats .gstats{grid-template-columns:1fr}
 .gstats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px;margin-top:8px}
 .gstats>div{background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px;align-content:start}
 .gstats small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
@@ -4374,8 +4375,12 @@ const E = (() => {
       else msg = 'This game was not played.';
       main += tip('<div class="note">' + msg + '</div>');
     }
-    if (!st.n && !S.sheet.edit && !st.final) main += pregamePanel(gg, x);
-    if (st.n && !S.sheet.edit) {
+    // before Start Game: the pregame. During the game: live lead stats in place of the series. Once it's final: flow and game stats
+    const liveGame = !st.final && (st.n > 0 || gameStarted(gg)) && !S.sheet.edit;
+    if (!st.n && !S.sheet.edit && !st.final && !gameStarted(gg)) main += pregamePanel(gg, x);
+    if (liveGame) aside = '<section class="matchup-panel game-stats live-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
+      '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
+    if (st.final && !S.sheet.edit) {
       main += flowChart(gg, st) + gameStatsPanel(gg, st);
     }
     if (st.n && !S.sheet.edit) {
