@@ -12,7 +12,7 @@ function gameRef(lg, id) {
   const reg = lg.games.find(g => String(g.id) === String(id));
   if (reg) return {
     g: reg, meta: gameKind(lg, reg),
-    playable: !reg.final && reg.day === todayOf(lg),
+    playable: !reg.final && canPlayToday(lg, reg.day),
     canUndo: !postStarted(lg),   // regular-season results are locked once the postseason starts
     save() {
       const st = playGame(reg);
@@ -35,7 +35,7 @@ function gameRef(lg, id) {
   return {
     g: v, post: true,
     meta: `${x.round}${x.bestOf > 1 ? ` · Game ${pg.no}` : ''}${x.conf != null ? ' · ' + lg.conferences[x.conf] : ''}`,
-    playable: v.s.next === pg && pg.day === todayOf(lg),
+    playable: v.s.next === pg && canPlayToday(lg, pg.day),
     canUndo: !later,
     save() {
       const st = playGame(v);
@@ -113,7 +113,7 @@ function renderGamePage(lg, id) {
       <span class="sb-pts">${pts}</span>
     </div>`;
   };
-  const status = st.over ? 'Final' : st.plays.length ? `Possession ${st.plays.length + 1}` : 'Not started';
+  const status = st.over ? 'Final' : st.plays.length ? `Possession ${st.plays.length + 1}` : '';
   let tray = '';
   const last = st.plays.length ? st.plays[st.plays.length - 1] : null;
   const lastHtml = last && last.roll.d ? dice5Html(lg, g, last) +
@@ -154,7 +154,7 @@ function renderGamePage(lg, id) {
       </div>
     </section>`;
   } else if (!st.over) {
-    tray = `<p class="muted gwait">${ref.post && ref.g.notNeeded ? 'This game wasn’t needed: the series is over.' : `This game is on Day ${g.day}. Games are played on their day, in order.`}</p>`;
+    tray = `<p class="muted gwait">${ref.post && ref.g.notNeeded ? 'This game wasn’t needed: the series is over.' : `${g.day === todayOf(lg) && !dayStarted(lg) ? 'Start the day on the league home page to play this game.' : `This game is on Day ${g.day}. Games are played on their day, in order.`}`}</p>`;
   } else if (st.over && lastHtml) {
     tray = `<section class="panel gtray"><h2 class="panel-title">Last possession</h2>${lastHtml}</section>`;
   }

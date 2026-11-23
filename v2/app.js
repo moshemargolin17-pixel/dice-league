@@ -766,7 +766,7 @@ function postGameCard(lg, post, g, seeds, ps) {
   };
   const label = `${x.round}${x.bestOf > 1 ? ` · Game ${g.no}` : ''}`;
   const status = v.final ? 'Final' : started ? 'In progress' : v.notNeeded ? 'Not needed' : g.ifNecessary ? 'If necessary' : x.conf != null ? esc(lg.conferences[x.conf]) : '';
-  const playable = v.s.next === g && g.day === todayOf(lg);
+  const playable = v.s.next === g && canPlayToday(lg, g.day);
   const link = playable ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
     : v.final ? `<a class="btn btn-ghost btn-sm" href="#game-${g.id}">Play-by-play</a>` : '';
   return `<article class="gcard is-post${g.ifNecessary && !v.final && !started ? ' is-maybe' : ''}${v.final ? ' is-final' : ''}${started ? ' is-live' : ''}${v.notNeeded ? ' is-skip' : ''}">
@@ -775,8 +775,9 @@ function postGameCard(lg, post, g, seeds, ps) {
     ${link ? `<div class="gfoot">${link}</div>` : ''}
   </article>`;
 }
-// Today: the first day with a regular-season game left, then the first day a series has its next game.
-function todayOf(lg) {
+// The next day with a game to play: the first day with a regular-season game left, then the first day
+// a series has its next game (or the last day played, once everything is done).
+function nextGameDay(lg) {
   const open = lg.games.filter(g => !g.final);
   if (open.length) return Math.min(...open.map(g => g.day));
   if (!playoffLines(lg) || !lg.games.length) return seasonDays(lg);
@@ -786,6 +787,53 @@ function todayOf(lg) {
   const res = lg.postResults || {};
   const played = ps.post.games.filter(g => res[g.id] && res[g.id].final).map(g => g.day);
   return played.length ? Math.max(...played) : seasonDays(lg);
+}
+
+// Today: the league stays on its day until End Day is pressed (lg.curDay), unless a game on an earlier
+// day is open again. Leagues from before Start/End Day just use the next day with a game.
+function todayOf(lg) {
+  const next = nextGameDay(lg);
+  return lg.curDay != null ? Math.min(lg.curDay, next) : next;
+}
+const gamesOnDay = (lg, day) => lg.games.filter(g => g.day === day);
+// Games can be played once the day is started (a game already under way counts as started).
+function dayStarted(lg) {
+  const today = todayOf(lg);
+  if (lg.startedDay === today) return true;
+  if (gamesOnDay(lg, today).some(g => !g.final && g.log && g.log.length)) return true;
+  const res = lg.postResults || {};
+  return postOf(lg).games.some(g => g.day === today && res[g.id] && !res[g.id].final);
+}
+// Every game today is final (or, in the postseason, not needed).
+function dayFinished(lg) {
+  const today = todayOf(lg);
+  if (gamesOnDay(lg, today).some(g => !g.final)) return false;
+  if (lg.games.every(g => g.final) && playoffLines(lg) && lg.games.length) {
+    if (Object.values(postState(lg).series).some(s => s.next && s.next.day === today)) return false;
+  }
+  return true;
+}
+const seasonOver = lg => Boolean(lg.seasonEnded);
+const canPlayToday = (lg, day) => day === todayOf(lg) && dayStarted(lg) && !seasonOver(lg);
+
+function startDay(lg) {
+  lg.curDay = todayOf(lg);
+  lg.startedDay = lg.curDay;
+  saveDay(lg);
+}
+function endDay(lg) {
+  const today = todayOf(lg);
+  const next = nextGameDay(lg);
+  lg.startedDay = null;
+  if (next > today) lg.curDay = next;
+  else { lg.curDay = today; lg.seasonEnded = true; }   // nothing left to play
+  homeDay = null;
+  saveDay(lg);
+}
+function saveDay(lg) {
+  if (!lg.sample) saveLeague(lg).catch(e => { console.error(e); alert('That couldn’t be saved. Check your connection and try again.'); });
+  renderLeagueHeader(lg, 'home');
+  renderLeagueHome();
 }
 
 function renderLeagueHeader(lg, tab) {
@@ -832,10 +880,10 @@ function gameCard(lg, g) {
   };
   const started = !g.final && g.log && g.log.length > 0;
   const live = started ? playGame(g) : g;
-  const link = !g.final && g.day === todayOf(lg) ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
+  const link = !g.final && canPlayToday(lg, g.day) ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
     : g.final && g.log ? `<a class="btn btn-ghost btn-sm" href="#game-${g.id}">Play-by-play</a>` : '';
   return `<article class="gcard${g.final ? ' is-final' : ''}${started ? ' is-live' : ''}">
-    <div class="gtop"><span class="gst">${g.final ? 'Final' : started ? 'In progress' : 'Not started'}</span><span class="gmeta">${gameKind(lg, g)}</span></div>
+    <div class="gtop"><span class="gst">${g.final ? 'Final' : started ? 'In progress' : ''}</span><span class="gmeta">${gameKind(lg, g)}</span></div>
     <div class="gbody">${side(g.away, false)}${side(g.home, true)}</div>
     ${link ? `<div class="gfoot">${link}</div>` : ''}
   </article>`;
@@ -885,7 +933,7 @@ function renderLeagueHome() {
   const isPost = day > seasonDays(lg);
 
   $('homeSample').hidden = !lg.sample;
-  $('dayTitle').textContent = `${isToday ? 'Up next · ' : ''}Day ${day}${isPost ? ' · Postseason' : ''}`;
+  $('dayTitle').textContent = `Day ${day}${isPost ? ' · Postseason' : ''}`;
   const n = games.length + postGames.length;
   const psDay = postGames.length ? postState(lg) : null;
   const postDone = postGames.filter(g => ((lg.postResults || {})[g.id] || {}).final).length;
@@ -896,6 +944,13 @@ function renderLeagueHome() {
   $('dayToday').disabled = day === today;
   const seeds = postGames.length ? seedsIfKnown(lg) : null;
   const ps = postGames.length ? postState(lg) : null;
+  // Start Day / End Day, on today
+  const finished = dayFinished(lg), started = dayStarted(lg);
+  const hasGames = n > 0;
+  $('dayAction').innerHTML = !isToday || seasonOver(lg) || !hasGames ? (seasonOver(lg) && isToday ? '<p class="muted">Season complete</p>' : '')
+    : finished ? '<button type="button" class="btn btn-primary" data-day-act="end">End Day</button>'
+    : started ? '<p class="muted">Day in progress</p>'
+    : '<button type="button" class="btn btn-roll" data-day-act="start">Start Day</button>';
   $('dayGames').innerHTML = games.map(g => gameCard(lg, g)).join('') +
     postGames.map(g => postGameCard(lg, post, g, seeds, ps)).join('') || '<p class="rempty">No games on this day.</p>';
 
@@ -914,6 +969,11 @@ function stepDay(delta) {
 $('dayPrev').addEventListener('click', () => stepDay(-1));
 $('dayNext').addEventListener('click', () => stepDay(1));
 $('dayToday').addEventListener('click', () => { homeDay = null; renderLeagueHome(); });
+$('dayAction').addEventListener('click', e => {
+  const b = e.target.closest('[data-day-act]');
+  if (!b) return;
+  if (b.dataset.dayAct === 'start') startDay(currentLeague); else endDay(currentLeague);
+});
 
 // ---------- Page switching ----------
 // Pages that aren't built yet show a "Coming soon" page.
