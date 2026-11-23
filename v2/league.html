@@ -2198,8 +2198,10 @@ const E = (() => {
   const nm = id => (S.cfg.players[id] && S.cfg.players[id].name) || 'Player ' + (id + 1);
   const snm = id => (S.cfg.players[id] && S.cfg.players[id].short) || 'P' + (id + 1);
   const P = p => S.cfg.players[pid(p)];
-  // 2.0 player types: they decide which shots are 3-pointers on die 1
-  const PTYPES = { b: 'Big', n: 'Normal', s: 'Shooter' };
+  // 2.0 player types: they decide which shots are 3-pointers on die 1 (b = Center, n = Forward, s = Guard)
+  const PTYPES = { b: 'Center', n: 'Forward', s: 'Guard' };
+  // Types are set before a season begins and stay until it's over: locked once Day 1 has started.
+  const typesLocked = () => { const s = S.season; return !!s && s.phase !== 'done' && (s.day.active || s.day.cur > 1 || Object.values(S.days).some(d => Object.keys(d.games || {}).length)); };
   const RATINGS = [['off', 'Offense'], ['def', 'Defense'], ['reb', 'Rebounding']];
   const pname = p => nm(pid(p));
   const sname = p => snm(pid(p));   // short name, for tight spots
@@ -3054,8 +3056,8 @@ const E = (() => {
   const SKILL_LEVELS = [1, 2, 3, 4, 5]; // best first: 5 stars down to 1 star
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
-  const typeSel = (id, v, label) => '<select id="' + id + '" aria-label="' + label + '">' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense, Defense and Rebounding are in stars, 5 is best. Type decides which shots are 3-pointers on die 1: a Shooter on 5 or 6, a Normal player on 6, a Big never (6 is a 2).';
+  const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
+  const RATINGS_TIP = 'Offense, Defense and Rebounding are in stars, 5 is best. Type decides which shots are 3-pointers on die 1: a Guard on 5 or 6, a Forward on 6, a Center never (6 is a 2). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -4236,7 +4238,7 @@ const E = (() => {
       (L.hasDivs() ? '<div class="frow">' + divList().map(i => '<div class="field"><label for="div' + i + '">Division ' + (i + 1) + (L.confCount() > 1 ? ' (' + confName(L.confOf(L.divIds(i)[0])) + ')' : '') + '</label><input type="text" id="div' + i + '" value="' + esc(c.divNames[i] || 'Division ' + (i + 1)) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       '<div><button type="submit" class="btn primary">Save names</button></div></form></div>';
     out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th><th>Rebounding</th></tr>' +
-      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name)) + '</td>' + RATINGS.map(([k, t]) => '<td>' + ratingSel('p' + k + p, pl[k], t + ' of ' + esc(pl.name) + ', in stars') + '</td>').join('') + '</tr>'; }).join('') + '</table></div><button type="submit" class="btn primary">Save players</button></form>' +
+      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + RATINGS.map(([k, t]) => '<td>' + ratingSel('p' + k + p, pl[k], t + ' of ' + esc(pl.name) + ', in stars') + '</td>').join('') + '</tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
       '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + RATINGS.map(([k, t]) => '<div class="field short"><label for="add' + k + '">' + t + '</label>' + ratingSel('add' + k, 3, t + ', in stars') + '</div>').join('') + '</div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
     out += setupPanel();
     const fin = D.games.filter(g => g.st.final).length;
@@ -4339,7 +4341,7 @@ const E = (() => {
       const d1 = dice[i++];
       if (d1 === 1) { parts.push('turnover (dead ball)'); return out(true); }
       if (d1 === 2) { parts.push('turnover (stolen)'); steal = true; return out(true); }
-      const val = type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2), fb = first && fast;   // Shooter: 5-6 are 3s · Normal: 6 · Big: no 3s
+      const val = type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2), fb = first && fast;   // Guard: 5-6 are 3s · Forward: 6 · Center: no 3s
       first = false;
       if (i >= dice.length) return out(false, 'Die 2 · make, miss or foul');
       const d2 = dice[i++];
@@ -5157,7 +5159,7 @@ const E = (() => {
         const short = (document.getElementById('psh' + p).value || '').trim().slice(0, 4).toUpperCase();
         if (short && short !== pl.short) { pl.short = short; delete pl.shortAuto; }
         else if (!short || (pl.shortAuto && pl.name !== oldName)) { pl.short = autoShort(pl.name, new Set(c.players.filter(o => o !== pl).map(o => o.short))); pl.shortAuto = true; }
-        const ty = document.getElementById('pty' + p); if (ty && PTYPES[ty.value]) pl.type = ty.value;
+        const ty = document.getElementById('pty' + p); if (ty && !ty.disabled && !typesLocked() && PTYPES[ty.value]) pl.type = ty.value;
         RATINGS.forEach(([k]) => { const el = document.getElementById('p' + k + p); if (el) pl[k] = Math.max(1, Math.min(5, parseInt(el.value, 10) || 3)); });
       });
       if (D.ru.skillCalls) {
