@@ -2765,7 +2765,7 @@ const E = (() => {
         // Enter logs the two dice just put in; the roll itself is logged once both possessions are done
         if (now.dr.pend.length < 2) { toast('Put in both dice first.'); return; }
         now.dr[now.side].push(now.dr.pend[0], now.dr.pend[1]); now.dr.pend = [];
-        renderSheet(); return;   // once both possessions are in, Enter again logs the roll
+        renderSheet(); render(); return;   // once both possessions are in, Enter again logs the roll (the cards on Home update now)
       }
       possLog(g, [now.dr.a, now.dr.h]);
       const ng = D.byId[g.id];
@@ -3009,9 +3009,17 @@ const E = (() => {
     if (L.confCount() > 1) return L.confOf(g.a) === L.confOf(g.h) ? 'Conference' : 'Interconference';
     return '';
   }
+  // 2.0: points from possessions that are in but whose roll isn't logged yet (the score updates after each possession)
+  function possLive(g) {
+    const z = { a: 0, h: 0 };
+    if (!D.ru.poss || !S.poss || S.poss.gid !== g.id || S.poss.n !== g.st.n || g.st.final) return z;
+    const wa = possWalk(S.poss.a, possFast(g, g.st.n, 'a'));
+    if (wa.done) { z.a = wa.pts; const wh = possWalk(S.poss.h, possFast(g, g.st.n, 'h', S.poss.a)); if (wh.done) z.h = wh.pts; }
+    return z;
+  }
   function gameCard(g) {
-    const st = g.st, live = st.live, fin = st.final;
-    const score = (p, side) => '<div class="gteam"><div class="gname">' + teamLink(p, g) + '<small>' + recLine(g, p) + '</small></div><span class="sc ' + (fin ? (st[side] > st[side === 'a' ? 'h' : 'a'] ? 'win' : 'lose') : live ? 'live' : 'up') + '">' + (st.n ? st[side] : '–') + '</span></div>';
+    const st = g.st, live = st.live, fin = st.final, lv = possLive(g);
+    const score = (p, side) => '<div class="gteam"><div class="gname">' + teamLink(p, g) + '<small>' + recLine(g, p) + '</small></div><span class="sc ' + (fin ? (st[side] > st[side === 'a' ? 'h' : 'a'] ? 'win' : 'lose') : live ? 'live' : 'up') + '">' + (st.n || lv.a || lv.h ? st[side] + lv[side] : '–') + '</span></div>';
     let foot = '';
     if (g.sid) {
       const x = findSeries(g.sid);
@@ -4439,7 +4447,7 @@ const E = (() => {
     const dr = possDraft(g);
     if (dr.pend.length) dr.pend.pop();
     else { const sd = dr.h.length ? 'h' : 'a', pair = dr[sd].splice(-2); if (pair.length === 2) dr.pend = [pair[0]]; }   // reopen the last pair at its second die
-    renderSheet();
+    renderSheet(); render();
   }
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
   function possLog(g, dice) {
@@ -4589,8 +4597,7 @@ const E = (() => {
     const st = gg.st;
     const x = gg.sid ? (D.season.post.series || []).find(s => s.id === gg.sid) : null;
     // 2.0: the score counts each possession as soon as it's in, before the roll is logged
-    const live = { a: 0, h: 0 };
-    if (D.ru.poss && can && !st.final && !S.sheet.edit && gameStarted(gg)) { const nw = possNow(gg); if (nw.wa.done) live.a = nw.wa.pts; if (nw.wh && nw.wh.done) live.h = nw.wh.pts; }
+    const live = S.sheet.edit ? { a: 0, h: 0 } : possLive(gg);
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + '</div></div>' +
