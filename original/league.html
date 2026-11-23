@@ -4471,20 +4471,13 @@ const E = (() => {
     const ra = D.rows[gg.a], rh = D.rows[gg.h];
     const avg = (v, n) => (n ? (v / n).toFixed(1) : '—');
     const meet = D.reg.filter(z => z.st.final && ((z.a === gg.a && z.h === gg.h) || (z.a === gg.h && z.h === gg.a)));
-    let wa = 0, wh = 0, pa = 0, ph = 0;
-    meet.forEach(z => {
-      const sa = z.a === gg.a ? z.st.a : z.st.h, sh = z.a === gg.a ? z.st.h : z.st.a;
-      if (sa > sh) wa++; else wh++;
-      pa += sa; ph += sh;
-    });
+    let pa = 0, ph = 0;
+    meet.forEach(z => { pa += z.a === gg.a ? z.st.a : z.st.h; ph += z.a === gg.a ? z.st.h : z.st.a; });
     const row = (lab, a, h) => '<tr><td>' + a + '</td><th>' + lab + '</th><td>' + h + '</td></tr>';
-    let rows = row('Record', ra.w + '–' + ra.l, rh.w + '–' + rh.l) +
-      row('Away / Home', ra.aw + '–' + ra.al + ' away', rh.hw + '–' + rh.hl + ' home') +
-      row('Last 10', ra.l10[0] + '–' + ra.l10[1], rh.l10[0] + '–' + rh.l10[1]) +
-      row('Streak', ra.streak || '—', rh.streak || '—') +
+    // record, home/away and streak are on the scoreboard, and the season series is beside this
+    let rows = row('Last 10', ra.l10[0] + '–' + ra.l10[1], rh.l10[0] + '–' + rh.l10[1]) +
       row('Points / game', avg(ra.pf, ra.gp), avg(rh.pf, rh.gp)) +
       row('Allowed / game', avg(ra.pa, ra.gp), avg(rh.pa, rh.gp)) +
-      row('Season series', meet.length ? String(wa) : '—', meet.length ? String(wh) : '—') +
       (meet.length ? row('Avg score vs each other', avg(pa, meet.length), avg(ph, meet.length)) : '');
     if (x) {
       const si = seriesAt(x, gg), w = p => (p === x.hi ? si.wh : si.wl);
