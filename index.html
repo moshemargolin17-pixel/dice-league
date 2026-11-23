@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Dice League</title>
-  <link rel="icon" href="original/icon.svg">
+  <link rel="icon" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600&family=Archivo:wght@600;800&display=swap">
   <style>
     /* Version picker: each card previews the look of the league it opens. */
@@ -24,6 +24,9 @@
       padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     .wrap { max-width: 1000px; margin: 0 auto; padding: 56px var(--gut-r) 64px var(--gut-l); display: grid; gap: 28px; }
+    .brandmark { display: block; margin-bottom: -12px; }
+    @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brandmark rect:last-of-type { fill: #D5DAE3; } :root:not([data-theme="light"]) .brandmark g:last-of-type { fill: #0F131B; } }
+    :root[data-theme="dark"] .brandmark rect:last-of-type { fill: #D5DAE3; } :root[data-theme="dark"] .brandmark g:last-of-type { fill: #0F131B; }
     h1 { margin: 0; font: 800 clamp(40px, 8vw, 72px)/1 'Bricolage Grotesque', 'Arial Black', sans-serif; letter-spacing: -.03em; text-wrap: balance; }
     .pick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
     .ver {
@@ -75,6 +78,7 @@
 </head>
 <body>
   <main class="wrap">
+    <svg class="brandmark" width="56" height="56" viewBox="0 0 44 44" aria-hidden="true"><rect x="17" y="3" width="24" height="24" rx="6" fill="#9AA3B2" stroke="#9AA3B2" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="23" cy="9" r="2.4"></circle><circle cx="29" cy="15" r="2.4"></circle><circle cx="35" cy="21" r="2.4"></circle></g><rect x="3" y="17" width="24" height="24" rx="6" fill="#3B4252" stroke="var(--bg)" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="9" cy="23" r="2.4"></circle><circle cx="21" cy="23" r="2.4"></circle><circle cx="15" cy="29" r="2.4"></circle><circle cx="9" cy="35" r="2.4"></circle><circle cx="21" cy="35" r="2.4"></circle></g></svg>
     <h1 id="mainTitle">Which Dice League?</h1>
 
     <!-- Sign in: one account for both versions -->
