@@ -703,6 +703,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .pask{font-size:15px}
 .pslots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pslot{display:flex;align-items:center;gap:8px;min-width:0;padding:10px 12px;border-radius:calc(var(--radius) - 2px);background:var(--panel);border:1px solid var(--border);font-weight:700}
+.pslot .ps-who{color:var(--muted);margin-right:2px}
 .pslot.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .pslot .die{margin:0;width:16px;height:16px;border-radius:4px;flex:none}.pslot .die.h3,.pslot .die.h4,.pslot .die.a3,.pslot .die.a4{width:12px;height:12px;border-radius:3px}
 .pslot .ps-n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -714,7 +715,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .pslot .ps-v.landed{animation:dieland .22s ease-out}
 @keyframes dienudge{0%{transform:scale(1.12) rotate(0)}30%{transform:scale(1.06) rotate(-8deg)}60%{transform:scale(1.02) rotate(6deg)}100%{transform:scale(1) rotate(0)}}
 .pslot .ps-v.nudge{animation:dienudge .28s ease-out}
-@media (max-width:560px){.pslots{gap:8px}.pslot{padding:8px 10px;font-size:14px;gap:6px}.pslot .ps-n{white-space:normal;line-height:1.2;overflow:visible}.pslot .ps-v{width:32px;height:32px}}
+@media (max-width:560px){.pslots{gap:8px}.pslot{padding:8px;font-size:14px;gap:5px}.pslot .die{width:12px;height:12px}.pslot .ps-n{white-space:normal;line-height:1.2;overflow:visible;flex:1;min-width:0;font-size:13px}.pslot .ps-who{display:block}.pslot .ps-v{width:30px;height:30px;font-size:16px}}
 .pin{width:100%;min-height:46px;font:700 20px var(--f-num);text-align:center;letter-spacing:.04em}
 .pin::placeholder{font:500 15px var(--f-body);letter-spacing:0}
 @media (pointer:fine){.pin{display:none}}   /* a computer has number keys: no box needed */
@@ -4424,7 +4425,7 @@ const E = (() => {
   const dieName = (sd, n) => DIE_NAMES[sd][n - 1];
   // the two dice to roll, a box for each: the big dice for a shot, the small dice after a miss or a foul.
   // Both boxes are filled before the game goes on.
-  const rollBox = (sd, k, pend) => '<div class="pslots">' + [k, k + 1].map((n, j) => '<div class="pslot' + (j === pend.length ? ' on' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n">' + dieName(sd, n) + '</span><span class="pd ps-v' + (pend[j] != null ? ' ' + sd + n : '') + '">' + (pend[j] != null ? pend[j] : '') + '</span></div>').join('') + '</div>';
+  const rollBox = (sd, k, pend, who) => '<div class="pslots">' + [k, k + 1].map((n, j) => '<div class="pslot' + (j === pend.length ? ' on' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n"><span class="ps-who">' + esc(who) + '</span> ' + dieName(sd, n) + '</span><span class="pd ps-v' + (pend[j] != null ? ' ' + sd + n : '') + '">' + (pend[j] != null ? pend[j] : '') + '</span></div>').join('') + '</div>';
   const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="' + dieName(sd, n) + '"></span>').join('');
   function possEntry(g) {
     const st = g.st, now = possNow(g);
@@ -4440,7 +4441,7 @@ const E = (() => {
     const anyIn = now.dr.a.length || now.dr.pend.length;
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
-      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · ' + (now.dr.pend.length === 2 ? 'press <b>Enter</b> to log these two dice' : 'roll these two dice') + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + rollBox(now.side, k1, now.dr.pend) +
+      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · ' + (now.dr.pend.length === 2 ? 'press <b>Enter</b> to log these two dice' : 'roll these two dice') + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + rollBox(now.side, k1, now.dr.pend, sname(now.side === 'a' ? g.a : g.h)) +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(now.side, k1 + now.dr.pend.length)) + '">' +
         '<div class="chips pk-' + now.side + (k1 + now.dr.pend.length) + '">' +
         [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
