@@ -2733,6 +2733,7 @@ const E = (() => {
     const flat = []; rolls.forEach(r => flat.push(r[0], r[1]));
     entry.r = flat;
     if (entry.p) { if (opts.edited) delete entry.p; else entry.p = entry.p.slice(0, rolls.length); }   // possession dice stay in step with the rolls
+    if (entry.d && (opts.edited || entry.d.n !== rolls.length)) delete entry.d;   // possessions in progress belong to the next roll only
     if (entry.c) entry.c = entry.c.filter(c => c.m <= rolls.length);
     if (entry.ae != null && entry.ae > rolls.length) entry.ae = rolls.length;   // calls already decided at this point are kept, so don't decide them twice
     const st = L.gameState(rolls, D.ru);
@@ -2765,7 +2766,7 @@ const E = (() => {
         // Enter logs the two dice just put in; the roll itself is logged once both possessions are done
         if (now.dr.pend.length < 2) { toast('Put in both dice first.'); return; }
         now.dr[now.side].push(now.dr.pend[0], now.dr.pend[1]); now.dr.pend = [];
-        renderSheet(); render(); return;   // once both possessions are in, Enter again logs the roll (the cards on Home update now)
+        possSave(g); renderSheet(); render(); return;   // once both possessions are in, Enter again logs the roll (the cards on Home update now)
       }
       possLog(g, [now.dr.a, now.dr.h]);
       const ng = D.byId[g.id];
@@ -3012,9 +3013,10 @@ const E = (() => {
   // 2.0: points from possessions that are in but whose roll isn't logged yet (the score updates after each possession)
   function possLive(g) {
     const z = { a: 0, h: 0 };
-    if (!D.ru.poss || !S.poss || S.poss.gid !== g.id || S.poss.n !== g.st.n || g.st.final) return z;
-    const wa = possWalk(S.poss.a, possFast(g, g.st.n, 'a'));
-    if (wa.done) { z.a = wa.pts; const wh = possWalk(S.poss.h, possFast(g, g.st.n, 'h', S.poss.a)); if (wh.done) z.h = wh.pts; }
+    const dr = D.ru.poss && !g.st.final ? possSaved(g) : null;
+    if (!dr) return z;
+    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'));
+    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a)); if (wh.done) z.h = wh.pts; }
     return z;
   }
   function gameCard(g) {
@@ -4369,10 +4371,22 @@ const E = (() => {
     const prev = side === 'h' ? (draftA || (p[n] && p[n][0])) : (n > 0 && p[n - 1] ? p[n - 1][1] : null);
     return !!(prev && possWalk(prev, false).steal);
   }
+  // the possessions being put in for the next roll. They're saved with the day (entry.d), so closing the page keeps them.
+  const possSaved = g => {
+    if (S.poss && S.poss.gid === g.id && S.poss.n === g.st.n) return S.poss;
+    const d = recOf(g) && recOf(g).d;
+    return d && d.n === g.st.n ? { gid: g.id, n: d.n, a: (d.a || []).slice(), h: (d.h || []).slice(), pend: (d.pend || []).slice() } : null;
+  };
   const possDraft = g => {
-    if (!S.poss || S.poss.gid !== g.id || S.poss.n !== g.st.n) S.poss = { gid: g.id, n: g.st.n, a: [], h: [], pend: [] };
+    if (!S.poss || S.poss.gid !== g.id || S.poss.n !== g.st.n) S.poss = possSaved(g) || { gid: g.id, n: g.st.n, a: [], h: [], pend: [] };
     return S.poss;
   };
+  function possSave(g) {
+    const dr = possDraft(g), e = ensureEntry(g);
+    if (dr.a.length || dr.h.length || dr.pend.length) e.d = { n: dr.n, a: dr.a.slice(), h: dr.h.slice(), pend: dr.pend.slice() };
+    else delete e.d;
+    saveDay(g.day, 300);
+  }
   // the state of the roll being entered: whose ball, what each possession has so far
   function possNow(g) {
     const dr = possDraft(g), n = g.st.n;
@@ -4418,7 +4432,7 @@ const E = (() => {
     const dr = now.dr;
     if (dr.pend.length >= 2) { toast('Press Enter to log these two dice.'); return; }
     dr.pend.push(v);   // both dice in: Enter (or Next possession) logs them and the game goes on
-    renderSheet();
+    possSave(g); renderSheet();
     const box = document.querySelectorAll('#sheetHost .pslot .ps-v')[dr.pend.length - 1];   // a typed number isn't rolled: the die just wiggles a little
     if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) box.classList.add('nudge');
   }
@@ -4447,7 +4461,7 @@ const E = (() => {
     const dr = possDraft(g);
     if (dr.pend.length) dr.pend.pop();
     else { const sd = dr.h.length ? 'h' : 'a', pair = dr[sd].splice(-2); if (pair.length === 2) dr.pend = [pair[0]]; }   // reopen the last pair at its second die
-    renderSheet(); render();
+    possSave(g); renderSheet(); render();
   }
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
   function possLog(g, dice) {
@@ -4455,6 +4469,7 @@ const E = (() => {
     const wa = possWalk(dice[0], possFast(g, n, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]));
     const entry = ensureEntry(g);
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
+    delete entry.d;   // the roll is logged: nothing in progress
     const rolls = g.rolls.concat([[wa.pts, wh.pts]]);
     entry.r = []; rolls.forEach(r => entry.r.push(r[0], r[1]));
     setRolls(g, rolls, { keep: true });
@@ -4954,7 +4969,7 @@ const E = (() => {
       if (!now.side) { toast('Both possessions are in. Press Enter for the next possession.'); return; }
       const from = now.dr.pend.length;
       while (now.dr.pend.length < 2) now.dr.pend.push(1 + Math.floor(Math.random() * 6));
-      renderSheet(); rollAnim(from); return;
+      possSave(g0); renderSheet(); rollAnim(from); return;
     }
     S.poss = null;
     const g = simRoll(g0);
