@@ -3055,7 +3055,7 @@ const E = (() => {
         'Roll for whoever has the ball. The big dice are the shot: die 1 (green home, red away) is shot or turnover, die 2 (cyan home, orange away) is make, miss or foul. After a miss or a foul roll the small dice: die 3 (dark green home, maroon away) and die 4 (lime home, orange away). Tap each number as it comes up, then <b>Log roll</b>.',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
-        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the next roll, <b>Roll the rest</b> finishes the game. Auto-rolled games count like any other.']) +
+        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the two dice in the boxes, then press Enter to log them. Auto-rolled games count like any other.']) +
       sec('Advantages', [
         'Better players get calls: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one.',
         D.ru.skillCalls ? 'Skill runs from 1 star to 5 stars (best). ' + skillCallsText(D.ru) + ' Equal levels get no skill calls. ' + homeCallsText(D.ru) : 'Under this season’s original rules, one skill tier up gets 3 calls; two tiers up gets 6. A 10 gets 3 over a 7 or 8. The home player gets 1 extra call.',
@@ -4199,7 +4199,7 @@ const E = (() => {
       '<button type="button" class="theme' + (c.theme === d.id ? ' on' : '') + '" data-act="theme" data-v="' + d.id + '" aria-pressed="' + (c.theme === d.id) + '">' +
       '<div class="sw" style="background:' + d.sw[0] + '"><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif">112</span><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif;opacity:.55">97</span></div>' +
       '<div class="tx"><b>' + d.name + (c.theme === d.id ? ' · in use' : '') + '</b><small>' + d.desc + '</small></div></button>').join('') + '</div></div>';
-    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b> (the site rolls the next roll for you) and <b>Roll the rest</b> (it finishes the game). You can still enter dice yourself.</div>' +
+    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b>: the site rolls the two dice in the boxes, and you press Enter to log them. You can still enter dice yourself.</div>' +
       '<div class="seg autoset" role="group" aria-label="Auto roll"><button type="button" class="' + (c.autoRoll ? 'on' : '') + '" data-act="autoset" data-v="1" aria-pressed="' + !!c.autoRoll + '">On</button><button type="button" class="' + (c.autoRoll ? '' : 'on') + '" data-act="autoset" data-v="0" aria-pressed="' + !c.autoRoll + '">Off</button></div></div></div>';
     out += '<div class="panel"><form class="form" data-form="league"><h3 class="h3">League names</h3>' +
       '<div class="frow"><div class="field"><label for="lgName">League name</label><input type="text" id="lgName" value="' + esc(c.leagueName) + '" maxlength="40"></div></div>' +
@@ -4914,6 +4914,12 @@ const E = (() => {
   function autoRoll(all) {
     const g0 = D.byId[S.sheet && S.sheet.gid];
     if (!canAuto(g0)) return;
+    if (D.ru.poss) {   // 2.0: roll the two dice in the boxes; Enter logs them, like dice put in by hand
+      const now = possNow(g0);
+      if (!now.side) { toast('Both possessions are in. Press Enter to log the roll.'); return; }
+      while (now.dr.pend.length < 2) now.dr.pend.push(1 + Math.floor(Math.random() * 6));
+      renderSheet(); return;
+    }
     S.poss = null;
     let g = simRoll(g0);
     while (all && !g.st.final) g = simRoll(g);
@@ -4921,7 +4927,7 @@ const E = (() => {
     if (g.st.final) toast('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
     else if (g.st.n === 24) toast('Tied after regulation. Overtime!');
   }
-  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll">Auto roll</button><button type="button" class="btn" data-act="autorest">Roll the rest</button></div>' : '';
+  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll">Auto roll</button></div>' : '';
 
   document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('schips')) syncChips(e.target.parentElement.parentElement); }, true);
   window.addEventListener('resize', () => { syncChips(); if (Tour.cur) tourPlace(); });
