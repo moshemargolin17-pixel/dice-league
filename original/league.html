@@ -2166,10 +2166,43 @@ const E = (() => {
   }
   // The latest day the season could end, playoffs included: a dry run of the postseason schedule (the same rules as
   // scheduleNext: a day of rest, at most 4 games a day, a round waits for the one before it) with every series going the distance.
+  // The postseason calendar, planned when the regular season ends: every game of every series has its day
+  // ("if necessary" games too), at most 4 games a day, everyone rests a day between games, and each round
+  // starts after the last possible day of the round before, plus a day off. Games a series doesn't need are skipped.
+  function postPlan(ended) {
+    const ln = L.lines();
+    if (!ln) return null;
+    const cs = confList(), stages = [];
+    const ids = (r, slots) => cs.flatMap(c => slots.map(k => ['r' + r + '-' + c + '-' + k, L.seriesBo(r)]));
+    if (ln.playIn) {
+      stages.push(cs.flatMap(c => [['pi78-' + c, 1], ['pi910-' + c, 1]]));
+      stages.push(cs.map(c => ['pi8-' + c, 1]));
+    }
+    if (ln.spots === 8) stages.push(ids(1, [0, 1, 2, 3]), ids(2, [0, 1]));
+    if (ln.spots === 6) stages.push(ids(1, [0, 1]), ids(2, [0, 1]));
+    if (ln.spots === 4) stages.push(ids(2, [0, 1]));
+    stages.push(ids(3, [0]));
+    if (cs.length > 1) stages.push([['f', L.seriesBo(4)]]);
+    const days = {};
+    let start = ended + 2, last = ended;
+    for (const st of stages) {
+      let end = start;
+      st.forEach(([id, bo], i) => {
+        const first = start + (Math.floor(i / 4) % 2);   // 4 series a day; more than that take turns
+        days[id] = Array.from({ length: bo }, (_, n) => first + 2 * n);
+        end = Math.max(end, first + 2 * (bo - 1));
+      });
+      last = end; start = end + 2;
+    }
+    return { days, last };
+  }
   function seasonLastDay() {
     const s = S.season, ln = L.lines();
     if (!ln) return s.totalDays;
     if (s.phase === 'done') return s.day.cur;
+    if (s.phase === 'reg') return postPlan(s.totalDays).last;
+    if (s.post.plan) return s.post.plan.last;
+    // a postseason that started before planned calendars: the old estimate below
     const post = s.phase !== 'reg' && D;
     const real = post ? s.post.series : [];
     const last = {};
@@ -2299,6 +2332,7 @@ const E = (() => {
     if (!ln) { s.phase = 'done'; s.champion = null; refresh(); return; }   // a league without playoffs
     s.post.seeds = {};
     confList().forEach(c => { s.post.seeds[c] = confRank(D.rows, c).slice(0, ln.post).map(r => r.p); });
+    s.post.plan = postPlan(ended);
     if (ln.playIn) {
       confList().forEach(c => {
         const sd = s.post.seeds[c];
@@ -2384,6 +2418,7 @@ const E = (() => {
   // going, they split into two groups on back-to-back days; every player still rests a day between games.
   function scheduleNext(ended, depth) {
     const s = S.season;
+    if (s.post.plan) return schedulePlanned(ended);
     refresh();
     const last = {};
     D.games.forEach(g => { if (g.st.final) [g.a, g.h].forEach(p => { last[p] = Math.max(last[p] || 0, g.day); }); });
@@ -2405,6 +2440,26 @@ const E = (() => {
     s.day.cur = day;
     refresh();
     if (!ready.length) advancePost(day, (depth || 0) + 1);
+  }
+  // Planned calendar: the next day any series has its next game, and every game planned for that day.
+  function schedulePlanned(ended) {
+    const s = S.season;
+    refresh();
+    const next = s.post.series.map(x => {
+      const inf = seriesInfo(D, x);
+      if (inf.done || inf.open) return null;
+      const no = inf.games.length + 1;
+      const day = (s.post.plan.days[x.id] || [])[no - 1];
+      return day == null ? null : { x, no, day };
+    }).filter(Boolean);
+    if (!next.length) return;
+    const day = Math.max(ended + 1, Math.min(...next.map(o => o.day)));
+    next.filter(o => o.day <= day).forEach(({ x, no }) => {
+      const h = L.homeFor(x, no), a = h === x.hi ? x.lo : x.hi;
+      s.post.games.push({ id: 'p' + s.post.games.length, day, a, h, sid: x.id, no, round: x.round });
+    });
+    s.day.cur = day;
+    refresh();
   }
   function recordHistory(fin) {
     const s = S.season;
