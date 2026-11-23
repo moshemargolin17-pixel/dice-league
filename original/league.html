@@ -3769,7 +3769,7 @@ const E = (() => {
             // one offense and one defense choice: a regular call if there's one left, else a flex call
             if (lf.o > 0 || lf.f > 0) opts.push([sd + (lf.o > 0 ? ':m:o' : ':f:o'), nm + ' · offense']);
             if (lf.d > 0 || lf.f > 0) opts.push([sd + (lf.d > 0 ? ':m:d' : ':f:d'), nm + ' · defense']);
-            if (lf.x > 0) { opts.push([sd + ':x:o', nm + ' · home call (offense)']); opts.push([sd + ':x:d', nm + ' · home call (defense)']); } });
+            if (lf.x > 0) { opts.push([sd + ':x:o', nm + ' · home call · offense']); opts.push([sd + ':x:d', nm + ' · home call · defense']); } });
           if (first <= last) {
             out += '<div class="callform"><select id="callWhat" aria-label="Which call">' + opts.map(([v, l]) => '<option value="' + v + '">' + l + '</option>').join('') + '</select>' +
               '<select id="callRoll" aria-label="Which roll">' + Array.from({ length: last - first + 1 }, (_, i) => first + i).map(r => '<option value="' + r + '">Roll ' + (r + 1) + ' · ' + L.perLabel(L.periodOf(r, ru).per) + '</option>').join('') + '</select>' +
