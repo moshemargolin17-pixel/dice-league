@@ -854,6 +854,8 @@ button.cday:hover{background:var(--panel-2)}
 .cday.plan{border-style:dashed;opacity:.6}
 @media (max-width:560px){.calgrid{gap:4px}.cday{min-height:46px;padding:5px;align-items:center}.cday small{display:none}.cday b{font-size:14px}}
 .grow .gr .l{color:var(--muted)}
+.asof{display:flex;justify-content:center;align-items:center;gap:8px;font-size:13px}
+.asof select{font-size:13px;padding:4px 8px}
 .grow .grec{color:var(--muted);font-size:12px;min-width:44px;text-align:right}
 .phrow{align-items:center}
 .smalllink{font-size:13px;opacity:.8}
@@ -2952,22 +2954,28 @@ const E = (() => {
     if (!views.some(([k]) => k === S.standView)) S.standView = 'conf';
     let out = '<div class="shead"><h2 class="h2">Standings' + (D.cur ? '' : ' · Season ' + s.n) + '</h2><div class="hrow">' + seasonPicker() + '<div class="seg" role="tablist">' +
       views.map(([k, l]) => '<button type="button" class="' + (S.standView === k ? 'on' : '') + '" data-act="stand" data-v="' + k + '">' + l + '</button>').join('') + '</div></div></div>';
-    const rows = D.rows;
+    // Standings after a past day (picked at the bottom), or as they are now
+    const regDays = [...new Set(D.reg.filter(g => g.st.final).map(g => g.day))].sort((a, b) => a - b);
+    if (S.standDayN !== s.n || !regDays.includes(S.standDay)) S.standDay = null;
+    const past = S.standDay != null && S.standDay < regDays[regDays.length - 1] ? S.standDay : null;
+    const rows = past != null ? L.standings(D.reg.filter(g => g.day <= past)) : D.rows;
     const cols = '<tr><th class="l">#</th><th class="l">Player</th><th>W</th><th>L</th><th>PCT</th><th>GB</th><th>Home</th><th>Away</th>' + (divs ? '<th>Div</th>' : '') + (two ? '<th>Conf</th><th>Inter</th>' : '') + '<th>PF/G</th><th>PA/G</th><th>Diff</th><th>L10</th><th>Strk</th></tr>';
     const line = (r, i, opts) => {
       const gp = r.gp || 1;
       const marks = opts.marks && ln;
       const cut = marks ? (i === ln.direct - 1 ? ' class="cut"' : ln.playIn && i === ln.post - 1 ? ' class="cut2"' : '') : '';
-      return '<tr' + cut + '><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + pid(r.p) + '">' + esc(pname(r.p)) + '</span>' + markChips(r.p) + '</td>' +
+      return '<tr' + cut + '><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + pid(r.p) + '">' + esc(pname(r.p)) + '</span>' + (past == null ? markChips(r.p) : '') + '</td>' +
         '<td>' + r.w + '</td><td>' + r.l + '</td><td>' + fmtPct(r.pct) + '</td><td>' + (r.gb === 0 ? '—' : r.gb.toFixed(1)) + '</td>' +
         '<td>' + r.hw + '–' + r.hl + '</td><td>' + r.aw + '–' + r.al + '</td>' + (divs ? '<td>' + r.dw + '–' + r.dl + '</td>' : '') + (two ? '<td>' + r.cw + '–' + r.cl + '</td><td>' + r.iw + '–' + r.il + '</td>' : '') +
         '<td>' + (r.gp ? (r.pf / gp).toFixed(1) : '—') + '</td><td>' + (r.gp ? (r.pa / gp).toFixed(1) : '—') + '</td><td class="' + (r.diff > 0 ? 'pos' : r.diff < 0 ? 'neg' : '') + '">' + (r.gp ? (r.diff > 0 ? '+' : '') + (r.diff / gp).toFixed(1) : '—') + '</td>' +
         '<td>' + r.l10[0] + '–' + r.l10[1] + '</td><td>' + r.streak + '</td></tr>';
     };
     const table = (title, ranked, opts) => '<div class="panel"><h3 class="h3" style="margin-bottom:8px">' + title + '</h3><div class="tscroll"><table class="tbl stick2">' + cols + ranked.map((r, i) => line(r, i, opts)).join('') + '</table></div></div>';
-    const key = L.lines() ? '<div class="legend pmuted clkey">' + markKeys().map(k => '<span><span class="cl cl-' + k + '">' + k + '</span>' + MARK_SHORT()[k] + '</span>').join('') + '</div>' : '';
+    const key = L.lines() && past == null ? '<div class="legend pmuted clkey">' + markKeys().map(k => '<span><span class="cl cl-' + k + '">' + k + '</span>' + MARK_SHORT()[k] + '</span>').join('') + '</div>' : '';
     // the postseason comes first once it starts; the current stage leads the bracket
-    if (postOn) {
+    if (past != null) {
+      out += '<div class="banner pbar"><span>Standings after <b>Day ' + past + '</b></span><button type="button" class="btn sm" data-act="standday" data-v="">Back to today</button></div>';
+    } else if (postOn) {
       if (s.phase === 'done' && s.champion != null) out += '<div class="banner"><strong>' + esc(pname(s.champion)) + '</strong> won the Season ' + s.n + ' championship.</div>';
       out += viewBracket();
     } else if (D.cur && s.phase === 'reg') {
@@ -2980,6 +2988,10 @@ const E = (() => {
       out += divList().map(d => table(divName(d) + ' Division' + (two ? ' <span class="muted" style="font-size:13px;text-transform:none;letter-spacing:0">· ' + confName(L.confOf(L.divIds(d)[0])) + '</span>' : ''), L.rankGroup(rows, L.divIds(d)), { marks: false })).join('') + key;
     } else if (S.standView === 'league') {
       out += table('Whole League', L.rankGroup(rows, L.allIds()), { marks: false }) + key;
+    }
+    if (regDays.length > 1) {
+      out += '<div class="asof pmuted"><label for="standDay">Standings after</label> <select id="standDay"><option value="">Today</option>' +
+        regDays.slice(0, -1).reverse().map(d => '<option value="' + d + '"' + (d === past ? ' selected' : '') + '>Day ' + d + '</option>').join('') + '</select></div>';
     }
     return '<div class="stack" style="gap:16px">' + out + '</div>';
   }
@@ -3226,17 +3238,17 @@ const E = (() => {
     if (career) {
       const po = mineAll.filter(x => x.g.type !== 'reg'), pw = po.filter(x => winId(x.g) === id).length;
       out += '<div class="shead"><h2 class="h2">' + esc(pl.name) + '</h2><div class="pmuted">Career · ' + car.t.seasons + (car.t.seasons === 1 ? ' season' : ' seasons') + (p < 0 ? ' · not playing this season' : '') + '</div></div>';
-      out += '<div class="panel"><div class="kv">' + kv('Record', w + '–' + l) + kv('Win %', gp ? fmtPct(w / gp) : '—') + kv('Postseason', pw + '–' + (po.length - pw)) + kv('Titles', car.t.titles) + kv('Points / game', avgTxt(pSit.pf, gp)) + kv('Allowed / game', avgTxt(pSit.pa, gp)) + kv('Average margin', signed(pSit.mg, gp)) + kv('Margin of victory', pSit.wins ? '+' + (pSit.mw / pSit.wins).toFixed(1) : '—') + kv('Margin of loss', pSit.losses ? '−' + (pSit.ml / pSit.losses).toFixed(1) : '—') + '</div></div>';
+      out += '<div class="panel"><div class="kv">' + kv('Record', w + '–' + l) + kv('Win %', gp ? fmtPct(w / gp) : '—') + kv('Postseason', pw + '–' + (po.length - pw)) + kv('Titles', car.t.titles) + kv('Points / game', avgTxt(pSit.pf, gp)) + kv('Allowed / game', avgTxt(pSit.pa, gp)) + kv('Average margin', signed(pSit.mg, gp)) + kv('Margin of victory', pSit.wins ? '+' + (pSit.mw / pSit.wins).toFixed(1) : '—') + '</div></div>';
     } else {
       const r = D.rows[p], g1 = r.gp || 1;
       const rank = confRank(D.rows, L.confOf(p)).findIndex(x => x.p === p) + 1;
       out += '<div class="shead"><h2 class="h2">' + esc(pl.name) + '</h2><div class="pmuted">' + (groupLabel(p) ? groupLabel(p) + ' · ' : '') + '#' + rank + (L.confCount() > 1 ? ' in conference' : ' in the league') + '</div></div>';
       const played = D.rows.filter(x => x.gp > 0);
       const ppgRank = r.gp ? 1 + played.filter(x => x.pf / x.gp > r.pf / g1).length : 0, oppRank = r.gp ? 1 + played.filter(x => x.pa / x.gp < r.pa / g1).length : 0;
-      out += '<div class="panel"><div class="kv">' + kv('Record', r.w + '–' + r.l) + kv('Win %', fmtPct(r.pct)) + kv('Streak', r.streak) + kvr('Points / game', r.gp ? (r.pf / g1).toFixed(1) : '—', ppgRank) + kvr('Allowed / game', r.gp ? (r.pa / g1).toFixed(1) : '—', oppRank) + kv('Average margin', signed(pSit.mg, gp)) + kv('Margin of victory', pSit.wins ? '+' + (pSit.mw / pSit.wins).toFixed(1) : '—') + kv('Margin of loss', pSit.losses ? '−' + (pSit.ml / pSit.losses).toFixed(1) : '—') + '</div></div>';
+      out += '<div class="panel"><div class="kv">' + kv('Record', r.w + '–' + r.l) + kv('Win %', fmtPct(r.pct)) + kv('Streak', r.streak) + kvr('Points / game', r.gp ? (r.pf / g1).toFixed(1) : '—', ppgRank) + kvr('Allowed / game', r.gp ? (r.pa / g1).toFixed(1) : '—', oppRank) + kv('Average margin', signed(pSit.mg, gp)) + kv('Margin of victory', pSit.wins ? '+' + (pSit.mw / pSit.wins).toFixed(1) : '—') + '</div></div>';
     }
     out += '<section class="cols"><div class="panel"><h3 class="h3">Splits</h3><div class="tscroll"><table class="tbl"><tr><th class="l">Split</th><th>W–L</th></tr>' +
-      [['Home', pSit.hm[0], pSit.hm[1]], ['Away', pSit.aw[0], pSit.aw[1]], ['Division', dw, dl], ['Conference', cw, cl], ['Other conference', iw, il], ['Last 10', last10.filter(Boolean).length, last10.filter(x => !x).length]].map(x => '<tr><td class="l">' + x[0] + '</td><td>' + x[1] + '–' + x[2] + '</td></tr>').join('') +
+      [['Home', pSit.hm[0], pSit.hm[1]], ['Away', pSit.aw[0], pSit.aw[1]], ['Division', dw, dl], ['Conference', cw, cl], ['Interconference', iw, il], ['Last 10', last10.filter(Boolean).length, last10.filter(x => !x).length]].map(x => '<tr><td class="l">' + x[0] + '</td><td>' + x[1] + '–' + x[2] + '</td></tr>').join('') +
       SIT_COLS.filter(([k]) => k !== 'hm' && k !== 'aw').map(([k, lb, t]) => '<tr><td class="l" title="' + esc(t) + '">' + lb + '</td><td>' + (Array.isArray(pSit[k]) ? pSit[k][0] + '–' + pSit[k][1] : pSit[k]) + '</td></tr>').join('') + '</table></div></div>' +
       pBestWorst(id, mineAll, career) + '</section>';
     out += playerAdvanced(id, pAdv, career) + playerHistory(id);
@@ -4190,6 +4202,7 @@ const E = (() => {
       case 'game': if (el.dataset.id) { const n = +el.dataset.n || S.season.n, cur = S.sheet; S.sheet = { gid: el.dataset.id, n, back: cur ? (cur.gid ? cur.back : cur.list || cur.rank ? cur : null) : null }; renderSheet(); } break;
       case 'gday': S.gamesDay = +el.dataset.v; S.gamesPage = null; render(); break;
       case 'gpage': S.gamesPage = +el.dataset.v; render(); break;
+      case 'standday': S.standDay = null; render(); break;
       case 'gclear': S.gamesTeam = null; render(); break;
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
@@ -4397,6 +4410,7 @@ const E = (() => {
     if (e.target && e.target.id === 'histOpp') { S.histOpp = e.target.value === '' ? null : +e.target.value; render(); return; }
     if (e.target && e.target.id === 'gamesTeam') { S.gamesTeam = e.target.value === '' ? null : +e.target.value; render(); return; }
     if (e.target && e.target.id === 'statsDay') { S.statsDay = +e.target.value; render(); }
+    if (e.target && e.target.id === 'standDay') { S.standDay = e.target.value === '' ? null : +e.target.value; S.standDayN = D.season.n; render(); return; }
     if (e.target && e.target.id === 'restoreFile' && e.target.files && e.target.files[0]) readBackup(e.target.files[0]);
   });
   document.addEventListener('keydown', e => {
