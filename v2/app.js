@@ -517,7 +517,42 @@ function confRounds(lines, finalName) {
 function renderBracketPage(lg) {
   const lines = playoffLines(lg);
   if (!seasonDone(lg) || !lines) { location.hash = 'standings'; return; }
-  $('lgBracket').innerHTML = playoffPicture(lg, computeStandings(lg), lines);
+  const ps = postState(lg), post = ps.post;
+  const seedOf = p => { for (const g of ps.seeds) { const i = g.indexOf(p); if (i >= 0) return i + 1; } return ''; };
+  const slot = (s, isHi) => {
+    const p = isHi ? s.hi : s.lo, wins = isHi ? s.wh : s.wl;
+    const cls = s.done ? (p === s.winner ? ' bk-win' : ' bk-out') : '';
+    if (p == null) return `<span class="bk-slot bk-tbd">${esc(slotInfo(lg, post, isHi ? s.x.hi : s.x.lo, ps.seeds).text)}</span>`;
+    return `<span class="bk-slot${cls}"><span class="bk-seed">${seedOf(p)}</span><a class="plink" href="#player-${p}" title="${esc(lg.players[p].name)}">${esc(lg.players[p].name)}</a>${s.x.bestOf > 1 || s.done ? `<b class="bk-w">${wins}</b>` : ''}</span>`;
+  };
+  const note = s => {
+    if (s.done) return s.x.bestOf > 1 ? `${esc(lg.players[s.winner].name)} wins ${Math.max(s.wh, s.wl)}–${Math.min(s.wh, s.wl)}` : `${esc(lg.players[s.winner].name)} wins`;
+    if (s.next) {
+      const lead = s.wh === s.wl ? (s.wh ? `Tied ${s.wh}–${s.wl} · ` : '') : `${esc(lg.players[s.wh > s.wl ? s.hi : s.lo].name)} leads ${Math.max(s.wh, s.wl)}–${Math.min(s.wh, s.wl)} · `;
+      return `${lead}Game ${s.next.no} on Day ${s.next.day}`;
+    }
+    return `Starts Day ${s.x.firstDay}`;
+  };
+  const box = s => `<div class="bk-game">${slot(s, true)}${slot(s, false)}<span class="bk-note">${note(s)}</span></div>`;
+  const block = (title, conf) => {
+    const xs = post.series.filter(x => x.conf === conf);
+    const rounds = [...new Set(xs.map(x => x.round))];
+    return `<div class="bk-conf">${title ? `<h3 class="bk-title">${esc(title)}</h3>` : ''}
+      <div class="bk-rounds">${rounds.map(rd => {
+        const rs = xs.filter(x => x.round === rd);
+        const a = Math.min(...rs.map(x => x.firstDay)), b = Math.max(...rs.map(x => x.lastDay));
+        return `<div class="bk-round"><p class="bk-name">${esc(rd)} <span class="bk-bo">${boText(rs[0].bestOf)} · ${a === b ? `Day ${a}` : `Days ${a}–${b}`}</span></p>
+          ${rs.map(x => box(ps.series[x.id])).join('')}</div>`;
+      }).join('')}</div></div>`;
+  };
+  const blocks = hasConfs(lg)
+    ? lg.conferences.map((c, ci) => block(`${c} Conference`, ci)).join('') + block('Finals', null)
+    : block('', null);
+  $('lgBracket').innerHTML = `<section class="panel bk">
+    <h2 class="panel-title">Bracket</h2>
+    ${ps.champion != null ? `<p class="bk-champ">Champion: <b>${esc(lg.players[ps.champion].name)}</b></p>` : ''}
+    ${blocks}
+  </section>`;
 }
 
 function playoffPicture(lg, rows, lines) {
@@ -650,31 +685,113 @@ function seedsIfKnown(lg) {
   return seedGroups(lg).map(ids => seedOrder(lg, rows, ids).map(r => r.p));
 }
 
-function postGameCard(lg, post, g, seeds) {
-  const x = post.series.find(z => z.id === g.series);
-  const hi = slotInfo(lg, post, x.hi, seeds), lo = slotInfo(lg, post, x.lo, seeds);
-  const [away, home] = g.hiHome ? [lo, hi] : [hi, lo];
-  const row = (t, isHome) => `<div class="gteam">
+// ---------- Postseason results ----------
+// lg.postResults: { [postseason game id]: { away, home, log, final, awayPts, homePts } }.
+// Each series' players come from the seeds and the series before it; a series is over once someone
+// has the wins it needs, and its later games aren't needed.
+function postState(lg) {
+  const post = postOf(lg), seeds = seedsIfKnown(lg), res = lg.postResults || {};
+  const memo = {};
+  let rows = null;
+  const better = (a, b) => {
+    const g = seeds.find(ids => ids.includes(a) && ids.includes(b));
+    if (g) return g.indexOf(a) < g.indexOf(b);
+    rows = rows || computeStandings(lg);
+    const order = rankGroup(lg, rows, [a, b]);
+    return order[0].p === a;
+  };
+  const resolve = slot => {
+    if (slot.seed) return seeds ? seeds[slot.conf == null ? 0 : slot.conf][slot.seed - 1] : null;
+    const s = st(slot.winnerOf || slot.loserOf);
+    return slot.winnerOf ? s.winner : s.loser;
+  };
+  const st = id => {
+    if (memo[id]) return memo[id];
+    const x = post.series.find(z => z.id === id);
+    let hi = resolve(x.hi), lo = resolve(x.lo);
+    // the better seed has home court (between conferences, the better regular-season record)
+    if (hi != null && lo != null && better(lo, hi)) [hi, lo] = [lo, hi];
+    const need = Math.ceil(x.bestOf / 2);
+    const games = post.games.filter(g => g.series === id).sort((a, b) => a.no - b.no);
+    let wh = 0, wl = 0, played = 0;
+    for (const g of games) {
+      const r = res[g.id];
+      if (!r || !r.final) continue;
+      played++;
+      if ((r.homePts > r.awayPts ? r.home : r.away) === hi) wh++; else wl++;
+    }
+    const known = hi != null && lo != null;
+    const done = known && (wh >= need || wl >= need);
+    return (memo[id] = {
+      x, hi, lo, wh, wl, need, done, games,
+      winner: done ? (wh >= need ? hi : lo) : null,
+      loser: done ? (wh >= need ? lo : hi) : null,
+      next: known && !done ? games[played] : null,   // the series' next game to play
+    });
+  };
+  const series = {};
+  post.series.forEach(x => { series[x.id] = st(x.id); });
+  const title = post.series.length ? series[post.series[post.series.length - 1].id] : null;   // the last series decides the title
+  return { post, seeds, series, champion: title && title.done ? title.winner : null };
+}
+
+// A postseason game with its players and result filled in.
+function postGameView(lg, ps, g) {
+  const s = ps.series[g.series];
+  const [away, home] = g.hiHome ? [s.lo, s.hi] : [s.hi, s.lo];
+  const r = (lg.postResults || {})[g.id] || {};
+  return {
+    id: g.id, day: g.day, no: g.no, away, home, s, pg: g,
+    log: r.log || [], final: !!r.final, awayPts: r.awayPts, homePts: r.homePts,
+    notNeeded: s.done && !r.final,
+  };
+}
+const postStarted = lg => Object.values(lg.postResults || {}).some(r => r.log && r.log.length);
+
+function postGameCard(lg, post, g, seeds, ps) {
+  ps = ps || postState(lg);
+  const v = postGameView(lg, ps, g), x = v.s.x;
+  const started = !v.final && v.log.length > 0;
+  const live = started ? playGame(v) : v;
+  const slotOf = isHome => (g.hiHome === isHome ? x.hi : x.lo);
+  const row = (p, isHome) => {
+    const t = p != null ? { p, text: lg.players[p].name } : slotInfo(lg, post, slotOf(isHome), seeds);
+    const pts = isHome ? live.homePts : live.awayPts, opp = isHome ? live.awayPts : live.homePts;
+    const won = v.final && pts > opp;
+    return `<div class="gteam${won ? ' won' : ''}">
       <div class="gc-name"><b class="${t.p == null ? 'tbd' : ''}">${t.p == null ? esc(t.text) : `<a class="plink" href="#player-${t.p}">${esc(t.text)}</a>`}</b><small>${isHome ? 'Home' : 'Away'}</small></div>
-      <span class="gsc">–</span>
+      <span class="gsc${v.final ? (won ? ' win' : ' lose') : ''}">${v.final || started ? pts : '–'}</span>
     </div>`;
+  };
   const label = `${x.round}${x.bestOf > 1 ? ` · Game ${g.no}` : ''}`;
-  return `<article class="gcard is-post${g.ifNecessary ? ' is-maybe' : ''}">
-    <div class="gtop"><span class="gst">${esc(label)}</span><span class="gmeta">${g.ifNecessary ? 'If necessary' : x.conf != null ? esc(lg.conferences[x.conf]) : ''}</span></div>
-    <div class="gbody">${row(away, false)}${row(home, true)}</div>
+  const status = v.final ? 'Final' : started ? 'In progress' : v.notNeeded ? 'Not needed' : g.ifNecessary ? 'If necessary' : x.conf != null ? esc(lg.conferences[x.conf]) : '';
+  const playable = v.s.next === g && g.day === todayOf(lg);
+  const link = playable ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
+    : v.final ? `<a class="btn btn-ghost btn-sm" href="#game-${g.id}">Play-by-play</a>` : '';
+  return `<article class="gcard is-post${g.ifNecessary && !v.final && !started ? ' is-maybe' : ''}${v.final ? ' is-final' : ''}${started ? ' is-live' : ''}${v.notNeeded ? ' is-skip' : ''}">
+    <div class="gtop"><span class="gst">${esc(label)}</span><span class="gmeta">${status}</span></div>
+    <div class="gbody">${row(v.away, false)}${row(v.home, true)}</div>
+    ${link ? `<div class="gfoot">${link}</div>` : ''}
   </article>`;
 }
+// Today: the first day with a regular-season game left, then the first day a series has its next game.
 function todayOf(lg) {
   const open = lg.games.filter(g => !g.final);
   if (open.length) return Math.min(...open.map(g => g.day));
-  const post = postOf(lg).games;
-  return post.length ? Math.min(...post.map(g => g.day)) : seasonDays(lg);
+  if (!playoffLines(lg) || !lg.games.length) return seasonDays(lg);
+  const ps = postState(lg);
+  const next = Object.values(ps.series).map(s => s.next).filter(Boolean);
+  if (next.length) return Math.min(...next.map(g => g.day));
+  const res = lg.postResults || {};
+  const played = ps.post.games.filter(g => res[g.id] && res[g.id].final).map(g => g.day);
+  return played.length ? Math.max(...played) : seasonDays(lg);
 }
 
 function renderLeagueHeader(lg, tab) {
   $('lgName').textContent = lg.name;
   // "Day X of Y" counts the whole season, playoffs included.
-  $('lgSub').textContent = `Season 1 · Day ${todayOf(lg)} of ${lastDayOf(lg)}`;
+  const champ = seasonDone(lg) && playoffLines(lg) ? postState(lg).champion : null;
+  $('lgSub').textContent = champ != null ? `Season 1 · Champion: ${lg.players[champ].name}` : `Season 1 · Day ${todayOf(lg)} of ${lastDayOf(lg)}`;
   $('tabBracket').hidden = !(seasonDone(lg) && playoffLines(lg));
   document.querySelectorAll('.lgtabs a').forEach(a => {
     if (a.dataset.tab === tab) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
@@ -769,14 +886,17 @@ function renderLeagueHome() {
   $('homeSample').hidden = !lg.sample;
   $('dayTitle').textContent = `${isToday ? 'Up next · ' : ''}Day ${day}${isPost ? ' · Postseason' : ''}`;
   const n = games.length + postGames.length;
-  const maybe = postGames.filter(g => g.ifNecessary).length;
-  $('daySummary').textContent = `${n} ${n === 1 ? 'game' : 'games'}${nFin ? ` · ${nFin} final` : ''}${maybe ? ` · ${maybe} if necessary` : ''}`;
+  const psDay = postGames.length ? postState(lg) : null;
+  const postDone = postGames.filter(g => ((lg.postResults || {})[g.id] || {}).final).length;
+  const maybe = postGames.filter(g => g.ifNecessary && !psDay.series[g.series].done).length;
+  $('daySummary').textContent = `${n} ${n === 1 ? 'game' : 'games'}${nFin + postDone ? ` · ${nFin + postDone} final` : ''}${maybe ? ` · ${maybe} if necessary` : ''}`;
   $('dayPrev').disabled = day <= 1;
   $('dayNext').disabled = day >= last;
   $('dayToday').disabled = day === today;
   const seeds = postGames.length ? seedsIfKnown(lg) : null;
+  const ps = postGames.length ? postState(lg) : null;
   $('dayGames').innerHTML = games.map(g => gameCard(lg, g)).join('') +
-    postGames.map(g => postGameCard(lg, post, g, seeds)).join('') || '<p class="rempty">No games on this day.</p>';
+    postGames.map(g => postGameCard(lg, post, g, seeds, ps)).join('') || '<p class="rempty">No games on this day.</p>';
 
   const sc = isToday && !isPost ? scenarios(lg, games) : [];
   $('dayScen').hidden = !sc.length;

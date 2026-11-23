@@ -443,6 +443,13 @@ p { margin: 0; }
 .bk-slot + .bk-slot { border-top: 1px solid var(--line); }
 .bk-seed { display: inline-grid; place-items: center; min-width: 20px; height: 20px; border-radius: 5px; background: var(--felt); color: var(--muted); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .bk-tbd { color: var(--muted); font-weight: 400; font-style: italic; }
+.bk-slot .plink { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: inherit; text-decoration: none; }
+.bk-w { margin-left: auto; font-variant-numeric: tabular-nums; padding-left: 8px; }
+.bk-win { font-weight: 700; }
+.bk-out { color: var(--muted); }
+.bk-note { display: block; padding: 6px 10px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); background: var(--surface); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bk-champ { padding: 0 18px 12px; font-size: 16px; }
+.gcard.is-skip { opacity: .55; }
 .mark-y { background: var(--blue); color: #FFFFFF; }
 .bk-bo { margin-left: 6px; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted); font-size: 12px; }
 .bk-title .bk-bo { font-family: var(--f-body); }
