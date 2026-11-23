@@ -646,8 +646,11 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flowsvg .f0{stroke:var(--muted);stroke-width:1}
 .flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
 .flowsvg .fl{fill:var(--muted);font-size:11px;font-weight:700;text-anchor:middle}
-.qrecap .qrow{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
-.qrecap .qs{font-size:12px;color:var(--muted)}
+.gstats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px;margin-top:8px}
+.gstats>div{background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px;align-content:start}
+.gstats small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.gstats strong{font-size:18px}
+.gstats span{font-size:12px;color:var(--muted)}
 .qruns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:10px}
 .qruns .qrun{margin-top:0}
 .flow{position:relative}
@@ -655,8 +658,6 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flowsvg .fcur{stroke:var(--muted);stroke-width:1}
 .flowsvg .fdot{fill:var(--ink);stroke:var(--panel);stroke-width:2}
 .ftip{position:absolute;pointer-events:none;background:var(--ink);color:var(--panel);font-size:11.5px;font-weight:700;padding:3px 7px;border-radius:6px;white-space:nowrap;font-variant-numeric:tabular-nums;z-index:2}
-.qrecap .qrow:first-of-type{border-top:0}
-.qrecap .qw{font-weight:600}.qrecap .qw small{color:var(--muted);font-weight:500}
 .qrun{margin-top:10px;background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px}
 .qrun small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .qrun b{font-size:18px}.qrun span{font-size:12.5px;color:var(--muted)}
@@ -4237,10 +4238,7 @@ const E = (() => {
       main += tip('<div class="note">' + msg + '</div>');
     }
     if (st.n && !S.sheet.edit) {
-      aside += '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="mini">' + mini('Lead changes', st.lc) + mini('Largest lead · ' + esc(sname(gg.a)), st.bigA) + mini('Largest lead · ' + esc(sname(gg.h)), st.bigH) + '</div></section>';
-    }
-    if (st.n && !S.sheet.edit) {
-      main += flowChart(gg, st) + quarterRecap(gg, st);
+      main += flowChart(gg, st) + gameStatsPanel(gg, st);
     }
     if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
@@ -4322,24 +4320,18 @@ const E = (() => {
     }
     return best;
   }
-  // Quarter by quarter: the biggest run in each quarter, then the game's biggest run and most unanswered points
-  function quarterRecap(gg, st) {
+  // Game stats, under the game flow: lead changes, largest leads, the biggest run and most unanswered points
+  function gameStatsPanel(gg, st) {
     const name = w => esc(sname(w === 'a' ? gg.a : gg.h));
     const rolls = gg.rolls, n = rolls.length;
     const span = (f, t) => { const p1 = L.perLabel(L.periodOf(f, D.ru).per), p2 = L.perLabel(L.periodOf(t, D.ru).per); return (t - f + 1) + (t === f ? ' roll' : ' rolls') + ' · ' + (p1 === p2 ? p1 : p1 + '–' + p2); };
-    const runTxt = r => name(r.who) + ' ' + Math.max(r.a, r.h) + '–' + Math.min(r.a, r.h);
-    const rows = st.periods.map((pr, q) => {
-      let f = -1, t = -1;
-      for (let i = 0; i < n; i++) if (L.periodOf(i, D.ru).per === q + 1) { if (f < 0) f = i; t = i; }
-      const open = !st.final && q === st.periods.length - 1;
-      const r = f >= 0 ? bestRun(rolls, f, t) : null;
-      return '<div class="qrow"><b>' + L.perLabel(q + 1) + '</b><span class="qw">' + (r ? runTxt(r) + ' run' : 'No run') + (open ? ' <small>so far</small>' : '') + '</span><span class="qs">' + (r ? (r.to - r.from + 1) + (r.to === r.from ? ' roll' : ' rolls') : '') + '</span></div>';
-    }).join('');
     const big = n ? bestRun(rolls, 0, n - 1) : null, un = unansweredRun(rolls);
-    const card = (lab, val, sub) => '<div class="qrun"><small>' + lab + '</small><b>' + val + '</b><span>' + sub + '</span></div>';
-    return '<section class="matchup-panel qrecap"><h3 class="h3">Quarter by quarter <small class="muted">biggest run</small></h3>' + rows +
-      '<div class="qruns">' + (big ? card('Biggest run', runTxt(big), span(big.from, big.to)) : '') +
-      (un ? card('Most unanswered points', name(un.who) + ' ' + un.pts + '–0', span(un.from, un.to)) : '') + '</div></section>';
+    const stat = (lab, val, sub) => '<div><small>' + lab + '</small><strong>' + val + '</strong>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>';
+    return '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
+      stat('Lead changes', st.lc) + stat('Largest lead · ' + esc(sname(gg.a)), st.bigA) + stat('Largest lead · ' + esc(sname(gg.h)), st.bigH) +
+      stat('Biggest run', big ? name(big.who) + ' ' + Math.max(big.a, big.h) + '–' + Math.min(big.a, big.h) : '—', big ? span(big.from, big.to) : '') +
+      stat('Most unanswered points', un ? name(un.who) + ' ' + un.pts + '–0' : '—', un ? span(un.from, un.to) : '') +
+      '</div></section>';
   }
   const mini = (k, v) => '<div><small>' + k + '</small><strong class="num">' + v + '</strong></div>';
 
