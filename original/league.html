@@ -652,8 +652,14 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .gstats strong{font-size:18px}
 @media (min-width:640px){.gstats .gwide{grid-column:span 2}}
 /* game screen: the season series lists every game, top to bottom */
-.game-aside .season-series .sarrow{display:none}
-.game-aside .season-series .schips{flex-direction:column;overflow:visible;gap:6px}
+.game-aside .season-series .sarrow,.game-aside .post-series .sarrow{display:none}
+.game-aside .season-series .schips,.game-aside .post-series .schips{flex-direction:column;overflow:visible;gap:6px}
+.sertabs{margin-bottom:12px}
+.post-series .season-series{padding:0;border:0;box-shadow:none;background:none}
+.game-aside .post-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr;align-items:center;gap:12px;text-align:left;padding:14px 16px;min-height:54px}
+.game-aside .post-series .schip b{font-size:15px}
+.game-aside .post-series .schip small{font-size:13.5px;text-align:right}
+.game-aside .post-series .schips{gap:8px}
 .game-aside .season-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;text-align:left;padding:16px 16px;min-height:62px}
 .game-aside .season-series .schip b{font-size:15px}
 .game-aside .season-series .schip small{font-size:13.5px}
@@ -4331,7 +4337,12 @@ const E = (() => {
       })() +
       '</div>' +
       '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + st.h + '</div></div></div></div>';
-    const series = (x ? '<section class="matchup-panel"><h3 class="h3">' + (x.bo === 1 ? esc(roundName(x.round)) + ' · Single game' : 'Playoff series · Best of ' + x.bo) + '</h3>' + seriesStrip(gg, x) + '</section>' : '') + '<section class="matchup-panel">' + seasonSeriesStrip(gg) + '</section>';
+    // a playoff game shows its playoff series, with a switch to the regular-season series
+    const serTab = x && S.serTab && S.serTab.gid === gg.id ? S.serTab.v : 'po';
+    const series = x
+      ? '<section class="matchup-panel post-series"><div class="seg sm sertabs">' + [['po', 'Playoff series'], ['ss', 'Season series']].map(([k, l]) => '<button type="button" class="' + (serTab === k ? 'on' : '') + '" data-act="sertab" data-v="' + k + '">' + l + '</button>').join('') + '</div>' +
+        (serTab === 'po' ? '<h3 class="h3">' + (x.bo === 1 ? esc(roundName(x.round)) + ' · Single game' : esc(roundName(x.round)) + ' · Best of ' + x.bo) + '</h3>' + seriesStrip(gg, x) : seasonSeriesStrip(gg)) + '</section>'
+      : '<section class="matchup-panel">' + seasonSeriesStrip(gg) + '</section>';
     let main = '', aside = series;
     if (S.sheet.edit) main += editBlock(gg);
     else if (can && !st.final) main += entryBlock(gg);
@@ -4710,6 +4721,7 @@ const E = (() => {
       case 'tback': tourShow(Math.max(0, Tour.i - 1)); break;
       case 'tskip': tourSkip(); break;
       case 'tdone': tourEnd(); break;
+      case 'sertab': S.serTab = { gid: S.sheet && S.sheet.gid, v: el.dataset.v }; renderSheet(); break;
       case 'sscroll': { const c = el.parentElement.querySelector('.schips'); if (c) c.scrollBy({ left: +el.dataset.dir * Math.max(120, c.clientWidth * 0.8), behavior: 'smooth' }); break; }
       case 'lgswitch': leagueGo(el.dataset.v); break;
       case 'lgdelete': if (armConfirm('lgdel' + el.dataset.v)) deleteLeague(el.dataset.v); break;
