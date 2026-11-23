@@ -3486,14 +3486,7 @@ const E = (() => {
     ...[0, 1, 2].map(i => recDef('t' + i, 'Trailing after Q' + (i + 1), 'Record when behind after quarter ' + (i + 1), r => r.tr[i]))
   ];
   const STAT_MORE = [
-    recDef('r90', 'Scoring ' + BIG_GAME + '+', 'Record when scoring ' + BIG_GAME + ' or more', r => r.r90),
-    recDef('r100', 'Scoring ' + HUGE_GAME + '+', 'Record when scoring ' + HUGE_GAME + ' or more', r => r.r100),
-    recDef('ra80', 'Allowing under ' + LOW_ALLOWED, 'Record when the opponent scores under ' + LOW_ALLOWED, r => r.ra80),
-    ...['Early season', 'Mid season', 'Late season'].map((l, i) => recDef('per' + i, l, 'Record in the ' + ['first', 'middle', 'last'][i] + ' third of the regular season', r => r.per[i])),
-    recDef('rest0', '1 day of rest', 'Record with one day off before the game', r => r.rest[0]),
-    recDef('rest1', '2+ days of rest', 'Record with two or more days off before the game', r => r.rest[1]),
-    avgDef('hp', 'Home points', 'Points per home game', r => { const n = r.hm[0] + r.hm[1]; return n ? r.hpf / n : null; }),
-    avgDef('ap', 'Away points', 'Points per away game', r => { const n = r.aw[0] + r.aw[1]; return n ? r.apf / n : null; })
+    ...['Early season', 'Mid season', 'Late season'].map((l, i) => recDef('per' + i, l, 'Record in the ' + ['first', 'middle', 'last'][i] + ' third of the regular season', r => r.per[i]))
   ];
   const STAT_CAREER = [
     { k: 'ctitles', l: 'Titles', t: 'Championships won', v: t => (t.seasons ? t.titles : null), f: t => t.titles },
@@ -3520,7 +3513,7 @@ const E = (() => {
   const statSection = (title, defs, items, attr) => '<div class="panel"><h3 class="h3" style="margin-bottom:10px">' + title + '</h3><div class="wgrid">' + defs.map(d => statBox(d, items, attr)).join('') + '</div></div>';
   // the Advanced tab of the Stats page
   function advancedStats(items, night, attr, ids) {
-    let out = statSection('After each quarter', STAT_FLOW, items, attr) + statSection('Scoring and records', STAT_MORE, items, attr);
+    let out = statSection('After each quarter', STAT_FLOW, items, attr) + statSection('Early, mid and late season', STAT_MORE, items, attr);
     if (!night) out += statSection('Career', STAT_CAREER, ids.map(id => ({ id, r: Object.assign({ gl: {} }, careerOf(id).t) })), ' data-career="1"');
     return out;
   }
