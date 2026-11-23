@@ -646,6 +646,13 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flowsvg .f0{stroke:var(--muted);stroke-width:1}
 .flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
 .flowsvg .fl{fill:var(--muted);font-size:11px;font-weight:700;text-anchor:middle}
+.pgt{width:100%;border-collapse:collapse;margin-top:6px;font-variant-numeric:tabular-nums}
+.pgt td,.pgt th{padding:9px 6px;border-top:1px solid var(--line)}
+.pgt tr:first-child td,.pgt tr:first-child th{border-top:0}
+.pgt td{width:32%;font-weight:700;font-size:16px}
+.pgt td:first-child{text-align:left}.pgt td:last-child{text-align:right}
+.pgt th{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-align:center}
+.pgt .pgn{font-size:13px;color:var(--muted)}
 .gstats{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,150px),1fr));gap:8px;margin-top:8px}
 .gstats>div{background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px;align-content:start}
 .gstats small{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
@@ -4355,6 +4362,7 @@ const E = (() => {
       else msg = 'This game was not played.';
       main += tip('<div class="note">' + msg + '</div>');
     }
+    if (!st.n && !S.sheet.edit && !st.final) main += pregamePanel(gg, x);
     if (st.n && !S.sheet.edit) {
       main += flowChart(gg, st) + gameStatsPanel(gg, st);
     }
@@ -4437,6 +4445,32 @@ const E = (() => {
       });
     }
     return best;
+  }
+  // Pregame: the two players side by side before a game starts, with their season series so far
+  function pregamePanel(gg, x) {
+    const ra = D.rows[gg.a], rh = D.rows[gg.h];
+    const avg = (v, n) => (n ? (v / n).toFixed(1) : '—');
+    const meet = D.reg.filter(z => z.st.final && ((z.a === gg.a && z.h === gg.h) || (z.a === gg.h && z.h === gg.a)));
+    let wa = 0, wh = 0, pa = 0, ph = 0;
+    meet.forEach(z => {
+      const sa = z.a === gg.a ? z.st.a : z.st.h, sh = z.a === gg.a ? z.st.h : z.st.a;
+      if (sa > sh) wa++; else wh++;
+      pa += sa; ph += sh;
+    });
+    const row = (lab, a, h) => '<tr><td>' + a + '</td><th>' + lab + '</th><td>' + h + '</td></tr>';
+    let rows = row('Record', ra.w + '–' + ra.l, rh.w + '–' + rh.l) +
+      row('Away / Home', ra.aw + '–' + ra.al + ' away', rh.hw + '–' + rh.hl + ' home') +
+      row('Last 10', ra.l10[0] + '–' + ra.l10[1], rh.l10[0] + '–' + rh.l10[1]) +
+      row('Streak', ra.streak || '—', rh.streak || '—') +
+      row('Points / game', avg(ra.pf, ra.gp), avg(rh.pf, rh.gp)) +
+      row('Allowed / game', avg(ra.pa, ra.gp), avg(rh.pa, rh.gp)) +
+      row('Season series', meet.length ? String(wa) : '—', meet.length ? String(wh) : '—') +
+      (meet.length ? row('Avg score vs each other', avg(pa, meet.length), avg(ph, meet.length)) : '');
+    if (x) {
+      const si = seriesAt(x, gg), w = p => (p === x.hi ? si.wh : si.wl);
+      rows = row('Seed', origSeed(gg.a) || '—', origSeed(gg.h) || '—') + (x.bo > 1 ? row('Series', w(gg.a), w(gg.h)) : '') + rows;
+    }
+    return '<section class="matchup-panel pregame"><h3 class="h3">Pregame</h3><table class="pgt"><tr><td class="pgn">' + esc(sname(gg.a)) + '</td><th></th><td class="pgn">' + esc(sname(gg.h)) + '</td></tr>' + rows + '</table></section>';
   }
   // Game stats, under the game flow: lead changes, largest leads, the biggest run and most unanswered points
   function gameStatsPanel(gg, st) {
