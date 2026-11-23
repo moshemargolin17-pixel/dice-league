@@ -854,6 +854,7 @@ button.cday:hover{background:var(--panel-2)}
 .cday.plan{border-style:dashed;opacity:.6}
 @media (max-width:560px){.calgrid{gap:4px}.cday{min-height:46px;padding:5px;align-items:center}.cday small{display:none}.cday b{font-size:14px}}
 .grow .gr .l{color:var(--muted)}
+.grow .grec{color:var(--muted);font-size:12px;min-width:44px;text-align:right}
 .phrow{align-items:center}
 .smalllink{font-size:13px;opacity:.8}
 .smalllink.on{opacity:1;font-weight:700}
@@ -2999,7 +3000,20 @@ const E = (() => {
       const list = D.games.filter(g => g.a === tp || g.h === tp).sort((x, y) => x.day - y.day || x.idx - y.idx);
       const r = D.rows[tp];
       out += '<div class="banner pbar"><span><b>' + esc(pname(tp)) + '</b> · ' + r.w + '–' + r.l + ' · ' + list.filter(g => !g.st.final).length + ' games left</span><button type="button" class="btn sm" data-act="gclear">Back to scoreboard</button></div>';
-      out += '<div class="glist">' + list.map(g => gameRow(g, tp)).join('') + '</div>';
+      // the player's record after each game (in a series, the series score)
+      let w = 0, l = 0;
+      const ser = {};
+      const after = g => {
+        if (!g.st.final) return '';
+        const won = (g.h === tp ? g.st.h : g.st.a) > (g.h === tp ? g.st.a : g.st.h);
+        if (g.type === 'reg') { if (won) w++; else l++; return w + '–' + l; }
+        const x = g.sid ? findSeries(g.sid) : null;
+        if (!x || x.bo === 1) return '';
+        const sc = ser[g.sid] = ser[g.sid] || [0, 0];
+        sc[won ? 0 : 1]++;
+        return 'Series ' + sc[0] + '–' + sc[1];
+      };
+      out += '<div class="glist">' + list.map(g => gameRow(g, tp, after(g))).join('') + '</div>';
       return '<div class="stack" style="gap:14px">' + out + '</div>';
     }
     // calendar: 4 weeks a page, 7 days a row
@@ -3039,7 +3053,7 @@ const E = (() => {
     }
     return '<div class="stack" style="gap:14px">' + out + '</div>';
   }
-  function gameRow(g, me) {
+  function gameRow(g, me, recAfter) {
     const st = g.st, s = D.season;
     const x = g.sid ? findSeries(g.sid) : null;
     const tag = '<span class="gtag">Day ' + g.day + (g.type === 'reg' ? '' : ' · ' + esc(roundName(g.round)) + (x && x.bo > 1 ? ' G' + g.no : '')) + '</span>';
@@ -3048,7 +3062,7 @@ const E = (() => {
     if (st.final) { const my = home ? st.h : st.a, th = home ? st.a : st.h; res = '<span class="' + (my > th ? 'w' : 'l') + '">' + (my > th ? 'W ' : 'L ') + my + '–' + th + '</span>' + (st.ot ? ' <small>' + (st.ot === 1 ? 'OT' : st.ot + 'OT') + '</small>' : ''); }
     else if (st.live) res = '<span class="livetxt">' + (home ? st.h + '–' + st.a : st.a + '–' + st.h) + ' · ' + (st.n ? esc(st.short) : tip(esc(st.short))) + '</span>';
     else res = '<span class="muted">Upcoming</span>';
-    return '<article tabindex="0" role="button" class="grow' + (st.live ? ' is-live' : '') + '" data-act="game" data-n="' + s.n + '" data-id="' + g.id + '"><span class="gm">' + tag + (home ? 'vs ' : '@ ') + teamLink(opp, g) + '</span><span class="gr">' + res + '</span></article>';
+    return '<article tabindex="0" role="button" class="grow' + (st.live ? ' is-live' : '') + '" data-act="game" data-n="' + s.n + '" data-id="' + g.id + '"><span class="gm">' + tag + (home ? 'vs ' : '@ ') + teamLink(opp, g) + '</span><span class="gr">' + res + (recAfter ? '<small class="grec">' + recAfter + '</small>' : '') + '</span></article>';
   }
   /* ---------- series helpers, ESPN-style bracket, series overview ---------- */
   const origSeed = p => { const sd = D.season.post.seeds || {}; for (const c of Object.keys(sd)) { const i = (sd[c] || []).indexOf(p); if (i >= 0) return i + 1; } return null; };
