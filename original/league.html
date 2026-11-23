@@ -3467,11 +3467,9 @@ const E = (() => {
     avgDef('mg', 'Average margin', 'Average points ahead or behind at the end of a game', r => perGame(r, r.mg), false, true),
     avgDef('mov', 'Margin of victory', 'Average margin in wins', r => (r.wins ? r.mw / r.wins : null)),
     avgDef('mol', 'Margin of loss', 'Average margin in losses (smallest is best)', r => (r.losses ? r.ml / r.losses : null), true),
-    { k: 'lo', l: 'Lowest score', t: 'The player’s lowest score (highest floor is best)', one: r => r.loG, v: r => r.lo, f: r => (r.lo == null ? '—' : r.lo) },
     cntDef('b90', BIG_GAME + '+ games', 'Games scoring ' + BIG_GAME + ' or more'),
     cntDef('b100', HUGE_GAME + '+ games', 'Games scoring ' + HUGE_GAME + ' or more'),
-    cntDef('bo', 'Blowouts', 'Wins by ' + BLOWOUT + ' or more'),
-    cntDef('blo', 'Times blown out', 'Losses by ' + BLOWOUT + ' or more (fewest is best)', true)
+    cntDef('bo', 'Blowouts', 'Wins by ' + BLOWOUT + ' or more')
   ];
   const STAT_Q = [
     quarterDef('qb', 'Best quarter', 'Most points scored in one quarter', r => r.qbest),
