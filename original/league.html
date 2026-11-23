@@ -654,7 +654,11 @@ html[data-design="chalk"] .board .big{font-weight:400}
 /* game screen: the season series lists every game, top to bottom */
 .game-aside .season-series .sarrow{display:none}
 .game-aside .season-series .schips{flex-direction:column;overflow:visible;gap:6px}
-.game-aside .season-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px;text-align:left;padding:8px 12px}
+.game-aside .season-series .schip{flex:none!important;width:100%;min-width:0!important;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;text-align:left;padding:16px 16px;min-height:62px}
+.game-aside .season-series .schip b{font-size:15px}
+.game-aside .season-series .schip small{font-size:13.5px}
+.game-aside .season-series .schips{gap:10px}
+.game-aside .season-series .sstat{font-size:16px;margin:4px 0 12px}
 .game-aside .season-series .schip small:last-child{text-align:right}
 .gstats span{font-size:12px;color:var(--muted)}
 .qruns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:10px}
@@ -2959,7 +2963,7 @@ const E = (() => {
         'Tap any player name to open their page. On Stats, tap a column of the leaderboard to sort it.',
         'Every stat box on Stats shows the best and worst player. Tap it to see everyone ranked by that stat alone, flip it best-to-worst or worst-to-best, and tap a number to see the games behind it. Records rank by win percentage; at the same percentage, more wins go first. Career covers all seasons together.',
         '<b>vs .500+</b> and <b>vs Under .500</b> go by the opponent’s regular-season record. <b>Close</b> games ended within ' + CLOSE + ' points. <b>Comebacks</b> are wins after trailing by ' + SIT_PTS + ' or more; <b>Blown leads</b> are losses after leading by ' + SIT_PTS + ' or more. <b>Blowouts</b> are games won by ' + BLOWOUT + ' or more. <b>Early</b>, <b>mid</b> and <b>late season</b> are thirds of the regular season.',
-        '<b>Divisions</b> (its own tab): each division’s combined record against the rest of the league (the best one gets ★ Best division), each conference’s interconference record, a head-to-head picker for any two groups, and every season’s history with titles and Finals trips. Tap a division for its own page: its records, each player’s record against players outside the division (who adds the most and the least), and its history.',
+        '<b>Divisions</b> (its own tab): each division’s combined record against the rest of the league (best first), each conference’s interconference record, a head-to-head picker for any two groups, and every season’s history with titles and Finals trips. Tap a division for its own page: its records, each player’s record against players outside the division (who adds the most and the least), and its history.',
         'Games is a calendar of the whole season: tap a day for its games, and use the arrows to page through. Pick a name under <b>Player schedule</b> for one player’s season, with their record after each game (the series score in the playoffs).',
         'A player’s page has Personal best and worst side by side. Tap a best for the top 5 (ties included), or a worst to go to that game. Season and Career switch the whole page once a player has more than one season. Past seasons are under the <b>Season</b> menu at the top of each page.',
         '<b>Player history</b> on a player’s page: pick an opponent to see the regular-season, playoff and combined records and points per game against them.',
@@ -3842,11 +3846,11 @@ const E = (() => {
     const card = (lab, val, sub) => '<div><small>' + lab + '</small><strong>' + val + '</strong>' + (sub ? '<em class="kvrank">' + sub + '</em>' : '') + '</div>';
     let out = '<div class="backrow"><button type="button" class="btn" data-act="divpage" data-v="">← All divisions</button><div class="hrow" style="width:auto">' + seasonPicker() + '</div></div>' +
       '<div class="shead"><h2 class="h2">' + divName(di) + ' Division' + (D.cur ? '' : ' · Season ' + s.n) + '</h2><div class="pmuted">' + (two ? confName(L.confOf(ids[0])) + ' Conference · ' : '') + ordn(rank) + ' of ' + L.divCount() + ' divisions</div></div>';
-    out += '<div class="panel"><div class="kv">' + card('vs League', gRec(rest), gPctTxt(rest)) + card('vs Conference', gRec(conf), gPctTxt(conf)) + (two ? card('vs Interconference', gRec(oth), gPctTxt(oth)) : '') +
+    out += '<div class="panel"><div class="kv">' + card('vs League', gRec(rest), gPctTxt(rest)) + card('vs Conference', gRec(conf), gPctTxt(conf)) + (two ? card('vs Interconf', gRec(oth), gPctTxt(oth)) : '') +
       card('Point difference', rest.w + rest.l ? (rest.pf - rest.pa > 0 ? '+' : '') + (rest.pf - rest.pa) : '—') +
-      (most && most.t.w + most.t.l ? card('Top contributor', esc(sname(most.seat)), (most.net > 0 ? '+' : '') + most.net + ' outside the division') : '') +
-      (least && least !== most && least.t.w + least.t.l ? card('Least contributor', esc(sname(least.seat)), (least.net > 0 ? '+' : '') + least.net + ' outside the division') : '') + '</div></div>';
-    out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Players <small class="muted">what each adds to the division</small></h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Player</th><th>Overall</th><th>vs Outside</th><th>PCT</th><th>+/−</th>' + (two ? '<th>vs Interconf</th>' : '') + '<th>Diff / game</th></tr>' +
+      (most && most.t.w + most.t.l ? card('Top contributor', esc(sname(most.seat))) : '') +
+      (least && least !== most && least.t.w + least.t.l ? card('Least contributor', esc(sname(least.seat))) : '') + '</div></div>';
+    out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Players</h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Player</th><th>Overall</th><th>vs Outside</th><th>PCT</th><th>+/−</th>' + (two ? '<th>vs Inter</th>' : '') + '<th>Diff / game</th></tr>' +
       mem.map((x, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + pid(x.seat) + '">' + esc(pname(x.seat)) + '</span>' + (x === most && x.t.w + x.t.l ? ' <span class="bestdiv">Top</span>' : '') + '</td><td>' + x.r.w + '–' + x.r.l + '</td><td>' + gRec(x.t) + '</td><td>' + gPctTxt(x.t) + '</td>' +
         '<td class="' + (x.net > 0 ? 'pos' : x.net < 0 ? 'neg' : '') + '">' + (x.net > 0 ? '+' : '') + x.net + '</td>' + (two ? '<td>' + (x.t.iw + x.t.il ? x.t.iw + '–' + x.t.il : '—') + '</td>' : '') +
         '<td>' + (x.t.w + x.t.l ? ((x.t.pf - x.t.pa) / (x.t.w + x.t.l) > 0 ? '+' : '') + ((x.t.pf - x.t.pa) / (x.t.w + x.t.l)).toFixed(1) : '—') + '</td></tr>').join('') +
@@ -3870,7 +3874,7 @@ const E = (() => {
         L.use(D.season.shape);
         return row;
       }).filter(Boolean);
-      out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">History <small class="muted">regular season, every season</small></h3><div class="tscroll"><table class="tbl"><tr><th class="l">Season</th><th>vs League</th><th>PCT</th><th>Rank</th><th class="l">Division winner</th><th class="l">Champion</th></tr>' +
+      out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">History</h3><div class="tscroll"><table class="tbl"><tr><th class="l">Season</th><th>vs League</th><th>PCT</th><th>Rank</th><th class="l">Division winner</th><th class="l">Champion</th></tr>' +
         rowsH.map(r => '<tr><td class="l">' + r.n + '</td><td>' + gRec(r.rec) + '</td><td>' + gPctTxt(r.rec) + '</td><td>' + ordn(r.place) + (r.place === 1 ? ' ★' : '') + '</td><td class="l">' + esc(r.winner) + '</td><td class="l">' + (r.champ ? '🏆 ' + esc(r.champ) : '—') + '</td></tr>').join('') +
         '</table></div><div class="note" style="margin-top:6px">★ means it was the best division that season. The division winner had the best record in the division.</div></div>';
     }
@@ -3885,11 +3889,10 @@ const E = (() => {
     if (divs) {
       const rows = divKeys.map(k => ({ k, rest: groupRecord(games, k, 'rest'), conf: groupRecord(games, k, 'restconf'), oth: two ? groupRecord(games, k, 'othconf') : null, t: groupTitles(datas, k) }))
         .sort((x, y) => gPct(y.rest) - gPct(x.rest) || y.rest.w - x.rest.w);
-      const best = rows[0] && rows[0].rest.w + rows[0].rest.l ? rows[0].k : null;
-      out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Division standings <small class="muted">combined records</small></h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Division</th><th>vs League</th><th>PCT</th><th>vs Conf</th>' + (two ? '<th>vs Interconf</th>' : '') + '<th>Diff</th><th>Titles</th>' + (two ? '<th>Finals</th>' : '') + '</tr>' +
-        rows.map((r, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><button type="button" class="linkbtn divlink" data-act="divpage" data-v="' + r.k.slice(1) + '">' + groupName(r.k) + '</button>' + (two ? ' <small class="muted">' + confName(confOfKey(r.k)) + '</small>' : '') + (r.k === best ? ' <span class="bestdiv">★ Best division</span>' : '') + '</td><td>' + gRec(r.rest) + '</td><td>' + gPctTxt(r.rest) + '</td><td>' + gRec(r.conf) + '</td>' + (two ? '<td>' + gRec(r.oth) + '</td>' : '') +
+      out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Division standings</h3><div class="tscroll"><table class="tbl"><tr><th class="l">#</th><th class="l">Division</th><th>vs League</th><th>PCT</th><th>vs Conf</th>' + (two ? '<th>vs Inter</th>' : '') + '<th>Diff</th><th>Titles</th>' + (two ? '<th>Finals</th>' : '') + '</tr>' +
+        rows.map((r, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><button type="button" class="linkbtn divlink" data-act="divpage" data-v="' + r.k.slice(1) + '">' + groupName(r.k) + '</button>' + (two ? ' <small class="muted">' + confName(confOfKey(r.k)) + '</small>' : '') + '</td><td>' + gRec(r.rest) + '</td><td>' + gPctTxt(r.rest) + '</td><td>' + gRec(r.conf) + '</td>' + (two ? '<td>' + gRec(r.oth) + '</td>' : '') +
           '<td class="' + (r.rest.pf > r.rest.pa ? 'pos' : r.rest.pf < r.rest.pa ? 'neg' : '') + '">' + (r.rest.w + r.rest.l ? (r.rest.pf - r.rest.pa > 0 ? '+' : '') + (r.rest.pf - r.rest.pa) : '—') + '</td><td>' + r.t.titles + '</td>' + (two ? '<td>' + r.t.finals + '</td>' : '') + '</tr>').join('') +
-        '</table></div><div class="note" style="margin-top:6px">Each division’s players together: <b>vs League</b> is against everyone outside the division, <b>vs Conf</b> against the rest of its conference' + (two ? ', <b>vs Interconf</b> against the other conference' : '') + '. Tap a division for its page. <b>Titles</b> are championships won by its players' + (two ? '; <b>Finals</b> are trips to the Finals' : '') + '.</div></div>';
+        '</table></div><div class="note" style="margin-top:6px">Each division’s players together: <b>vs League</b> is against everyone outside the division, <b>vs Conf</b> against the rest of its conference' + (two ? ', <b>vs Inter</b> against the other conference' : '') + '. Tap a division for its page. <b>Titles</b> are championships won by its players' + (two ? '; <b>Finals</b> are trips to the Finals' : '') + '.</div></div>';
     }
     if (two) {
       const rows = confKeys.map(k => ({ k, r: groupRecord(games, k, 'othconf'), t: groupTitles(datas, k) })).sort((x, y) => gPct(y.r) - gPct(x.r));
@@ -3906,7 +3909,7 @@ const E = (() => {
     const r = groupRecord(games, A, B);
     const sel = (id, opts, v) => '<select id="' + id + '">' + opts.map(([k, l]) => '<option value="' + k + '"' + (k === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select>';
     out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Head to head</h3><div class="frow gpick">' + sel('gA', all.map(k => [k, groupName(k)]), A) + '<span class="pmuted">vs</span>' + sel('gB', bOpts, B) + '</div>' +
-      '<div class="kv" style="margin-top:10px">' + kv('Record', gRec(r)) + kv('Win %', gPctTxt(r)) + kv('Points for / game', r.w + r.l ? (r.pf / (r.w + r.l)).toFixed(1) : '—') + kv('Points against / game', r.w + r.l ? (r.pa / (r.w + r.l)).toFixed(1) : '—') + kv('Point difference', r.w + r.l ? (r.pf - r.pa > 0 ? '+' : '') + (r.pf - r.pa) : '—') + '</div></div>';
+      '<div class="kv" style="margin-top:10px">' + kv('Record', gRec(r)) + kv('Win %', gPctTxt(r)) + kv('Point difference', r.w + r.l ? (r.pf - r.pa > 0 ? '+' : '') + (r.pf - r.pa) : '—') + '</div></div>';
     // history: every season, each division's record against the rest of the league
     if (divs) {
       const hist = allSeasonData();
@@ -3922,7 +3925,7 @@ const E = (() => {
         const totals = divKeys.map((k, i) => rowsH.reduce((t, r) => ({ w: t.w + r.recs[i].w, l: t.l + r.recs[i].l }), { w: 0, l: 0 }));
         const titles = divKeys.map(k => groupTitles(seasons, k));
         const bests = divKeys.map((k, i) => rowsH.filter(r => r.top === i).length);
-        out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Division history <small class="muted">regular season, every season</small></h3><div class="tscroll"><table class="tbl"><tr><th class="l">Season</th>' + divKeys.map(k => '<th><button type="button" class="linkbtn divlink" data-act="divpage" data-v="' + k.slice(1) + '">' + groupName(k) + '</button></th>').join('') + '</tr>' +
+        out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Division history</h3><div class="tscroll"><table class="tbl"><tr><th class="l">Season</th>' + divKeys.map(k => '<th><button type="button" class="linkbtn divlink" data-act="divpage" data-v="' + k.slice(1) + '">' + groupName(k) + '</button></th>').join('') + '</tr>' +
           rowsH.map(r => '<tr><td class="l">' + r.n + '</td>' + r.recs.map((t, i) => '<td>' + gRec(t) + (i === r.top ? ' ★' : '') + '</td>').join('') + '</tr>').join('') +
           '<tr><td class="l">All seasons</td>' + totals.map(t => '<td>' + gRec(t) + '</td>').join('') + '</tr>' +
           '<tr><td class="l">Win %</td>' + totals.map(t => '<td>' + gPctTxt(t) + '</td>').join('') + '</tr>' +
