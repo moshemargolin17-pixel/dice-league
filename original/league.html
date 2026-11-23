@@ -2916,7 +2916,7 @@ const E = (() => {
         'Clinch and elimination marks count the tiebreakers: a player who can at best tie, and would lose the tiebreaker, is marked out right away.',
         'Standings rank by win percentage. Equal win percentages favor fewer losses. Identical records are broken by head-to-head, then division record (same division) or conference record, then point differential.',
         'At the bottom of Standings, pick a past day to see the standings as they were after that day. <b>Back to today</b> returns to now.',
-        'The bracket and each day’s clinch scenarios are on Standings. ' + playoffText(),
+        'Each day’s clinch scenarios are on Standings. Once the postseason starts, the bracket has its own <b>Bracket</b> page. ' + playoffText(),
         'The whole playoff calendar is set when the regular season ends: every possible game has its day, and games a series doesn’t need are skipped. So the season’s last day (the Y in Day X of Y) is known from Day 1 and never goes up.']) +
       sec('Players and stats', [
         'Tap any player name to open their page. On Stats, tap a column of the leaderboard to sort it.',
@@ -2993,7 +2993,6 @@ const E = (() => {
   }
   function viewStandings() {
     const s = D.season;
-    const postOn = s.post.series.length > 0;
     const two = L.confCount() > 1, divs = L.hasDivs(), ln = L.lines();
     const views = two ? [['conf', 'Conference'], ...(divs ? [['div', 'Division']] : []), ['league', 'League']] : [['conf', 'League'], ...(divs ? [['div', 'Division']] : [])];
     if (!views.some(([k]) => k === S.standView)) S.standView = 'conf';
@@ -3017,12 +3016,9 @@ const E = (() => {
     };
     const table = (title, ranked, opts) => '<div class="panel"><h3 class="h3" style="margin-bottom:8px">' + title + '</h3><div class="tscroll"><table class="tbl stick2">' + cols + ranked.map((r, i) => line(r, i, opts)).join('') + '</table></div></div>';
     const key = L.lines() && past == null ? '<div class="legend pmuted clkey">' + markKeys().map(k => '<span><span class="cl cl-' + k + '">' + k + '</span>' + MARK_SHORT()[k] + '</span>').join('') + '</div>' : '';
-    // the postseason comes first once it starts; the current stage leads the bracket
+    // the bracket has its own page once the postseason starts
     if (past != null) {
       out += '<div class="banner pbar"><span>Standings after <b>Day ' + past + '</b></span><button type="button" class="btn sm" data-act="standday" data-v="">Back to today</button></div>';
-    } else if (postOn) {
-      if (s.phase === 'done' && s.champion != null) out += '<div class="banner"><strong>' + esc(pname(s.champion)) + '</strong> won the Season ' + s.n + ' championship.</div>';
-      out += viewBracket();
     } else if (D.cur && s.phase === 'reg') {
       const sc = scenarios(s.day.cur);
       if (sc.length) out += '<div class="panel scen"><h3 class="h3" style="margin-bottom:6px">Scenarios · Day ' + s.day.cur + '</h3>' + sc.map(t => '<div class="scl">' + t + '</div>').join('') + '</div>';
@@ -3146,30 +3142,90 @@ const E = (() => {
     const lastTag = last ? '<span class="blast">' + (last.st.live ? 'Live' : x.bo > 1 ? 'G' + last.no : 'Final') + '</span>' : '';
     return '<button type="button" class="bbox" data-act="series" data-sid="' + x.id + '" data-n="' + D.season.n + '">' + lastTag + row(x.hi) + row(x.lo) + '<div class="bft">' + ft + '</div></button>';
   }
+  // A conference's #1 seed once it's clinched in the regular season (marks: z), else null
+  function clinchedTop(c) {
+    const s = D.season;
+    if (!D.cur || s.phase !== 'reg' || !L.lines()) return null;
+    const m = marksOf(D);
+    return L.confIds(c).find(p => m[p] && m[p].z) ?? null;
+  }
+  // Who's already known for a series that hasn't started: a seed that's set (or the clinched #1 seed),
+  // or the winner of a series that feeds it. [hi, lo] as { p, seed } or null.
+  function knownSides(id) {
+    const s = D.season, ln = linesNow(), post = s.post || {};
+    const done = sid => { const x = findSeries(sid); const inf = x ? seriesInfo(D, x) : null; return inf && inf.done ? inf : null; };
+    const win = sid => { const inf = done(sid); return inf ? { p: inf.winner, seed: origSeed(inf.winner) } : null; };
+    const lose = sid => { const inf = done(sid); return inf ? { p: inf.loser, seed: origSeed(inf.loser) } : null; };
+    const seed = (c, k) => {
+      const sd = post.seeds && post.seeds[c];
+      if (sd && sd.length) {
+        if (ln.playIn && k === 7) { const w = win('pi78-' + c); return w ? { p: w.p, seed: 7 } : null; }
+        if (ln.playIn && k === 8) { const w = win('pi8-' + c); return w ? { p: w.p, seed: 8 } : null; }
+        return sd[k - 1] != null ? { p: sd[k - 1], seed: k } : null;
+      }
+      const top = k === 1 ? clinchedTop(c) : null;
+      return top != null ? { p: top, seed: 1 } : null;
+    };
+    let m;
+    if ((m = /^pi78-(\d)$/.exec(id))) return [seed(+m[1], 7), seed(+m[1], 8)];
+    if ((m = /^pi910-(\d)$/.exec(id))) return [seed(+m[1], 9), seed(+m[1], 10)];
+    if ((m = /^pi8-(\d)$/.exec(id))) return [lose('pi78-' + m[1]), win('pi910-' + m[1])];
+    if ((m = /^r1-(\d)-(\d)$/.exec(id))) {
+      const c = +m[1], k = +m[2];
+      if (ln.spots === 8) { const [a, b] = L.R1_PAIRS[k]; return [seed(c, a), seed(c, b)]; }
+      return k === 0 ? [seed(c, 4), seed(c, 5)] : [seed(c, 3), seed(c, 6)];
+    }
+    if ((m = /^r2-(\d)-(\d)$/.exec(id))) {
+      const c = +m[1], k = +m[2];
+      if (ln.spots === 8) return [win('r1-' + c + '-' + (k * 2)), win('r1-' + c + '-' + (k * 2 + 1))];
+      if (ln.spots === 6) return [seed(c, k + 1), win('r1-' + c + '-' + k)];
+      return k === 0 ? [seed(c, 1), seed(c, 4)] : [seed(c, 2), seed(c, 3)];
+    }
+    if ((m = /^r3-(\d)-0$/.exec(id))) return [win('r2-' + m[1] + '-0'), win('r2-' + m[1] + '-1')];
+    if (id === 'f') return [win('r3-0-0'), win('r3-1-0')];
+    return [null, null];
+  }
+  function pendingBox(id) {
+    const sides = knownSides(id);
+    if (!sides[0] && !sides[1]) return seriesBox(null);
+    const round = id.startsWith('pi') ? 0 : id === 'f' ? 4 : +id[1];
+    const bo = round === 0 ? 1 : L.seriesBo(round);
+    const row = x => '<div class="brow"><span class="bs">' + (x && x.seed ? x.seed : '') + '</span><span class="bn' + (x ? '' : ' muted') + '">' + (x ? esc(sname(x.p)) : 'TBD') + '</span><span class="bsc"></span></div>';
+    return '<div class="bbox tbd">' + row(sides[0]) + row(sides[1]) + '<div class="bft muted">' + (bo === 1 ? 'Single game' : 'Best of ' + bo) + '</div></div>';
+  }
+  // Bracket page: the postseason bracket, once the postseason starts (a past season's too)
+  function viewBracketPage() {
+    const s = D.season;
+    let out = '<div class="shead"><h2 class="h2">Bracket' + (D.cur ? '' : ' · Season ' + s.n) + '</h2><div class="hrow">' + seasonPicker() + '</div></div>';
+    if (s.phase === 'done' && s.champion != null) out += '<div class="banner"><strong>' + esc(pname(s.champion)) + '</strong> won the Season ' + s.n + ' championship.</div>';
+    return '<div class="stack" style="gap:16px">' + out + viewBracket() + '</div>';
+  }
+  const hasBracket = d => !!(d && d.season.post && d.season.post.series.length);
   function viewBracket() {
     const S0 = id => findSeries(id);
+    const box = id => (S0(id) ? seriesBox(S0(id)) : pendingBox(id));
     const ln = linesNow(), two = L.confCount() > 1;
     // the current stage goes on top: Play-In while it runs, then the conference brackets, then the Finals; finished stages slide down
     let playIn = '', confs = '', finals = '';
     if (ln.playIn) {
       playIn += '<div class="panel"><h3 class="h3" style="margin-bottom:10px">Play-In</h3><div class="pigrid">' + confList().map(c =>
-        '<div class="picol"><h4>' + (two ? confName(c) : esc(S.cfg.leagueName)) + '</h4>' + seriesBox(S0('pi78-' + c)) + '<small class="bcap">7 vs 8 · winner is the 7 seed</small>' + seriesBox(S0('pi910-' + c)) + '<small class="bcap">9 vs 10 · loser is out</small>' + seriesBox(S0('pi8-' + c)) + '<small class="bcap">For the 8 seed</small></div>').join('') + '</div></div>';
+        '<div class="picol"><h4>' + (two ? confName(c) : esc(S.cfg.leagueName)) + '</h4>' + box('pi78-' + c) + '<small class="bcap">7 vs 8 · winner is the 7 seed</small>' + box('pi910-' + c) + '<small class="bcap">9 vs 10 · loser is out</small>' + box('pi8-' + c) + '<small class="bcap">For the 8 seed</small></div>').join('') + '</div></div>';
     }
     const champ = D.season.champion;
     const champLine = champ != null ? '<div class="champ">🏆 ' + esc(pname(champ)) + ' · Season ' + D.season.n + ' champion</div>' : '';
     // conference brackets: 8 = first round, quarterfinals, semifinals; 6 = wild card, quarterfinals, semifinals; 4 = quarterfinals, semifinals
     confList().forEach(c => {
-      const pair = (a, b) => '<div class="bpair">' + seriesBox(S0(a)) + seriesBox(S0(b)) + '</div>';
+      const pair = (a, b) => '<div class="bpair">' + box(a) + box(b) + '</div>';
       const r1 = ln.spots === 8
         ? '<div class="bround"><h4>' + roundName(1) + '</h4><div class="bcol">' + pair('r1-' + c + '-0', 'r1-' + c + '-1') + pair('r1-' + c + '-2', 'r1-' + c + '-3') + '</div></div>'
         : ln.spots === 6 ? '<div class="bround"><h4>' + roundName(1) + '</h4><div class="bcol">' + pair('r1-' + c + '-0', 'r1-' + c + '-1') + '</div></div>' : '';
       confs += '<div class="panel"><h3 class="h3" style="margin-bottom:10px">' + (two ? confName(c) + ' Conference' : esc(S.cfg.leagueName)) + '</h3><div class="bscroll"><div class="brk">' + r1 +
         '<div class="bround r2"><h4>' + roundName(2) + '</h4><div class="bcol">' + pair('r2-' + c + '-0', 'r2-' + c + '-1') + '</div></div>' +
-        '<div class="bround r3"><h4>' + roundName(3) + '</h4><div class="bcol"><div class="bone">' + seriesBox(S0('r3-' + c + '-0')) + '</div></div></div>' +
+        '<div class="bround r3"><h4>' + roundName(3) + '</h4><div class="bcol"><div class="bone">' + box('r3-' + c + '-0') + '</div></div></div>' +
         '</div></div>' + (two ? '' : champLine) + '</div>';
     });
     const f = two ? S0('f') : S0('r3-0-0');
-    if (two) finals += '<div class="panel"><h3 class="h3" style="margin-bottom:10px">Finals</h3><div class="bfinal">' + seriesBox(f) + champLine + '</div></div>';
+    if (two) finals += '<div class="panel"><h3 class="h3" style="margin-bottom:10px">Finals</h3><div class="bfinal">' + box('f') + champLine + '</div></div>';
     if (D.season.phase === 'playin') return playIn + confs + finals;
     if (f && two) return finals + confs + playIn;
     return confs + finals + playIn;
@@ -4058,15 +4114,20 @@ const E = (() => {
     if (!S.ready) return;
     const sx = window.scrollX, sy = window.scrollY;
     if (S.view === 'race') S.view = 'standings';   // the Playoffs page moved to Standings
-    const tabs = [['home', 'Home'], ['games', 'Games'], ['standings', 'Standings'], ['teams', 'Players'], ['stats', 'Stats'], ['settings', 'Settings']];
     let main;
-    const pastView = ['standings', 'teams', 'games'].includes(S.view) && S.vs && S.vs !== S.season.n;
+    const pastView = ['standings', 'teams', 'games', 'bracket'].includes(S.view) && S.vs && S.vs !== S.season.n;
+    // the Bracket tab shows once the season being looked at has a postseason
+    const shownD = pastView ? S.past[S.vs] : D;
+    const bracketOn = shownD ? hasBracket(shownD) || (!pastView && confList().some(c => clinchedTop(c) != null)) : true;
+    if (S.view === 'bracket' && !bracketOn) S.view = 'standings';
+    const tabs = [['home', 'Home'], ['games', 'Games'], ['standings', 'Standings'], ...(bracketOn ? [['bracket', 'Bracket']] : []), ['teams', 'Players'], ['stats', 'Stats'], ['settings', 'Settings']];
     const keepD = D; HOME_D = keepD;
     try {
       if (pastView && !S.past[S.vs]) { main = '<div class="loading">Loading Season ' + S.vs + '…</div>'; loadPast(S.vs).then(() => render()); }
       else {
         if (pastView) { D = S.past[S.vs]; L.use(D.season.shape); }
         if (S.view === 'standings') main = viewStandings();
+        else if (S.view === 'bracket') main = viewBracketPage();
         else if (S.view === 'games') main = viewGames();
         else if (S.view === 'setup') { if (S.setup) L.use(S.setup.shape); main = viewSetup(); }
         else if (S.view === 'teams') main = viewTeams();
@@ -4114,7 +4175,7 @@ const E = (() => {
       { view: 'standings', at: 'main .clkey', t: 'Clinch marks',
         b: '<p>A letter appears next to a name only once it’s mathematically certain:</p><ul class="tlist">' + markKeys().map(k => cl(k, MARK_SHORT()[k])).join('') + '</ul>' },
       { view: 'standings', t: 'The postseason',
-        b: '<p>' + playoffText() + '</p><p>Home and Standings show who can clinch or be eliminated each night. Once the postseason starts, the bracket sits at the top of Standings.</p>' },
+        b: '<p>' + playoffText() + '</p><p>Home and Standings show who can clinch or be eliminated each night. Once the postseason starts, the bracket gets its own <b>Bracket</b> page.</p>' },
       { view: 'teams', at: 'main .tgrid .tcard', t: 'Players',
         b: '<p>Every player by division, best record first, with their record and streak. Tap a player for their schedule, results, splits, personal best and worst, career and achievements.</p>' },
       { view: 'stats', at: 'main .tbl tr', t: 'Stats',
