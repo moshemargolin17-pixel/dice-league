@@ -692,6 +692,18 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flowsvg .f0{stroke:var(--muted);stroke-width:1}
 .flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
 .flowsvg .fl{fill:var(--muted);font-size:11px;font-weight:700;text-anchor:middle}
+.possentry .epair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pside{border:1px solid var(--line);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:6px;align-content:start;min-width:0}
+.pside.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.pside .elab{display:flex;align-items:baseline;gap:8px}
+.pdice{display:flex;flex-wrap:wrap;gap:5px;min-height:30px;align-items:center}
+.pd{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:7px;background:var(--panel-2);border:1px solid var(--border);font-family:var(--f-num);font-weight:700;font-variant-numeric:tabular-nums}
+.ptext{font-size:13.5px;color:var(--muted)}.ptext b{color:var(--ink)}
+.ppad{margin-top:12px;display:grid;gap:8px}
+.pask{font-size:15px}
+.fbtag{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:99px;background:var(--accent);color:var(--accent-ink)}
+.ppad .chips{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+@media (max-width:560px){.possentry .epair{grid-template-columns:1fr}}
 .pgt{width:100%;border-collapse:collapse;margin-top:6px;font-variant-numeric:tabular-nums}
 .pgt td,.pgt th{padding:9px 6px;border-top:1px solid var(--line)}
 .pgt tr:first-child td,.pgt tr:first-child th{border-top:0}
@@ -814,6 +826,17 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .callform select{min-height:38px;max-width:100%}
 .die{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .die.red{background:#D33A2C}.die.blue{background:#2F6FDB}
+/* 2.0 dice: big 1-2 (the shot), small see-through 3-4 (rebound, free throws) */
+.die.h1,.pd.h1{background:#1E9E4A}.die.h2,.pd.h2{background:#0FB5D1}.die.h3,.pd.h3{background:rgba(14,90,44,.78)}.die.h4,.pd.h4{background:rgba(139,212,21,.72)}
+.die.a1,.pd.a1{background:#D2283C}.die.a2,.pd.a2{background:#F07D12}.die.a3,.pd.a3{background:rgba(122,20,36,.78)}.die.a4,.pd.a4{background:rgba(255,150,40,.6)}
+.pd[class*=' h'],.pd[class*=' a']{color:#FFFFFF;border-color:transparent}.pd.h4,.pd.a4{color:#141A26}
+.pd.h3,.pd.h4,.pd.a3,.pd.a4{width:22px;height:22px;border-radius:5px;font-size:12.5px;align-self:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+.die.h3,.die.h4,.die.a3,.die.a4{width:9px;height:9px;border-radius:2px;vertical-align:0}
+.pdice{align-items:center}.dkey{margin-left:auto;display:inline-flex;align-items:center;gap:3px}.dkey .die{margin:0}
+.pask .die{margin:0 6px 0 0}
+.chips.pk-h1 .chip{border-color:#1E9E4A}.chips.pk-h2 .chip{border-color:#0FB5D1}.chips.pk-h3 .chip{border-color:#0E5A2C}.chips.pk-h4 .chip{border-color:#8BD415}
+.chips.pk-a1 .chip{border-color:#D2283C}.chips.pk-a2 .chip{border-color:#F07D12}.chips.pk-a3 .chip{border-color:#7A1424}.chips.pk-a4 .chip{border-color:#FF9628}
+.chips[class*=pk-] .chip{border-width:2px}
 .ctag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;font-size:10.5px;font-weight:700;border:1px solid var(--line)}
 .ctag.h{color:#2F6FDB;border-color:#2F6FDB}.ctag.a{color:#D33A2C;border-color:#D33A2C}
 .shbtns{display:flex;gap:8px;align-items:center}
@@ -1063,23 +1086,6 @@ button.cday:hover{background:var(--panel-2)}
 .howto summary::after{content:'+';font-size:20px;line-height:1;color:var(--muted)}
 .howto[open] summary::after{content:'−'}
 .howto ul{margin:0;padding:0 2px 14px 18px;display:grid;gap:8px;font-size:14px;line-height:1.5}
-/* simulate */
-.simlink{appearance:none;background:none;border:0;color:inherit;opacity:.65;font:inherit;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;padding:0 6px;min-height:44px;cursor:pointer}
-.simlink:hover,.simlink:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
-.simpop{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 84px);width:min(340px,calc(100vw - 32px));background:var(--panel);color:var(--ink);border:var(--panel-border);border-radius:var(--radius);box-shadow:0 16px 48px rgba(0,0,0,.35);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
-.simhd{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.simopt{appearance:none;text-align:left;font:inherit;background:var(--panel-2);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
-.simopt:hover,.simopt:focus-visible{border-color:var(--accent)}
-.simopt b{font-size:15px}
-.simopt small{font-size:13px;color:var(--muted)}
-.simspd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
-.simspd small{font-size:13px;font-weight:700;color:var(--muted)}
-.simbar .status{flex:1;min-width:0}
-.simbar .status span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.simbar .status small{opacity:.75}
-.simbar .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--live);animation:simpulse 1.2s infinite}
-@keyframes simpulse{50%{opacity:.3}}
-@media (max-width:560px){.simbar .status{flex-basis:100%;min-height:0}.simbar .wrap{row-gap:8px}}
 /* tutorial */
 .tour{position:fixed;inset:0;z-index:55}
 .tour-block{position:absolute;inset:0}
@@ -1139,13 +1145,6 @@ button.pcell:hover,button.pcell:focus-visible{border-color:var(--accent)}
 .field.short{flex:0 1 110px}
 .seatgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px}
 .seats{display:flex;flex-direction:column;gap:6px}
-/* simulate until a day */
-.simuntil{display:grid;grid-template-columns:minmax(0,1fr) 72px auto;gap:8px;align-items:center;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px}
-.simuntil label{display:flex;flex-direction:column;gap:2px}
-.simuntil b{font-size:15px}
-.simuntil small{font-size:13px;color:var(--muted)}
-.simuntil input{min-height:38px;padding:4px 6px}
-.simuntil .btn{min-height:38px}
 
 
 /* ---- Black & White ---- */
@@ -1188,6 +1187,8 @@ html[data-design="mono"] .tab:focus-visible{outline:2px solid #FFFFFF;outline-of
 /* Logo links back to the mode picker */
 a.brand-home{text-decoration:none;color:inherit}
 a.brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+.autorow{display:flex;gap:8px;margin-top:10px}.autorow .btn{flex:1}
+.autoset{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head><body><div id="app"></div>
 <script src="../original/config.js"></script>
@@ -1536,7 +1537,8 @@ const E = (() => {
   // V7: the home player always gets 2 home calls (even when better) and there is no cap on calls
   const RULES_V7 = { ...RULES_V6, v: 7 };
   delete RULES_V7.homeCallsFav; delete RULES_V7.maxCalls;
-  const rulesOf = season => (season && season.rules) || RULES_V1;
+  // Dice League 2.0: every season plays by possessions (see Possession scoring), with no advantages
+  const rulesOf = season => Object.assign({}, (season && season.rules) || RULES_V1, { faces: null, adv: false, skillCalls: false, poss: true });
 
   /* ---------- advantage from ratings ---------- */
   const tier = r => (r <= 3 ? 0 : r <= 6 ? 1 : 2);
@@ -2005,7 +2007,6 @@ const E = (() => {
     syncName() { const e = this.list.find(x => x.id === this.id); if (e) e.name = S.cfg.leagueName; }
   };
   async function leagueGo(id, make) {
-    if (Sim.on) simStop();
     while (Store.pending()) await new Promise(r => setTimeout(r, 50));
     Leagues.syncName();
     if (make) Leagues.list.push({ id, name: make });
@@ -2712,6 +2713,7 @@ const E = (() => {
     const entry = Object.assign({}, prev);
     const flat = []; rolls.forEach(r => flat.push(r[0], r[1]));
     entry.r = flat;
+    if (entry.p) { if (opts.edited) delete entry.p; else entry.p = entry.p.slice(0, rolls.length); }   // possession dice stay in step with the rolls
     if (entry.c) entry.c = entry.c.filter(c => c.m <= rolls.length);
     if (entry.ae != null && entry.ae > rolls.length) entry.ae = rolls.length;   // calls already decided at this point are kept, so don't decide them twice
     const st = L.gameState(rolls, D.ru);
@@ -2738,6 +2740,16 @@ const E = (() => {
   function logRoll() {
     const g = D.byId[S.sheet.gid];
     if (!g || !editable(g) || g.st.final) return;
+    if (D.ru.poss) {
+      const now = possNow(g);
+      if (now.side) { toast('Finish both possessions first.'); return; }
+      possLog(g, [now.dr.a, now.dr.h]);
+      const ng = D.byId[g.id];
+      renderSheet(); render();
+      if (ng.st.final) toast('Final: ' + pname(ng.a) + ' ' + ng.st.a + ', ' + pname(ng.h) + ' ' + ng.st.h);
+      else if (ng.st.n === 24) toast('Tied after regulation. Overtime!');
+      return;
+    }
     const ia = document.getElementById('rollA'), ih = document.getElementById('rollH');
     const va = (ia.value || '').trim(), vh = (ih.value || '').trim();
     if (va === '' || vh === '') { toast('Enter both dice first.'); return; }
@@ -2810,7 +2822,7 @@ const E = (() => {
     const st = L.gameState(rows, D.ru);
     const liveToday = S.season.day.active && g.day === S.season.day.cur;
     if (!st.final && !liveToday) { toast(st.n >= 24 && st.a === st.h ? 'That ends tied. Add overtime rolls until someone wins.' : 'The game needs to end with a winner (24 rolls, or full overtimes).'); return; }
-    setRolls(g, rows, { keep: true, noLearn: true, keepAtt: true });
+    setRolls(g, rows, { keep: true, noLearn: true, keepAtt: true, edited: true });   // hand-edited scores drop the saved possession dice
     S.sheet.edit = null;
     renderSheet(); render();
     toast('Game updated. Standings and stats are recalculated.');
@@ -3024,10 +3036,10 @@ const E = (() => {
       '<div class="howtos">' +
       sec('Logging games', [
         'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Roll the red die for the away player and the blue die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
+        'Roll for whoever has the ball. The big dice are the shot: die 1 (green home, red away) is shot or turnover, die 2 (cyan home, orange away) is make, miss or foul. After a miss or a foul roll the small dice: die 3 (dark green home, maroon away) and die 4 (lime home, orange away). Tap each number as it comes up, then <b>Log roll</b>.',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
-        '<b>Simulate</b> (bottom of Home) lets the site roll for you: 1 game, the day, day after day until you press Stop, or up to a day you choose (it stops at the start of that day). Simulated games count like any other.']) +
+        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the next roll, <b>Roll the rest</b> finishes the game. Auto-rolled games count like any other.']) +
       sec('Advantages', [
         'Better players get calls: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one.',
         D.ru.skillCalls ? 'Skill runs from 1 star to 5 stars (best). ' + skillCallsText(D.ru) + ' Equal levels get no skill calls. ' + homeCallsText(D.ru) : 'Under this season’s original rules, one skill tier up gets 3 calls; two tiers up gets 6. A 10 gets 3 over a 7 or 8. The home player gets 1 extra call.',
@@ -3105,7 +3117,7 @@ const E = (() => {
         right = '<button type="button" class="btn primary big" data-act="end"' + auto + '>End Day</button>';
       } else right = '<div class="left-note">' + leftN + (leftN === 1 ? ' game' : ' games') + ' left</div>';
     }
-    return '<div class="daybar"><div class="wrap">' + left + simButton() + right + '</div></div>' + simMenu();
+    return '<div class="daybar"><div class="wrap">' + left + right + '</div></div>';
   }
 
   function seasonPicker() {
@@ -3628,7 +3640,6 @@ const E = (() => {
     if (!list.length) return;
     list.sort((x, y) => ACH[x.k].rank - ACH[y.k].rank);
     const line = a => esc(S.cfg.players[a.id] ? S.cfg.players[a.id].name : '') + ' · ' + ACH[a.k].name + (a.where ? ' (' + a.where + ')' : '');
-    if (Sim.on && (Sim.mode === 'run' || Sim.mode === 'until')) { toast(list.map(line).join(' · ')); return; }
     let host = document.getElementById('celebrate');
     if (!host) { host = document.createElement('div'); host.id = 'celebrate'; document.body.appendChild(host); }
     const big = list[0];
@@ -4172,6 +4183,8 @@ const E = (() => {
       '<button type="button" class="theme' + (c.theme === d.id ? ' on' : '') + '" data-act="theme" data-v="' + d.id + '" aria-pressed="' + (c.theme === d.id) + '">' +
       '<div class="sw" style="background:' + d.sw[0] + '"><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif">112</span><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif;opacity:.55">97</span></div>' +
       '<div class="tx"><b>' + d.name + (c.theme === d.id ? ' · in use' : '') + '</b><small>' + d.desc + '</small></div></button>').join('') + '</div></div>';
+    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b> (the site rolls the next roll for you) and <b>Roll the rest</b> (it finishes the game). You can still enter dice yourself.</div>' +
+      '<div class="seg autoset" role="group" aria-label="Auto roll"><button type="button" class="' + (c.autoRoll ? 'on' : '') + '" data-act="autoset" data-v="1" aria-pressed="' + !!c.autoRoll + '">On</button><button type="button" class="' + (c.autoRoll ? '' : 'on') + '" data-act="autoset" data-v="0" aria-pressed="' + !c.autoRoll + '">Off</button></div></div></div>';
     out += '<div class="panel"><form class="form" data-form="league"><h3 class="h3">League names</h3>' +
       '<div class="frow"><div class="field"><label for="lgName">League name</label><input type="text" id="lgName" value="' + esc(c.leagueName) + '" maxlength="40"></div></div>' +
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
@@ -4261,7 +4274,136 @@ const E = (() => {
     const card = e.target.closest('.gcard, .grow');
     if (card && e.target === card && ['Enter', ' '].includes(e.key)) { e.preventDefault(); card.click(); }
   });
+  /* ---------- Possession scoring (Dice League 2.0) ----------
+     A roll is one possession for each player, the away player first. Whoever has the ball rolls:
+       Die 1: 1 dead-ball turnover · 2 live-ball turnover (a fast break for the other player's next possession)
+              · 3–5 a 2-point shot · 6 a 3-point shot
+       Die 2: 1–3 miss · 4–5 make (3–5 on a fast break) · 6 foul
+       Foul, two dice: first 1–5 missed (free throws: 2 on a 2, 3 on a 3), 6 made and-one;
+              second, the free throws: and-one 1–2 miss, 3–6 make; 2 shots 1 none, 2–4 one, 5–6 both;
+              3 shots 1 none, 2 one, 3–4 two, 5–6 three. A missed last free throw is a dead ball.
+       Miss, two dice: first 1 out of bounds, 2 offensive rebound, 3–6 defensive rebound (second die not used);
+              second, on an offensive rebound 1–4 no putback (keeps the ball, rolls again), 5–6 putback for 2;
+              on out of bounds 1 the shooter's ball (rolls again), 2–6 the other player's. */
+  function possWalk(dice, fast) {
+    let i = 0, pts = 0, first = true, steal = false;
+    const parts = [];
+    const out = (done, need) => ({ done, need: need || null, pts, steal, text: parts.join(', ') });
+    for (;;) {
+      if (i >= dice.length) return out(false, 'Die 1 · shot or turnover');
+      const d1 = dice[i++];
+      if (d1 === 1) { parts.push('turnover (dead ball)'); return out(true); }
+      if (d1 === 2) { parts.push('turnover (stolen)'); steal = true; return out(true); }
+      const val = d1 === 6 ? 3 : 2, fb = first && fast;
+      first = false;
+      if (i >= dice.length) return out(false, 'Die 2 · make, miss or foul');
+      const d2 = dice[i++];
+      if (d2 === 6) {
+        if (i >= dice.length) return out(false, 'Foul · did the shot go in?');
+        const f1 = dice[i++];
+        if (i >= dice.length) return out(false, 'Free throws');
+        const f2 = dice[i++];
+        if (f1 === 6) {
+          const ft = f2 >= 3 ? 1 : 0;
+          pts += val + ft;
+          parts.push((fb ? 'fast break, ' : '') + 'made ' + val + ' and fouled, and-one ' + (ft ? 'made' : 'missed'));
+        } else {
+          const made = val === 3 ? [0, 1, 2, 2, 3, 3][f2 - 1] : [0, 1, 1, 1, 2, 2][f2 - 1];
+          pts += made;
+          parts.push((fb ? 'fast break, ' : '') + 'fouled on a ' + val + ', ' + made + ' of ' + val + ' free throws');
+        }
+        return out(true);
+      }
+      if (fb ? d2 >= 3 : d2 >= 4) { pts += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
+      parts.push((fb ? 'fast break, ' : '') + 'missed ' + val);
+      if (i >= dice.length) return out(false, 'Rebound');
+      const r1 = dice[i++];
+      if (r1 >= 3) { parts.push('defensive rebound'); return out(true); }
+      if (i >= dice.length) return out(false, r1 === 1 ? 'Out of bounds · whose ball?' : 'Offensive rebound · putback?');
+      const r2 = dice[i++];
+      if (r1 === 1) {
+        if (r2 === 1) { parts.push('out of bounds, still his ball'); continue; }
+        parts.push('out of bounds'); return out(true);
+      }
+      if (r2 >= 5) { pts += 2; parts.push('offensive rebound and putback'); return out(true); }
+      parts.push('offensive rebound'); // keeps the ball and rolls again
+    }
+  }
+  // dice of every logged possession: entry.p[roll] = [awayDice, homeDice]
+  const possOf = g => (recOf(g) && recOf(g).p) || [];
+  // is this possession a fast break? (the possession before it ended in a steal)
+  function possFast(g, n, side, draftA) {
+    const p = possOf(g);
+    const prev = side === 'h' ? (draftA || (p[n] && p[n][0])) : (n > 0 && p[n - 1] ? p[n - 1][1] : null);
+    return !!(prev && possWalk(prev, false).steal);
+  }
+  const possDraft = g => {
+    if (!S.poss || S.poss.gid !== g.id || S.poss.n !== g.st.n) S.poss = { gid: g.id, n: g.st.n, a: [], h: [] };
+    return S.poss;
+  };
+  // the state of the roll being entered: whose ball, what each possession has so far
+  function possNow(g) {
+    const dr = possDraft(g), n = g.st.n;
+    const wa = possWalk(dr.a, possFast(g, n, 'a'));
+    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a)) : null;
+    return { dr, wa, wh, side: !wa.done ? 'a' : !wh.done ? 'h' : null };
+  }
+  // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
+  const pdn = i => (Math.floor(i / 2) % 2 ? 3 : 1) + i % 2;
+  const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="Die ' + n + '"></span>').join('');
+  function possEntry(g) {
+    const st = g.st, now = possNow(g);
+    const side = (sd, w, dice) => {
+      const p = sd === 'a' ? g.a : g.h, on = now.side === sd;
+      return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm">' + esc(pname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
+        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll both dice' : sd === 'h' ? 'After the away possession' : '') + '</span>') + '</div>' +
+        (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
+    };
+    const cur = now.side ? (now.side === 'a' ? now.wa : now.wh) : null;
+    const fastNow = now.side && (now.side === 'a' ? now.dr.a : now.dr.h).length === 0 && possFast(g, st.n, now.side, now.dr.a);
+    return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
+      '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
+      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · <span class="die ' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '"></span>Die ' + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + ' · ' + esc(cur.need.replace(/^Die \d · /, '')) + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div><div class="chips pk-' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '">' +
+        [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
+        : '<div class="ppad"><div class="pask">Both possessions are in. Log the roll.</div></div>') +
+      '<div class="eacts"><button type="button" class="btn" data-act="' + (now.dr.a.length ? 'pback' : 'undo') + '"' + (now.dr.a.length || st.n ? '' : ' disabled') + '>' + (now.dr.a.length ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side ? ' disabled' : '') + '>Log roll</button></div>' + autoBtns(g) +
+      tip('<div class="note">Roll the dice for whoever has the ball and tap what came up; the next die to roll shows above the numbers. Back takes off the last die; Undo takes back the last roll.</div>') + '</div>';
+  }
+  function possDie(v) {
+    const g = D.byId[S.sheet.gid];
+    if (!g || !editable(g) || g.st.final) return;
+    const now = possNow(g);
+    if (!now.side) return;
+    now.dr[now.side].push(v);
+    renderSheet();
+  }
+  function possBack() {
+    const g = D.byId[S.sheet.gid];
+    if (!g) return;
+    const dr = possDraft(g);
+    if (dr.h.length) dr.h.pop(); else dr.a.pop();
+    renderSheet();
+  }
+  // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
+  function possLog(g, dice) {
+    const n = g.rolls.length;
+    const wa = possWalk(dice[0], possFast(g, n, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]));
+    const entry = ensureEntry(g);
+    entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
+    const rolls = g.rolls.concat([[wa.pts, wh.pts]]);
+    entry.r = []; rolls.forEach(r => entry.r.push(r[0], r[1]));
+    setRolls(g, rolls, { keep: true });
+    S.poss = null;
+  }
+  // one roll for the simulator: real dice by the same rules
+  function possSim(g) {
+    const n = g.rolls.length, d6 = () => 1 + Math.floor(Math.random() * 6);
+    const a = []; while (!possWalk(a, possFast(g, n, 'a')).done) a.push(d6());
+    const h = []; while (!possWalk(h, possFast(g, n, 'h', a)).done) h.push(d6());
+    possLog(g, [a, h]);
+  }
   function entryBlock(g) {
+    if (D.ru.poss) return possEntry(g);
     const st = g.st, ru = D.ru;
     const e = recOf(g) || {};
     let out = '';
@@ -4278,7 +4420,7 @@ const E = (() => {
     };
     out += '<div class="entry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + pad('rollA', 'a') + pad('rollH', 'h') + '</div>' +
-      '<div class="eacts"><button type="button" class="btn" data-act="undo"' + (st.n ? '' : ' disabled') + '>Undo</button><button type="button" class="btn primary big" data-act="log" id="logBtn">Log roll</button></div>' +
+      '<div class="eacts"><button type="button" class="btn" data-act="undo"' + (st.n ? '' : ' disabled') + '>Undo</button><button type="button" class="btn primary big" data-act="log" id="logBtn">Log roll</button></div>' + autoBtns(g) +
       tip('<div class="note">' + (ru.faces ? 'A rolled 1 counts as 0. ' : '') + 'Tap a number on each side, then Log roll (or type and press Enter).</div>') + '</div>';
     // 3) advantages (compact)
     if (ru.adv) {
@@ -4587,7 +4729,7 @@ const E = (() => {
     } finally { D = keepD; L.use(S.season && S.season.shape); }
     app.innerHTML = '<header class="top"><div class="wrap"><a class="brand brand-home" href="index.html" title="Back to modes">' + brandMark() + '<div><h1>' + esc(S.cfg.leagueName) + '</h1><div class="sub">Season ' + S.season.n + ' · ' + esc(currentRoundLabel()) + '</div></div></a>' +
       '<nav class="tabs" aria-label="Pages">' + tabs.map(([k, l]) => '<button type="button" class="tab' + (S.view === k ? ' on' : '') + '" data-act="nav" data-v="' + k + '"' + (S.view === k ? ' aria-current="page"' : '') + '>' + l + '</button>').join('') + '</nav></div></header>' +
-      '<main><div class="wrap">' + (Store.mode === 'demo' ? '<div class="banner demo">Preview league: ' + esc(window.__DL_DEMO_LABEL__ || 'simulated') + '. Look around and log rolls; nothing here saves, and your real league isn’t touched.</div>' : '') + main + '</div></main>' + (Sim.on ? simBar() : S.view === 'home' ? dayBar() : '');
+      '<main><div class="wrap">' + (Store.mode === 'demo' ? '<div class="banner demo">Preview league: ' + esc(window.__DL_DEMO_LABEL__ || 'simulated') + '. Look around and log rolls; nothing here saves, and your real league isn’t touched.</div>' : '') + main + '</div></main>' + (S.view === 'home' ? dayBar() : '');
     cleanHints(app);
     window.scrollTo(sx, sy);
     const on = app.querySelector('.tab.on'), bar = app.querySelector('.tabs');
@@ -4614,7 +4756,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll the <b>red die</b> for the away player and the <b>blue die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll for whoever has the ball: the big dice are the shot (die 1 green home / red away, die 2 cyan home / orange away), the small dice are the rebound or free throws (die 3 dark green / maroon, die 4 lime / orange). Tap each number as it comes up, then press <b>Log roll</b>.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
@@ -4697,17 +4839,15 @@ const E = (() => {
     Tour.cur = null; Tour.i = -1;
     const host = document.getElementById('tourHost'); if (host) host.innerHTML = '';
   }
-  /* ---------- simulate: the site rolls the dice (one game, the rest of the day, or until stopped) ---------- */
-  const SIM_SPEEDS = [['Slow', 700], ['Normal', 300], ['Fast', 90], ['Max', 0]];
-  const Sim = { on: false, menu: false, mode: null, until: null, gid: null, done: 0, timer: null, speed: 1 };
-  try { const v = +localStorage.getItem(LSK + 'simSpeed'); if (v >= 0 && v < SIM_SPEEDS.length) Sim.speed = v; } catch (e) { /* */ }
-  const canSim = () => !!(S.season && S.season.phase !== 'done' && D && D.cur && D.ru.faces);
+  /* ---------- auto roll: the site rolls the dice (turned on in Settings) ---------- */
+  const canAuto = g => !!(S.cfg.autoRoll && g && editable(g) && !g.st.final && (D.ru.faces || D.ru.poss));
   function simDie() {
     const F = D.ru.faces;
     try { const b = new Uint32Array(1); crypto.getRandomValues(b); return F[b[0] % F.length]; } catch (e) { return F[Math.floor(Math.random() * F.length)]; }
   }
   // one roll, the same way a typed roll is logged: calls decided, re-rolls applied (offense first, then defense)
   function simRoll(g) {
+    if (D.ru.poss) { possSim(g); return D.byId[g.id]; }
     const entry = ensureEntry(g);
     runAuto(entry, g, g.rolls);
     const i = g.rolls.length;
@@ -4720,69 +4860,18 @@ const E = (() => {
     setRolls(g, rolls, { keep: true });
     return D.byId[g.id];
   }
-  function simStart(mode, until) {
-    if (!canSim()) return;
-    S.sheet = null; renderSheet();
-    Object.assign(Sim, { on: true, menu: false, mode, until: until || null, gid: null, done: 0 });
-    render(); simNext(0);
+  // Auto roll: one roll, or every roll left in the game
+  function autoRoll(all) {
+    const g0 = D.byId[S.sheet && S.sheet.gid];
+    if (!canAuto(g0)) return;
+    S.poss = null;
+    let g = simRoll(g0);
+    while (all && !g.st.final) g = simRoll(g);
+    renderSheet(); render();
+    if (g.st.final) toast('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
+    else if (g.st.n === 24) toast('Tied after regulation. Overtime!');
   }
-  function simStop(msg) {
-    clearTimeout(Sim.timer); Sim.timer = null;
-    Sim.on = false; Sim.gid = null;
-    render(); if (msg) toast(msg);
-  }
-  function simNext(ms) { clearTimeout(Sim.timer); Sim.timer = setTimeout(simStep, ms); }
-  function simStep() {
-    Sim.timer = null;
-    if (!Sim.on) return;
-    const s = S.season, wait = SIM_SPEEDS[Sim.speed][1];
-    if (Sim.mode === 'until' && s.phase !== 'done' && !s.day.active && s.day.cur >= Sim.until) return simStop('Stopped at the start of Day ' + s.day.cur + '.');
-    if (s.phase === 'done') return simStop(Sim.mode === 'until' ? 'The season ended before Day ' + Sim.until + '.' : undefined);
-    if (!s.day.active) {
-      startDay();
-      if (!s.day.active) return simStop();
-      return simNext(Math.max(250, wait * 2));
-    }
-    let g = Sim.gid ? D.byId[Sim.gid] : null;
-    if (!g || g.st.final) {
-      const left = dayGames(D, s.day.cur).filter(x => !x.st.final);
-      g = left.find(x => x.st.n > 0) || left[0];
-      if (!g) {
-        // every game today is final: "the day" and "1 game" stop once they've played something, otherwise move on to the next day
-        if (Sim.mode !== 'run' && Sim.mode !== 'until' && Sim.done) return simStop('Day ' + s.day.cur + ' is done. Press End Day when you’re ready.');
-        endDay(false);
-        return simNext(Math.max(300, wait * 3));
-      }
-      Sim.gid = g.id;
-    }
-    if (wait) g = simRoll(g); else while (!g.st.final) g = simRoll(g);
-    const fin = g.st.final;
-    if (fin) { Sim.done++; Sim.gid = null; }
-    // keep the screen live: every roll on pages that show games, otherwise when a game ends
-    if (fin || S.view === 'home' || S.view === 'games') render();
-    if (S.sheet && S.sheet.gid === g.id) renderSheet();
-    if (fin && Sim.mode === 'game') return simStop('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
-    simNext(fin ? Math.max(30, wait * 3) : wait);
-  }
-  function simButton() {
-    return canSim() && !Sim.on ? '<button type="button" class="simlink" data-act="simmenu" aria-expanded="' + Sim.menu + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="9" cy="9" r="1.2" fill="currentColor"></circle><circle cx="15" cy="15" r="1.2" fill="currentColor"></circle></svg>Simulate</button>' : '';
-  }
-  const speedSeg = () => '<div class="seg sm" role="group" aria-label="Speed">' + SIM_SPEEDS.map(([l], i) => '<button type="button" class="' + (Sim.speed === i ? 'on' : '') + '" data-act="simspeed" data-v="' + i + '">' + l + '</button>').join('') + '</div>';
-  function simMenu() {
-    if (!Sim.menu || Sim.on) return '';
-    const opt = (mode, t, sub) => '<button type="button" class="simopt" data-act="simgo" data-v="' + mode + '"><b>' + t + '</b><small>' + sub + '</small></button>';
-    return '<div class="simpop" role="dialog" aria-label="Simulate"><div class="simhd"><h3 class="h3">Simulate</h3><button type="button" class="xbtn" data-act="simmenu" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>' +
-      tip('<p class="note">The site rolls the dice for you. Simulated games count like any other.</p>') +
-      opt('game', '1 game', 'The next game today') + opt('day', 'The day', 'Every game left today') + opt('run', 'Keep going', 'Day after day, until you press Stop') +
-      '<form class="simuntil" data-form="simuntil" novalidate><label for="simUntil"><b>Until a day</b><small>Stops at the start of that day</small></label><input type="number" inputmode="numeric" id="simUntil" min="' + (S.season.day.cur + 1) + '" placeholder="Day" value="' + esc(Sim.untilTxt || '') + '" aria-label="Day to stop at"><button type="submit" class="btn sm primary">Go</button></form>' +
-      '<div class="simspd"><small>Speed</small>' + speedSeg() + '</div></div>';
-  }
-  function simBar() {
-    const s = S.season, g = Sim.gid ? D.byId[Sim.gid] : null;
-    const what = g ? esc(sname(g.a)) + ' ' + g.st.a + ' – ' + g.st.h + ' ' + esc(sname(g.h)) + ' <small>' + esc(g.st.short) + '</small>' : 'Day ' + s.day.cur;
-    return '<div class="daybar simbar"><div class="wrap"><div class="status"><span class="dot" aria-hidden="true"></span><span><b>Simulating</b>' + (Sim.mode === 'until' ? ' to Day ' + Sim.until : '') + ' · ' + what + '</span></div>' +
-      speedSeg() + '<button type="button" class="btn primary" data-act="simstop">Stop</button></div></div>';
-  }
+  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll">Auto roll</button><button type="button" class="btn" data-act="autorest">Roll the rest</button></div>' : '';
 
   document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('schips')) syncChips(e.target.parentElement.parentElement); }, true);
   window.addEventListener('resize', () => { syncChips(); if (Tour.cur) tourPlace(); });
@@ -4791,7 +4880,6 @@ const E = (() => {
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]');
-    if (Sim.menu && !e.target.closest('.simpop') && !(el && el.dataset.act === 'simmenu')) { Sim.menu = false; render(); }
     if (!el) return;
     const act = el.dataset.act;
     if (act === 'closebg') { if (e.target === el) { closeSheet(); } return; }
@@ -4806,16 +4894,17 @@ const E = (() => {
       case 'gclear': S.gamesTeam = null; render(); break;
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
-      case 'tour': if (Sim.on) simStop(); tourStart(); break;
-      case 'simmenu': Sim.menu = !Sim.menu; render(); break;
-      case 'simgo': simStart(el.dataset.v); break;
-      case 'simspeed': Sim.speed = +el.dataset.v; try { localStorage.setItem(LSK + 'simSpeed', Sim.speed); } catch (x) { /* */ } render(); if (Sim.on && Sim.timer) simNext(SIM_SPEEDS[Sim.speed][1]); break;
-      case 'simstop': simStop(); break;
+      case 'tour': tourStart(); break;
+      case 'autoroll': autoRoll(false); break;
+      case 'autorest': autoRoll(true); break;
+      case 'autoset': S.cfg.autoRoll = el.dataset.v === '1'; saveCfg(); render(); toast('Auto roll is ' + (S.cfg.autoRoll ? 'on.' : 'off.')); break;
       case 'tnext': tourShow(Tour.i + 1); break;
       case 'tback': tourShow(Math.max(0, Tour.i - 1)); break;
       case 'tskip': tourSkip(); break;
       case 'tdone': tourEnd(); break;
       case 'startgame': startGame(D.byId[S.sheet.gid]); break;
+      case 'pdie': possDie(+el.dataset.v); break;
+      case 'pback': possBack(); break;
       case 'sertab': S.serTab = { gid: S.sheet && S.sheet.gid, v: el.dataset.v }; renderSheet(); break;
       case 'sscroll': { const c = el.parentElement.querySelector('.schips'); if (c) c.scrollBy({ left: +el.dataset.dir * Math.max(120, c.clientWidth * 0.8), behavior: 'smooth' }); break; }
       case 'lgswitch': leagueGo(el.dataset.v); break;
@@ -4911,7 +5000,6 @@ const E = (() => {
       const sh = draftShape(setupDraft());
       S.cfg.shape = sh;
       if (canReshape()) {
-        if (Sim.on) simStop();
         // A brand-new league: drop the unused default players ("Player 7" and so on) beyond the new size.
         if (S.cfg.seasons.length === 1 && !Object.keys(S.cfg.history || {}).length && S.cfg.players.slice(sh.n).every(pl => /^Player \d+$/.test(pl.name))) {
           S.cfg.players.length = Math.min(S.cfg.players.length, sh.n);
@@ -4925,11 +5013,6 @@ const E = (() => {
       } else toast('League setup saved for next season.');
       saveCfg(); S.lsDraft = null; refresh(); render();
       return;
-    }
-    if (f.dataset.form === 'simuntil') {
-      const day = parseInt(document.getElementById('simUntil').value, 10), cur = S.season.day.cur;
-      if (!(day > cur)) { toast('Pick a day after Day ' + cur + '.'); return; }
-      Sim.untilTxt = String(day); simStart('until', day); return;
     }
     if (f.dataset.form === 'newleague') { const nm = (document.getElementById('newLg').value || '').trim().slice(0, 40); if (!nm) { toast('Type a name for the new league.'); return; } leagueGo('l' + Date.now().toString(36), nm); return; }
     const c = S.cfg;
@@ -4976,7 +5059,6 @@ const E = (() => {
   });
   document.addEventListener('focusin', e => { if (e.target && (e.target.id === 'rollA' || e.target.id === 'rollH')) { try { e.target.select(); } catch (x) { /* */ } } });
   document.addEventListener('input', e => {
-    if (e.target && e.target.id === 'simUntil') Sim.untilTxt = e.target.value;
     if (e.target && (e.target.id === 'rollA' || e.target.id === 'rollH')) {
       const faces = D && D.ru && D.ru.faces;
       if (faces) {
@@ -5023,7 +5105,6 @@ const E = (() => {
       else if (e.key === 'ArrowLeft' && !Tour.cur.skip && Tour.i > 0) tourShow(Tour.i - 1);
       return;
     }
-    if (Sim.menu && e.key === 'Escape') { Sim.menu = false; render(); return; }
     if (!S.sheet) return;
     if (e.key === 'Escape') { closeSheet(); return; }
     if (e.key === 'Enter' && e.target && e.target.id === 'rollA') { e.preventDefault(); const h = document.getElementById('rollH'); if (h && h.value !== '' && e.target.value !== '') logRoll(); else if (h) h.focus(); }
@@ -5035,7 +5116,7 @@ const E = (() => {
   });
 
   async function reloadIfIdle() {
-    if (!S.ready || S.sheet || Sim.on || S.view === 'settings' || S.view === 'setup' || Store.pending()) return;
+    if (!S.ready || S.sheet || S.view === 'settings' || S.view === 'setup' || Store.pending()) return;
     try {
       const cfg = await Store.get('league/config');
       if (!cfg || Store.pending() || S.sheet) return;
@@ -5107,7 +5188,6 @@ const E = (() => {
   async function restoreLeague() {
     const d = S.restore && S.restore.data;
     if (!d) return;
-    if (Sim.on) simStop();
     try {
       while (Store.pending()) await new Promise(r => setTimeout(r, 50));
       for (const n of S.cfg.seasons) {
@@ -5134,7 +5214,6 @@ const E = (() => {
     }
   }
   async function resetLeague() {
-    if (Sim.on) simStop();
     const ns = S.cfg.seasons.slice();
     for (const n of ns) {
       const list = await Store.list(seasonPath(n) + '/days').catch(() => []);

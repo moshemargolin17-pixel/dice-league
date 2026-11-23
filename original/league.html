@@ -767,7 +767,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .callform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .callform select{min-height:38px;max-width:100%}
 .die{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.die.red{background:#D33A2C}.die.blue{background:#2F6FDB}
+.die.blk{background:#141414;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)}.die.wht{background:#FFFFFF;box-shadow:inset 0 0 0 1px #7C828C}
 .ctag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;font-size:10.5px;font-weight:700;border:1px solid var(--line)}
 .ctag.h{color:#2F6FDB;border-color:#2F6FDB}.ctag.a{color:#D33A2C;border-color:#D33A2C}
 .shbtns{display:flex;gap:8px;align-items:center}
@@ -1017,23 +1017,6 @@ button.cday:hover{background:var(--panel-2)}
 .howto summary::after{content:'+';font-size:20px;line-height:1;color:var(--muted)}
 .howto[open] summary::after{content:'−'}
 .howto ul{margin:0;padding:0 2px 14px 18px;display:grid;gap:8px;font-size:14px;line-height:1.5}
-/* simulate */
-.simlink{appearance:none;background:none;border:0;color:inherit;opacity:.65;font:inherit;font-size:13px;font-weight:600;display:inline-flex;align-items:center;gap:6px;padding:0 6px;min-height:44px;cursor:pointer}
-.simlink:hover,.simlink:focus-visible{opacity:1;text-decoration:underline;text-underline-offset:3px}
-.simpop{position:fixed;z-index:30;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 84px);width:min(340px,calc(100vw - 32px));background:var(--panel);color:var(--ink);border:var(--panel-border);border-radius:var(--radius);box-shadow:0 16px 48px rgba(0,0,0,.35);padding:14px 16px;display:flex;flex-direction:column;gap:8px}
-.simhd{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.simopt{appearance:none;text-align:left;font:inherit;background:var(--panel-2);color:var(--ink);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;min-height:44px;cursor:pointer;display:flex;flex-direction:column;gap:2px}
-.simopt:hover,.simopt:focus-visible{border-color:var(--accent)}
-.simopt b{font-size:15px}
-.simopt small{font-size:13px;color:var(--muted)}
-.simspd{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:4px}
-.simspd small{font-size:13px;font-weight:700;color:var(--muted)}
-.simbar .status{flex:1;min-width:0}
-.simbar .status span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.simbar .status small{opacity:.75}
-.simbar .dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--live);animation:simpulse 1.2s infinite}
-@keyframes simpulse{50%{opacity:.3}}
-@media (max-width:560px){.simbar .status{flex-basis:100%;min-height:0}.simbar .wrap{row-gap:8px}}
 /* tutorial */
 .tour{position:fixed;inset:0;z-index:55}
 .tour-block{position:absolute;inset:0}
@@ -1093,13 +1076,6 @@ button.pcell:hover,button.pcell:focus-visible{border-color:var(--accent)}
 .field.short{flex:0 1 110px}
 .seatgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px}
 .seats{display:flex;flex-direction:column;gap:6px}
-/* simulate until a day */
-.simuntil{display:grid;grid-template-columns:minmax(0,1fr) 72px auto;gap:8px;align-items:center;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px}
-.simuntil label{display:flex;flex-direction:column;gap:2px}
-.simuntil b{font-size:15px}
-.simuntil small{font-size:13px;color:var(--muted)}
-.simuntil input{min-height:38px;padding:4px 6px}
-.simuntil .btn{min-height:38px}
 
 
 /* ---- Black & White ---- */
@@ -1142,6 +1118,8 @@ html[data-design="mono"] .tab:focus-visible{outline:2px solid #FFFFFF;outline-of
 /* Logo links back to the mode picker */
 a.brand-home{text-decoration:none;color:inherit}
 a.brand-home:focus-visible{outline:2px solid var(--accent);outline-offset:4px;border-radius:6px}
+.autorow{display:flex;gap:8px;margin-top:10px}.autorow .btn{flex:1}
+.autoset{display:flex;gap:8px;flex-wrap:wrap}
 </style>
 </head><body><div id="app"></div>
 <script src="config.js"></script>
@@ -1958,7 +1936,6 @@ const E = (() => {
     syncName() { const e = this.list.find(x => x.id === this.id); if (e) e.name = S.cfg.leagueName; }
   };
   async function leagueGo(id, make) {
-    if (Sim.on) simStop();
     while (Store.pending()) await new Promise(r => setTimeout(r, 50));
     Leagues.syncName();
     if (make) Leagues.list.push({ id, name: make });
@@ -2977,10 +2954,10 @@ const E = (() => {
       '<div class="howtos">' +
       sec('Logging games', [
         'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Roll the red die for the away player and the blue die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
+        'Roll the black die for the away player and the white die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
-        '<b>Simulate</b> (bottom of Home) lets the site roll for you: 1 game, the day, day after day until you press Stop, or up to a day you choose (it stops at the start of that day). Simulated games count like any other.']) +
+        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the next roll, <b>Roll the rest</b> finishes the game. Auto-rolled games count like any other.']) +
       sec('Advantages', [
         'Better players get calls: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one.',
         D.ru.skillCalls ? 'Skill runs from 1 star to 5 stars (best). ' + skillCallsText(D.ru) + ' Equal levels get no skill calls. ' + homeCallsText(D.ru) : 'Under this season’s original rules, one skill tier up gets 3 calls; two tiers up gets 6. A 10 gets 3 over a 7 or 8. The home player gets 1 extra call.',
@@ -3058,7 +3035,7 @@ const E = (() => {
         right = '<button type="button" class="btn primary big" data-act="end"' + auto + '>End Day</button>';
       } else right = '<div class="left-note">' + leftN + (leftN === 1 ? ' game' : ' games') + ' left</div>';
     }
-    return '<div class="daybar"><div class="wrap">' + left + simButton() + right + '</div></div>' + simMenu();
+    return '<div class="daybar"><div class="wrap">' + left + right + '</div></div>';
   }
 
   function seasonPicker() {
@@ -3581,7 +3558,6 @@ const E = (() => {
     if (!list.length) return;
     list.sort((x, y) => ACH[x.k].rank - ACH[y.k].rank);
     const line = a => esc(S.cfg.players[a.id] ? S.cfg.players[a.id].name : '') + ' · ' + ACH[a.k].name + (a.where ? ' (' + a.where + ')' : '');
-    if (Sim.on && (Sim.mode === 'run' || Sim.mode === 'until')) { toast(list.map(line).join(' · ')); return; }
     let host = document.getElementById('celebrate');
     if (!host) { host = document.createElement('div'); host.id = 'celebrate'; document.body.appendChild(host); }
     const big = list[0];
@@ -4125,6 +4101,8 @@ const E = (() => {
       '<button type="button" class="theme' + (c.theme === d.id ? ' on' : '') + '" data-act="theme" data-v="' + d.id + '" aria-pressed="' + (c.theme === d.id) + '">' +
       '<div class="sw" style="background:' + d.sw[0] + '"><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif">112</span><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif;opacity:.55">97</span></div>' +
       '<div class="tx"><b>' + d.name + (c.theme === d.id ? ' · in use' : '') + '</b><small>' + d.desc + '</small></div></button>').join('') + '</div></div>';
+    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b> (the site rolls the next roll for you) and <b>Roll the rest</b> (it finishes the game). You can still enter dice yourself.</div>' +
+      '<div class="seg autoset" role="group" aria-label="Auto roll"><button type="button" class="' + (c.autoRoll ? 'on' : '') + '" data-act="autoset" data-v="1" aria-pressed="' + !!c.autoRoll + '">On</button><button type="button" class="' + (c.autoRoll ? '' : 'on') + '" data-act="autoset" data-v="0" aria-pressed="' + !c.autoRoll + '">Off</button></div></div></div>';
     out += '<div class="panel"><form class="form" data-form="league"><h3 class="h3">League names</h3>' +
       '<div class="frow"><div class="field"><label for="lgName">League name</label><input type="text" id="lgName" value="' + esc(c.leagueName) + '" maxlength="40"></div></div>' +
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
@@ -4194,10 +4172,10 @@ const E = (() => {
   }
 
   /* ---------- sheet ---------- */
-  const SIDE_TXT = { a: 'Away · red die', h: 'Home · blue die' };
+  const SIDE_TXT = { a: 'Away · black die', h: 'Home · white die' };
   function callText(g, c) {
     const who = esc(pname(c.s === 'a' ? g.a : g.h));
-    const myDie = c.s === 'a' ? 'red' : 'blue', oppDie = c.s === 'a' ? 'blue' : 'red';
+    const myDie = c.s === 'a' ? 'black' : 'white', oppDie = c.s === 'a' ? 'white' : 'black';
     const tag = (c.k === 'x' ? 'home call, ' : '') + (c.t === 'o' ? 'offense' : 'defense');
     const how = c.t === 'o' ? 're-roll the ' + myDie + ' die, keep the higher' : 're-roll the ' + oppDie + ' die, keep the lower';
     return { who, tag, how };
@@ -4225,13 +4203,13 @@ const E = (() => {
     const faces = ru.faces || Array.from({ length: 13 }, (_, i) => i);
     const pad = (id, side) => {
       const p = side === 'a' ? g.a : g.h;
-      return '<div class="eside"><div class="elab"><span class="die ' + (side === 'a' ? 'red' : 'blue') + '"></span><span class="enm">' + esc(pname(p)) + '</span><small>' + (side === 'a' ? 'away · red' : 'home · blue') + '</small></div>' +
+      return '<div class="eside"><div class="elab"><span class="die ' + (side === 'a' ? 'blk' : 'wht') + '"></span><span class="enm">' + esc(pname(p)) + '</span><small>' + (side === 'a' ? 'away · black' : 'home · white') + '</small></div>' +
         '<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="' + id + '" maxlength="' + (ru.faces ? 2 : 2) + '" placeholder="–" aria-label="' + esc(pname(p)) + ' points">' +
         '<div class="chips' + (faces.length > 6 ? ' many' : '') + '">' + faces.map(i => '<button type="button" class="chip" data-act="chip" data-t="' + id + '" data-v="' + i + '">' + i + '</button>').join('') + '</div></div>';
     };
     out += '<div class="entry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + pad('rollA', 'a') + pad('rollH', 'h') + '</div>' +
-      '<div class="eacts"><button type="button" class="btn" data-act="undo"' + (st.n ? '' : ' disabled') + '>Undo</button><button type="button" class="btn primary big" data-act="log" id="logBtn">Log roll</button></div>' +
+      '<div class="eacts"><button type="button" class="btn" data-act="undo"' + (st.n ? '' : ' disabled') + '>Undo</button><button type="button" class="btn primary big" data-act="log" id="logBtn">Log roll</button></div>' + autoBtns(g) +
       tip('<div class="note">' + (ru.faces ? 'A rolled 1 counts as 0. ' : '') + 'Tap a number on each side, then Log roll (or type and press Enter).</div>') + '</div>';
     // 3) advantages (compact)
     if (ru.adv) {
@@ -4540,7 +4518,7 @@ const E = (() => {
     } finally { D = keepD; L.use(S.season && S.season.shape); }
     app.innerHTML = '<header class="top"><div class="wrap"><a class="brand brand-home" href="index.html" title="Back to modes">' + brandMark() + '<div><h1>' + esc(S.cfg.leagueName) + '</h1><div class="sub">Season ' + S.season.n + ' · ' + esc(currentRoundLabel()) + '</div></div></a>' +
       '<nav class="tabs" aria-label="Pages">' + tabs.map(([k, l]) => '<button type="button" class="tab' + (S.view === k ? ' on' : '') + '" data-act="nav" data-v="' + k + '"' + (S.view === k ? ' aria-current="page"' : '') + '>' + l + '</button>').join('') + '</nav></div></header>' +
-      '<main><div class="wrap">' + (Store.mode === 'demo' ? '<div class="banner demo">Preview league: ' + esc(window.__DL_DEMO_LABEL__ || 'simulated') + '. Look around and log rolls; nothing here saves, and your real league isn’t touched.</div>' : '') + main + '</div></main>' + (Sim.on ? simBar() : S.view === 'home' ? dayBar() : '');
+      '<main><div class="wrap">' + (Store.mode === 'demo' ? '<div class="banner demo">Preview league: ' + esc(window.__DL_DEMO_LABEL__ || 'simulated') + '. Look around and log rolls; nothing here saves, and your real league isn’t touched.</div>' : '') + main + '</div></main>' + (S.view === 'home' ? dayBar() : '');
     cleanHints(app);
     window.scrollTo(sx, sy);
     const on = app.querySelector('.tab.on'), bar = app.querySelector('.tabs');
@@ -4567,7 +4545,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll the <b>red die</b> for the away player and the <b>blue die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll the <b>black die</b> for the away player and the <b>white die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
@@ -4650,11 +4628,8 @@ const E = (() => {
     Tour.cur = null; Tour.i = -1;
     const host = document.getElementById('tourHost'); if (host) host.innerHTML = '';
   }
-  /* ---------- simulate: the site rolls the dice (one game, the rest of the day, or until stopped) ---------- */
-  const SIM_SPEEDS = [['Slow', 700], ['Normal', 300], ['Fast', 90], ['Max', 0]];
-  const Sim = { on: false, menu: false, mode: null, until: null, gid: null, done: 0, timer: null, speed: 1 };
-  try { const v = +localStorage.getItem(LSK + 'simSpeed'); if (v >= 0 && v < SIM_SPEEDS.length) Sim.speed = v; } catch (e) { /* */ }
-  const canSim = () => !!(S.season && S.season.phase !== 'done' && D && D.cur && D.ru.faces);
+  /* ---------- auto roll: the site rolls the dice (turned on in Settings) ---------- */
+  const canAuto = g => !!(S.cfg.autoRoll && g && editable(g) && !g.st.final && (D.ru.faces || D.ru.poss));
   function simDie() {
     const F = D.ru.faces;
     try { const b = new Uint32Array(1); crypto.getRandomValues(b); return F[b[0] % F.length]; } catch (e) { return F[Math.floor(Math.random() * F.length)]; }
@@ -4673,69 +4648,18 @@ const E = (() => {
     setRolls(g, rolls, { keep: true });
     return D.byId[g.id];
   }
-  function simStart(mode, until) {
-    if (!canSim()) return;
-    S.sheet = null; renderSheet();
-    Object.assign(Sim, { on: true, menu: false, mode, until: until || null, gid: null, done: 0 });
-    render(); simNext(0);
+  // Auto roll: one roll, or every roll left in the game
+  function autoRoll(all) {
+    const g0 = D.byId[S.sheet && S.sheet.gid];
+    if (!canAuto(g0)) return;
+    S.poss = null;
+    let g = simRoll(g0);
+    while (all && !g.st.final) g = simRoll(g);
+    renderSheet(); render();
+    if (g.st.final) toast('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
+    else if (g.st.n === 24) toast('Tied after regulation. Overtime!');
   }
-  function simStop(msg) {
-    clearTimeout(Sim.timer); Sim.timer = null;
-    Sim.on = false; Sim.gid = null;
-    render(); if (msg) toast(msg);
-  }
-  function simNext(ms) { clearTimeout(Sim.timer); Sim.timer = setTimeout(simStep, ms); }
-  function simStep() {
-    Sim.timer = null;
-    if (!Sim.on) return;
-    const s = S.season, wait = SIM_SPEEDS[Sim.speed][1];
-    if (Sim.mode === 'until' && s.phase !== 'done' && !s.day.active && s.day.cur >= Sim.until) return simStop('Stopped at the start of Day ' + s.day.cur + '.');
-    if (s.phase === 'done') return simStop(Sim.mode === 'until' ? 'The season ended before Day ' + Sim.until + '.' : undefined);
-    if (!s.day.active) {
-      startDay();
-      if (!s.day.active) return simStop();
-      return simNext(Math.max(250, wait * 2));
-    }
-    let g = Sim.gid ? D.byId[Sim.gid] : null;
-    if (!g || g.st.final) {
-      const left = dayGames(D, s.day.cur).filter(x => !x.st.final);
-      g = left.find(x => x.st.n > 0) || left[0];
-      if (!g) {
-        // every game today is final: "the day" and "1 game" stop once they've played something, otherwise move on to the next day
-        if (Sim.mode !== 'run' && Sim.mode !== 'until' && Sim.done) return simStop('Day ' + s.day.cur + ' is done. Press End Day when you’re ready.');
-        endDay(false);
-        return simNext(Math.max(300, wait * 3));
-      }
-      Sim.gid = g.id;
-    }
-    if (wait) g = simRoll(g); else while (!g.st.final) g = simRoll(g);
-    const fin = g.st.final;
-    if (fin) { Sim.done++; Sim.gid = null; }
-    // keep the screen live: every roll on pages that show games, otherwise when a game ends
-    if (fin || S.view === 'home' || S.view === 'games') render();
-    if (S.sheet && S.sheet.gid === g.id) renderSheet();
-    if (fin && Sim.mode === 'game') return simStop('Final: ' + pname(g.a) + ' ' + g.st.a + ', ' + pname(g.h) + ' ' + g.st.h);
-    simNext(fin ? Math.max(30, wait * 3) : wait);
-  }
-  function simButton() {
-    return canSim() && !Sim.on ? '<button type="button" class="simlink" data-act="simmenu" aria-expanded="' + Sim.menu + '"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><circle cx="9" cy="9" r="1.2" fill="currentColor"></circle><circle cx="15" cy="15" r="1.2" fill="currentColor"></circle></svg>Simulate</button>' : '';
-  }
-  const speedSeg = () => '<div class="seg sm" role="group" aria-label="Speed">' + SIM_SPEEDS.map(([l], i) => '<button type="button" class="' + (Sim.speed === i ? 'on' : '') + '" data-act="simspeed" data-v="' + i + '">' + l + '</button>').join('') + '</div>';
-  function simMenu() {
-    if (!Sim.menu || Sim.on) return '';
-    const opt = (mode, t, sub) => '<button type="button" class="simopt" data-act="simgo" data-v="' + mode + '"><b>' + t + '</b><small>' + sub + '</small></button>';
-    return '<div class="simpop" role="dialog" aria-label="Simulate"><div class="simhd"><h3 class="h3">Simulate</h3><button type="button" class="xbtn" data-act="simmenu" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></div>' +
-      tip('<p class="note">The site rolls the dice for you. Simulated games count like any other.</p>') +
-      opt('game', '1 game', 'The next game today') + opt('day', 'The day', 'Every game left today') + opt('run', 'Keep going', 'Day after day, until you press Stop') +
-      '<form class="simuntil" data-form="simuntil" novalidate><label for="simUntil"><b>Until a day</b><small>Stops at the start of that day</small></label><input type="number" inputmode="numeric" id="simUntil" min="' + (S.season.day.cur + 1) + '" placeholder="Day" value="' + esc(Sim.untilTxt || '') + '" aria-label="Day to stop at"><button type="submit" class="btn sm primary">Go</button></form>' +
-      '<div class="simspd"><small>Speed</small>' + speedSeg() + '</div></div>';
-  }
-  function simBar() {
-    const s = S.season, g = Sim.gid ? D.byId[Sim.gid] : null;
-    const what = g ? esc(sname(g.a)) + ' ' + g.st.a + ' – ' + g.st.h + ' ' + esc(sname(g.h)) + ' <small>' + esc(g.st.short) + '</small>' : 'Day ' + s.day.cur;
-    return '<div class="daybar simbar"><div class="wrap"><div class="status"><span class="dot" aria-hidden="true"></span><span><b>Simulating</b>' + (Sim.mode === 'until' ? ' to Day ' + Sim.until : '') + ' · ' + what + '</span></div>' +
-      speedSeg() + '<button type="button" class="btn primary" data-act="simstop">Stop</button></div></div>';
-  }
+  const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll">Auto roll</button><button type="button" class="btn" data-act="autorest">Roll the rest</button></div>' : '';
 
   document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('schips')) syncChips(e.target.parentElement.parentElement); }, true);
   window.addEventListener('resize', () => { syncChips(); if (Tour.cur) tourPlace(); });
@@ -4744,7 +4668,6 @@ const E = (() => {
   /* ---------- events ---------- */
   document.addEventListener('click', e => {
     const el = e.target.closest('[data-act]');
-    if (Sim.menu && !e.target.closest('.simpop') && !(el && el.dataset.act === 'simmenu')) { Sim.menu = false; render(); }
     if (!el) return;
     const act = el.dataset.act;
     if (act === 'closebg') { if (e.target === el) { closeSheet(); } return; }
@@ -4759,11 +4682,10 @@ const E = (() => {
       case 'gclear': S.gamesTeam = null; render(); break;
       case 'authmode': Cloud.mode = el.dataset.v; Cloud.msg = ''; authScreen(); break;
       case 'signout': if (armConfirm('signout')) signOut(); break;
-      case 'tour': if (Sim.on) simStop(); tourStart(); break;
-      case 'simmenu': Sim.menu = !Sim.menu; render(); break;
-      case 'simgo': simStart(el.dataset.v); break;
-      case 'simspeed': Sim.speed = +el.dataset.v; try { localStorage.setItem(LSK + 'simSpeed', Sim.speed); } catch (x) { /* */ } render(); if (Sim.on && Sim.timer) simNext(SIM_SPEEDS[Sim.speed][1]); break;
-      case 'simstop': simStop(); break;
+      case 'tour': tourStart(); break;
+      case 'autoroll': autoRoll(false); break;
+      case 'autorest': autoRoll(true); break;
+      case 'autoset': S.cfg.autoRoll = el.dataset.v === '1'; saveCfg(); render(); toast('Auto roll is ' + (S.cfg.autoRoll ? 'on.' : 'off.')); break;
       case 'tnext': tourShow(Tour.i + 1); break;
       case 'tback': tourShow(Math.max(0, Tour.i - 1)); break;
       case 'tskip': tourSkip(); break;
@@ -4864,7 +4786,6 @@ const E = (() => {
       const sh = draftShape(setupDraft());
       S.cfg.shape = sh;
       if (canReshape()) {
-        if (Sim.on) simStop();
         // A brand-new league: drop the unused default players ("Player 7" and so on) beyond the new size.
         if (S.cfg.seasons.length === 1 && !Object.keys(S.cfg.history || {}).length && S.cfg.players.slice(sh.n).every(pl => /^Player \d+$/.test(pl.name))) {
           S.cfg.players.length = Math.min(S.cfg.players.length, sh.n);
@@ -4878,11 +4799,6 @@ const E = (() => {
       } else toast('League setup saved for next season.');
       saveCfg(); S.lsDraft = null; refresh(); render();
       return;
-    }
-    if (f.dataset.form === 'simuntil') {
-      const day = parseInt(document.getElementById('simUntil').value, 10), cur = S.season.day.cur;
-      if (!(day > cur)) { toast('Pick a day after Day ' + cur + '.'); return; }
-      Sim.untilTxt = String(day); simStart('until', day); return;
     }
     if (f.dataset.form === 'newleague') { const nm = (document.getElementById('newLg').value || '').trim().slice(0, 40); if (!nm) { toast('Type a name for the new league.'); return; } leagueGo('l' + Date.now().toString(36), nm); return; }
     const c = S.cfg;
@@ -4929,7 +4845,6 @@ const E = (() => {
   });
   document.addEventListener('focusin', e => { if (e.target && (e.target.id === 'rollA' || e.target.id === 'rollH')) { try { e.target.select(); } catch (x) { /* */ } } });
   document.addEventListener('input', e => {
-    if (e.target && e.target.id === 'simUntil') Sim.untilTxt = e.target.value;
     if (e.target && (e.target.id === 'rollA' || e.target.id === 'rollH')) {
       const faces = D && D.ru && D.ru.faces;
       if (faces) {
@@ -4976,7 +4891,6 @@ const E = (() => {
       else if (e.key === 'ArrowLeft' && !Tour.cur.skip && Tour.i > 0) tourShow(Tour.i - 1);
       return;
     }
-    if (Sim.menu && e.key === 'Escape') { Sim.menu = false; render(); return; }
     if (!S.sheet) return;
     if (e.key === 'Escape') { closeSheet(); return; }
     if (e.key === 'Enter' && e.target && e.target.id === 'rollA') { e.preventDefault(); const h = document.getElementById('rollH'); if (h && h.value !== '' && e.target.value !== '') logRoll(); else if (h) h.focus(); }
@@ -4988,7 +4902,7 @@ const E = (() => {
   });
 
   async function reloadIfIdle() {
-    if (!S.ready || S.sheet || Sim.on || S.view === 'settings' || S.view === 'setup' || Store.pending()) return;
+    if (!S.ready || S.sheet || S.view === 'settings' || S.view === 'setup' || Store.pending()) return;
     try {
       const cfg = await Store.get('league/config');
       if (!cfg || Store.pending() || S.sheet) return;
@@ -5060,7 +4974,6 @@ const E = (() => {
   async function restoreLeague() {
     const d = S.restore && S.restore.data;
     if (!d) return;
-    if (Sim.on) simStop();
     try {
       while (Store.pending()) await new Promise(r => setTimeout(r, 50));
       for (const n of S.cfg.seasons) {
@@ -5087,7 +5000,6 @@ const E = (() => {
     }
   }
   async function resetLeague() {
-    if (Sim.on) simStop();
     const ns = S.cfg.seasons.slice();
     for (const n of ns) {
       const list = await Store.list(seasonPath(n) + '/days').catch(() => []);
