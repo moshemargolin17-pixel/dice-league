@@ -631,6 +631,12 @@ input[type=text],input[type=number],select{font:inherit;font-size:15px;color:var
 .board .big{font-family:var(--f-num);font-size:48px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--num)}
 html[data-design="chalk"] .board .big{font-weight:400}
 .board .mid{text-align:center;font-size:13px;color:var(--muted);font-weight:600}
+.linescore{margin:10px auto 0;border-collapse:collapse;font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink)}
+.linescore th{font-size:11px;font-weight:700;color:var(--muted);padding:2px 7px;letter-spacing:.04em}
+.linescore td{padding:3px 7px;text-align:center;font-weight:600;border-top:1px solid var(--line)}
+.linescore .ls-p{text-align:left;color:var(--muted);font-weight:700;padding-left:0}
+.linescore .ls-t{font-weight:800;color:var(--num)}
+@media (max-width:640px){.board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.board .side.r{grid-column:2}.board .mid{grid-column:1/-1;grid-row:2}.linescore{width:100%}}
 .board .mid .sb-series{display:block;margin:8px auto 0;font-family:var(--f-num);font-size:26px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .entry{background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:14px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--border)}
 .entry .ehead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:700}
@@ -3976,6 +3982,15 @@ const E = (() => {
       '<div class="mid"><span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : (tipsOn() ? 'Not started' : '')) + '</span>' +
       // series wins as of this game, each on its player's side: away left, home right
       (x && x.bo > 1 ? (() => { const si = seriesAt(x, gg), w = p => (p === x.hi ? si.wh : si.wl); return '<small class="sb-series" title="Series wins">' + w(gg.a) + '–' + w(gg.h) + '</small>'; })() : '') +
+      // scoring by quarter, right on the scoreboard so it stays in view while rolling
+      (st.n && !S.sheet.edit ? (() => {
+        const per = st.periods.length;
+        const ths = Array.from({ length: per }, (_, i) => '<th>' + L.perLabel(i + 1) + '</th>').join('');
+        const tds = side => Array.from({ length: per }, (_, i) => '<td>' + (st.periods[i] ? st.periods[i][side] : 0) + '</td>').join('');
+        return '<table class="linescore" aria-label="Scoring by quarter"><tr><th></th>' + ths + '<th>T</th></tr>' +
+          '<tr><td class="ls-p">' + esc(sname(gg.a)) + '</td>' + tds(0) + '<td class="ls-t">' + st.a + '</td></tr>' +
+          '<tr><td class="ls-p">' + esc(sname(gg.h)) + '</td>' + tds(1) + '<td class="ls-t">' + st.h + '</td></tr></table>';
+      })() : '') +
       '</div>' +
       '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + st.h + '</div></div></div></div>';
     const series = (x ? '<section class="matchup-panel"><h3 class="h3">' + (x.bo === 1 ? esc(roundName(x.round)) + ' · Single game' : 'Playoff series · Best of ' + x.bo) + '</h3>' + seriesStrip(gg, x) + '</section>' : '') + '<section class="matchup-panel">' + seasonSeriesStrip(gg) + '</section>';
@@ -3992,10 +4007,6 @@ const E = (() => {
       main += tip('<div class="note">' + msg + '</div>');
     }
     if (st.n && !S.sheet.edit) {
-      const per = st.periods.length;
-      const ths = Array.from({ length: per }, (_, i) => '<th>' + L.perLabel(i + 1) + '</th>').join('');
-      const tds = side => Array.from({ length: per }, (_, i) => '<td>' + (st.periods[i] ? st.periods[i][side] : 0) + '</td>').join('');
-      main += '<section class="matchup-panel quarter-scores"><div class="section-heading"><h3 class="h3">Scoring</h3></div><div class="tscroll"><table class="tbl stick1"><tr><th class="l"></th>' + ths + '<th>' + (st.final ? 'Final' : 'Total') + '</th></tr><tr><td class="l">' + esc(sname(gg.a)) + '</td>' + tds(0) + '<td><strong>' + st.a + '</strong></td></tr><tr><td class="l">' + esc(sname(gg.h)) + '</td>' + tds(1) + '<td><strong>' + st.h + '</strong></td></tr></table></div></section>';
       aside += '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="mini">' + mini('Lead changes', st.lc) + mini('Largest lead · ' + esc(sname(gg.a)), st.bigA) + mini('Largest lead · ' + esc(sname(gg.h)), st.bigH) + '</div></section>';
     }
     if (st.n && !S.sheet.edit) {
