@@ -2091,7 +2091,8 @@ const E = (() => {
       // Keep the original rating for seasons played under the old rules.
       pl.skillLevel = Math.max(1, Math.min(5, Math.round(+pl.skillLevel || (6 - Math.ceil(pl.rating / 2)))));
       // 2.0 ratings in stars (5 is best) and the type of player
-      ['off', 'def', 'reb'].forEach(k => { pl[k] = Math.max(1, Math.min(5, Math.round(+pl[k] || 3))); });
+      ['off', 'def'].forEach(k => { pl[k] = Math.max(1, Math.min(5, Math.round(+pl[k] || 3))); });
+      delete pl.reb;
       if (!PTYPES[pl.type]) pl.type = 'n';
       if (!pl.rh) pl.rh = E.initRhythm(L.hashStr((cfg.seed || 'league') + ':' + i + ':' + pl.name));
       if (!pl.short) { pl.short = autoShort(pl.name, taken); pl.shortAuto = true; taken.add(pl.short); }
@@ -2202,7 +2203,7 @@ const E = (() => {
   const PTYPES = { b: 'Center', n: 'Forward', s: 'Guard' };
   // Types are set before a season begins and stay until it's over: locked once Day 1 has started.
   const typesLocked = () => { const s = S.season; return !!s && s.phase !== 'done' && (s.day.active || s.day.cur > 1 || Object.values(S.days).some(d => Object.keys(d.games || {}).length)); };
-  const RATINGS = [['off', 'Offense'], ['def', 'Defense'], ['reb', 'Rebounding']];
+  const RATINGS = [['off', 'Offense'], ['def', 'Defense']];   // rebounding comes from the player's type
   const pname = p => nm(pid(p));
   const sname = p => snm(pid(p));   // short name, for tight spots
   const rec = (rows, p) => rows[p].w + '–' + rows[p].l;
@@ -3057,7 +3058,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense, Defense and Rebounding are in stars, 5 is best. Type decides which shots are 3-pointers on die 1: a Guard on 5 or 6, a Forward on 6, a Center never (6 is a 2). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Type decides which shots are 3-pointers on die 1: a Guard on 5 or 6, a Forward on 6, a Center never (6 is a 2). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -4237,7 +4238,7 @@ const E = (() => {
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       (L.hasDivs() ? '<div class="frow">' + divList().map(i => '<div class="field"><label for="div' + i + '">Division ' + (i + 1) + (L.confCount() > 1 ? ' (' + confName(L.confOf(L.divIds(i)[0])) + ')' : '') + '</label><input type="text" id="div' + i + '" value="' + esc(c.divNames[i] || 'Division ' + (i + 1)) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       '<div><button type="submit" class="btn primary">Save names</button></div></form></div>';
-    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th><th>Rebounding</th></tr>' +
+    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th></tr>' +
       c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + RATINGS.map(([k, t]) => '<td>' + ratingSel('p' + k + p, pl[k], t + ' of ' + esc(pl.name) + ', in stars') + '</td>').join('') + '</tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
       '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + RATINGS.map(([k, t]) => '<div class="field short"><label for="add' + k + '">' + t + '</label>' + ratingSel('add' + k, 3, t + ', in stars') + '</div>').join('') + '</div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
     out += setupPanel();
