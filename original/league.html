@@ -636,6 +636,23 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ls-ser{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:44px}
 .ls-ser small{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .ls-ser b{font-family:var(--f-num);font-size:30px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink)}
+.flow .section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.flow-key{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.flow-key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}
+.flow-key .ka{background:#D33A2C}.flow-key .kh{background:#2E6BD8}
+.flowsvg{width:100%;height:auto;display:block}
+.flowsvg .fa{fill:#D33A2C;opacity:.28}.flowsvg .fh{fill:#2E6BD8;opacity:.28}
+.flowsvg .fline{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
+.flowsvg .f0{stroke:var(--muted);stroke-width:1}
+.flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
+.flowsvg .fl{fill:var(--muted);font-size:11px;font-weight:700;text-anchor:middle}
+.qrecap .qrow{display:grid;grid-template-columns:34px 64px 1fr;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.qrecap .qrow:first-of-type{border-top:0}
+.qrecap .qw{font-weight:600}.qrecap .qw small{color:var(--muted);font-weight:500}
+.qrecap .qtot{margin-top:8px;font-size:13px;color:var(--muted);font-weight:600}
+.qrun{margin-top:10px;background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px}
+.qrun small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.qrun b{font-size:18px}.qrun span{font-size:12.5px;color:var(--muted)}
 .linescore{margin:10px auto 0;border-collapse:collapse;font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink)}
 .linescore th{font-size:11px;font-weight:700;color:var(--muted);padding:2px 7px;letter-spacing:.04em}
 .linescore td{padding:3px 7px;text-align:center;font-weight:600;border-top:1px solid var(--line)}
@@ -4081,6 +4098,10 @@ const E = (() => {
       aside += '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="mini">' + mini('Lead changes', st.lc) + mini('Largest lead · ' + esc(sname(gg.a)), st.bigA) + mini('Largest lead · ' + esc(sname(gg.h)), st.bigH) + '</div></section>';
     }
     if (st.n && !S.sheet.edit) {
+      main += flowChart(gg, st);
+      aside += quarterRecap(gg, st);
+    }
+    if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
       const lines = gg.rolls.map((r, i) => {
         a += r[0]; h += r[1];
@@ -4098,6 +4119,66 @@ const E = (() => {
     cleanHints(host);
     host.querySelectorAll('.schips-wrap .schips').forEach(c => { const on = c.querySelector('.schip.on'); if (on) c.scrollLeft = Math.max(0, on.offsetLeft - c.offsetLeft); });
     syncChips(host);
+  }
+  // Game flow: the score difference after every roll, shaded for whoever leads (away red, home blue)
+  function flowChart(gg, st) {
+    const W = 600, H = 150, mid = H / 2, rolls = gg.rolls, n = rolls.length;
+    const diffs = [0]; let d = 0;
+    rolls.forEach(r => { d += r[0] - r[1]; diffs.push(d); });
+    const top = Math.max(6, ...diffs.map(Math.abs));
+    const total = Math.max(n, 24);
+    const X = i => (i / total) * W, Y = v => mid - (v / top) * (mid - 10);
+    const pts = diffs.map((v, i) => X(i).toFixed(1) + ',' + Y(v).toFixed(1)).join(' ');
+    const area = 'M' + X(0) + ',' + mid + ' L' + pts.split(' ').join(' L') + ' L' + X(n).toFixed(1) + ',' + mid + ' Z';
+    // quarter lines and labels
+    let marks = '';
+    for (let i = 0; i <= total; i++) {
+      const per = i < total ? L.periodOf(i, D.ru).per : null, prev = i > 0 ? L.periodOf(i - 1, D.ru).per : null;
+      if (i > 0 && i < total && per !== prev) marks += '<line x1="' + X(i) + '" x2="' + X(i) + '" y1="4" y2="' + (H - 4) + '" class="fq"/>';
+      if (per !== prev && i < total) {
+        let j = i; while (j < total && L.periodOf(j, D.ru).per === per) j++;
+        marks += '<text x="' + ((X(i) + X(j)) / 2).toFixed(1) + '" y="' + (H - 6) + '" class="fl">' + L.perLabel(per) + '</text>';
+      }
+    }
+    const id = 'f' + String(gg.id).replace(/\W/g, '');
+    return '<section class="matchup-panel flow"><div class="section-heading"><h3 class="h3">Game flow</h3><span class="flow-key"><i class="ka"></i>' + esc(sname(gg.a)) + ' ahead <i class="kh"></i>' + esc(sname(gg.h)) + ' ahead</span></div>' +
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" class="flowsvg" role="img" aria-label="Score difference after each roll; biggest lead ' + Math.max(...diffs.map(Math.abs)) + '">' +
+      '<defs><clipPath id="' + id + 'u"><rect x="0" y="0" width="' + W + '" height="' + mid + '"/></clipPath><clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + W + '" height="' + mid + '"/></clipPath></defs>' +
+      marks + '<line x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '" class="f0"/>' +
+      '<path d="' + area + '" class="fa" clip-path="url(#' + id + 'u)"/><path d="' + area + '" class="fh" clip-path="url(#' + id + 'd)"/>' +
+      '<polyline points="' + pts + '" class="fline"/></svg></section>';
+  }
+  // Quarter by quarter: who won each one, quarters won, and the biggest run
+  function quarterRecap(gg, st) {
+    const A = esc(sname(gg.a)), Hn = esc(sname(gg.h));
+    let qa = 0, qh = 0;
+    const rows = st.periods.map((pr, i) => {
+      const a = pr[0], h = pr[1], open = !st.final && i === st.periods.length - 1;
+      if (!open) { if (a > h) qa++; else if (h > a) qh++; }
+      const who = a === h ? 'Tied' : (a > h ? A : Hn) + ' +' + Math.abs(a - h);
+      return '<div class="qrow"><b>' + L.perLabel(i + 1) + '</b><span>' + a + '–' + h + '</span><span class="qw">' + who + (open ? ' <small>so far</small>' : '') + '</span></div>';
+    }).join('');
+    // biggest run: the stretch of rolls one player outscored the other by the most
+    let best = null;
+    for (const sign of [1, -1]) {
+      let sum = 0, start = 0;
+      gg.rolls.forEach((r, i) => {
+        const v = sign * (r[0] - r[1]);
+        if (sum <= 0) { sum = 0; start = i; }
+        sum += v;
+        if (!best || sum > best.sum) best = { sum, start, end: i, sign };
+      });
+    }
+    let run = '';
+    if (best && best.sum > 0) {
+      let ra = 0, rh = 0;
+      for (let i = best.start; i <= best.end; i++) { ra += gg.rolls[i][0]; rh += gg.rolls[i][1]; }
+      const who = best.sign > 0 ? A : Hn, other = best.sign > 0 ? Hn : A, hi = Math.max(ra, rh), lo = Math.min(ra, rh);
+      const p1 = L.perLabel(L.periodOf(best.start, D.ru).per), p2 = L.perLabel(L.periodOf(best.end, D.ru).per);
+      run = '<div class="qrun"><small>Biggest run</small><b>' + who + ' ' + hi + '–' + lo + '</b><span>over ' + (best.end - best.start + 1) + ' rolls · ' + (p1 === p2 ? p1 : p1 + '–' + p2) + '</span></div>';
+    }
+    return '<section class="matchup-panel qrecap"><h3 class="h3">Quarter by quarter</h3>' + rows +
+      '<div class="qtot">Quarters won: ' + A + ' ' + qa + ' · ' + Hn + ' ' + qh + '</div>' + run + '</section>';
   }
   const mini = (k, v) => '<div><small>' + k + '</small><strong class="num">' + v + '</strong></div>';
 
