@@ -3025,8 +3025,8 @@ const E = (() => {
     const z = { a: 0, h: 0 };
     const dr = D.ru.poss && !g.st.final ? possSaved(g) : null;
     if (!dr) return z;
-    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'));
-    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a), possTy(g, 'h')); if (wh.done) z.h = wh.pts; }
+    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'), possTy(g, 'h'));
+    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a')); if (wh.done) z.h = wh.pts; }
     return z;
   }
   function gameCard(g) {
@@ -3058,7 +3058,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Type decides which shots are 3-pointers on die 1: a Guard on 5 or 6, a Forward on 6, a Center never (6 is a 2). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Type decides which shots are 3-pointers on die 1 (a Guard on 5 or 6, a Forward on 6, a Center never) and rebounds: Centers get more offensive rebounds and give up fewer, Guards the other way. Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -4333,7 +4333,11 @@ const E = (() => {
        Miss, two dice: first 1 out of bounds, 2 offensive rebound, 3–6 defensive rebound (second die not used);
               second, on an offensive rebound 1–4 no putback (keeps the ball, rolls again), 5–6 putback for 2;
               on out of bounds 1 the shooter's ball (rolls again), 2–6 the other player's. */
-  function possWalk(dice, fast, type) {
+  // rebounds by type: the shooter's type goes after the ball, the other player's type boxes out.
+  // Offensive rebounds on die 3 run from 2 up: 1 number, +1 for a Center shooter, -1 for a Guard shooter, -1 against a Center, +1 against a Guard (0 to 3 numbers).
+  const REB_ADJ = { b: 1, n: 0, s: -1 };
+  const orebTop = (type, opp) => 1 + Math.max(0, Math.min(3, 1 + (REB_ADJ[type] || 0) - (REB_ADJ[opp] || 0)));
+  function possWalk(dice, fast, type, opp) {
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
     const out = (done, need) => ({ done, need: need || null, pts, steal, text: parts.join(', ') });
@@ -4366,7 +4370,7 @@ const E = (() => {
       parts.push((fb ? 'fast break, ' : '') + 'missed ' + val);
       if (i >= dice.length) return out(false, 'Rebound');
       const r1 = dice[i++];
-      if (r1 >= 3) { parts.push('defensive rebound'); return out(true); }
+      if (r1 > orebTop(type, opp)) { parts.push('defensive rebound'); return out(true); }
       if (i >= dice.length) return out(false, r1 === 1 ? 'Out of bounds · whose ball?' : 'Offensive rebound · putback?');
       const r2 = dice[i++];
       if (r1 === 1) {
@@ -4383,8 +4387,10 @@ const E = (() => {
   // is this possession a fast break? (the possession before it ended in a steal)
   function possFast(g, n, side, draftA) {
     const p = possOf(g);
-    const prev = side === 'h' ? (draftA || (p[n] && p[n][0])) : (n > 0 && p[n - 1] ? p[n - 1][1] : null);
-    return !!(prev && possWalk(prev, false).steal);
+    // the possession just before this one, read the way it was played (its own fast break and both types)
+    if (side === 'h') { const prev = draftA || (p[n] && p[n][0]); return !!(prev && possWalk(prev, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h')).steal); }
+    const prev = n > 0 && p[n - 1] ? p[n - 1][1] : null;
+    return !!(prev && possWalk(prev, possFast(g, n - 1, 'h', p[n - 1][0]), possTy(g, 'h'), possTy(g, 'a')).steal);
   }
   // the possessions being put in for the next roll. They're saved with the day (entry.d), so closing the page keeps them.
   const possSaved = g => {
@@ -4405,8 +4411,8 @@ const E = (() => {
   // the state of the roll being entered: whose ball, what each possession has so far
   function possNow(g) {
     const dr = possDraft(g), n = g.st.n;
-    const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'));
-    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h')) : null;
+    const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'));
+    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a')) : null;
     return { dr, wa, wh, side: !wa.done ? 'a' : !wh.done ? 'h' : null };
   }
   // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
@@ -4481,7 +4487,7 @@ const E = (() => {
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
   function possLog(g, dice) {
     const n = g.rolls.length;
-    const wa = possWalk(dice[0], possFast(g, n, 'a'), possTy(g, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]), possTy(g, 'h'));
+    const wa = possWalk(dice[0], possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]), possTy(g, 'h'), possTy(g, 'a'));
     const entry = ensureEntry(g);
     if (!entry.ty) entry.ty = [possTy(g, 'a'), possTy(g, 'h')];
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
@@ -4494,8 +4500,8 @@ const E = (() => {
   // one roll for the simulator: real dice by the same rules
   function possSim(g) {
     const n = g.rolls.length, d6 = () => 1 + Math.floor(Math.random() * 6);
-    const a = []; while (!possWalk(a, possFast(g, n, 'a'), possTy(g, 'a')).done) a.push(d6());
-    const h = []; while (!possWalk(h, possFast(g, n, 'h', a), possTy(g, 'h')).done) h.push(d6());
+    const a = []; while (!possWalk(a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h')).done) a.push(d6());
+    const h = []; while (!possWalk(h, possFast(g, n, 'h', a), possTy(g, 'h'), possTy(g, 'a')).done) h.push(d6());
     possLog(g, [a, h]);
   }
   function entryBlock(g) {
