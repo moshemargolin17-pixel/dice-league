@@ -766,13 +766,9 @@ function postGameCard(lg, post, g, seeds, ps) {
   };
   const label = `${x.round}${x.bestOf > 1 ? ` · Game ${g.no}` : ''}`;
   const status = v.final ? 'Final' : started ? 'In progress' : v.notNeeded ? 'Not needed' : g.ifNecessary ? 'If necessary' : x.conf != null ? esc(lg.conferences[x.conf]) : '';
-  const playable = v.s.next === g && canPlayToday(lg, g.day);
-  const link = playable ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
-    : v.final ? `<a class="btn btn-ghost btn-sm" href="#game-${g.id}">Play-by-play</a>` : '';
-  return `<article class="gcard is-post${g.ifNecessary && !v.final && !started ? ' is-maybe' : ''}${v.final ? ' is-final' : ''}${started ? ' is-live' : ''}${v.notNeeded ? ' is-skip' : ''}">
+  return `<article class="gcard is-post${g.ifNecessary && !v.final && !started ? ' is-maybe' : ''}${v.final ? ' is-final' : ''}${started ? ' is-live' : ''}${v.notNeeded ? ' is-skip' : ''}" ${cardLink(lg, { id: g.id, away: v.away, home: v.home })}>
     <div class="gtop"><span class="gst">${esc(label)}</span><span class="gmeta">${status}</span></div>
     <div class="gbody">${row(v.away, false)}${row(v.home, true)}</div>
-    ${link ? `<div class="gfoot">${link}</div>` : ''}
   </article>`;
 }
 // The next day with a game to play: the first day with a regular-season game left, then the first day
@@ -880,14 +876,25 @@ function gameCard(lg, g) {
   };
   const started = !g.final && g.log && g.log.length > 0;
   const live = started ? playGame(g) : g;
-  const link = !g.final && canPlayToday(lg, g.day) ? `<a class="btn ${started ? 'btn-primary' : 'btn-roll'} btn-sm" href="#game-${g.id}">${started ? 'Continue' : 'Play'}</a>`
-    : g.final && g.log ? `<a class="btn btn-ghost btn-sm" href="#game-${g.id}">Play-by-play</a>` : '';
-  return `<article class="gcard${g.final ? ' is-final' : ''}${started ? ' is-live' : ''}">
+  return `<article class="gcard${g.final ? ' is-final' : ''}${started ? ' is-live' : ''}" ${cardLink(lg, g)}>
     <div class="gtop"><span class="gst">${g.final ? 'Final' : started ? 'In progress' : ''}</span><span class="gmeta">${gameKind(lg, g)}</span></div>
     <div class="gbody">${side(g.away, false)}${side(g.home, true)}</div>
-    ${link ? `<div class="gfoot">${link}</div>` : ''}
   </article>`;
 }
+
+// A game card opens its game page when clicked (the player names inside still go to their pages).
+const cardLink = (lg, g) => `data-game="${g.id}" tabindex="0" role="link" aria-label="Open the game: ${esc(g.away != null && lg.players[g.away] ? lg.players[g.away].name : 'Away')} at ${esc(g.home != null && lg.players[g.home] ? lg.players[g.home].name : 'Home')}"`;
+document.addEventListener('click', e => {
+  const card = e.target.closest('.gcard[data-game]');
+  if (!card || e.target.closest('a, button')) return;
+  location.hash = 'game-' + card.dataset.game;
+});
+document.addEventListener('keydown', e => {
+  const card = e.target.closest && e.target.closest('.gcard[data-game]');
+  if (!card || e.target !== card || (e.key !== 'Enter' && e.key !== ' ')) return;
+  e.preventDefault();
+  location.hash = 'game-' + card.dataset.game;
+});
 
 // Who can clinch something, or be eliminated, depending on how their game goes today.
 function scenarios(lg, games) {

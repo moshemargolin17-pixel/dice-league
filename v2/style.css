@@ -695,3 +695,6 @@ p { margin: 0; }
 .boxhead .seg { margin: 0 0 10px 18px; }
 .dayact { margin-left: auto; display: flex; align-items: center; }
 .dayact .btn { min-width: 132px; }
+.gcard[data-game] { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.gcard[data-game]:hover { border-color: var(--muted); box-shadow: var(--shadow); }
+.gcard[data-game]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
