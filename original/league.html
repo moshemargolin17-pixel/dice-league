@@ -635,7 +635,6 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .linescore th{font-size:11px;font-weight:700;color:var(--muted);padding:2px 7px;letter-spacing:.04em}
 .linescore td{padding:3px 7px;text-align:center;font-weight:600;border-top:1px solid var(--line)}
 .linescore .ls-p{text-align:left;color:var(--muted);font-weight:700;padding-left:0}
-.linescore .ls-t{font-weight:800;color:var(--num)}
 @media (max-width:640px){.board{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.board .side.r{grid-column:2}.board .mid{grid-column:1/-1;grid-row:2}.linescore{width:100%}}
 .board .mid .sb-series{display:block;margin:8px auto 0;font-family:var(--f-num);font-size:26px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
 .entry{background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:14px;display:flex;flex-direction:column;gap:12px;border:1px solid var(--border)}
@@ -3987,9 +3986,9 @@ const E = (() => {
         const per = st.periods.length;
         const ths = Array.from({ length: per }, (_, i) => '<th>' + L.perLabel(i + 1) + '</th>').join('');
         const tds = side => Array.from({ length: per }, (_, i) => '<td>' + (st.periods[i] ? st.periods[i][side] : 0) + '</td>').join('');
-        return '<table class="linescore" aria-label="Scoring by quarter"><tr><th></th>' + ths + '<th>T</th></tr>' +
-          '<tr><td class="ls-p">' + esc(sname(gg.a)) + '</td>' + tds(0) + '<td class="ls-t">' + st.a + '</td></tr>' +
-          '<tr><td class="ls-p">' + esc(sname(gg.h)) + '</td>' + tds(1) + '<td class="ls-t">' + st.h + '</td></tr></table>';
+        return '<table class="linescore" aria-label="Scoring by quarter"><tr><th></th>' + ths + '</tr>' +
+          '<tr><td class="ls-p">' + esc(sname(gg.a)) + '</td>' + tds(0) + '</tr>' +
+          '<tr><td class="ls-p">' + esc(sname(gg.h)) + '</td>' + tds(1) + '</tr></table>';
       })() : '') +
       '</div>' +
       '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + st.h + '</div></div></div></div>';
