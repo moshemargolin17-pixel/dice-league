@@ -646,10 +646,17 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flowsvg .f0{stroke:var(--muted);stroke-width:1}
 .flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
 .flowsvg .fl{fill:var(--muted);font-size:11px;font-weight:700;text-anchor:middle}
-.qrecap .qrow{display:grid;grid-template-columns:34px 64px 1fr;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.qrecap .qrow{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.qrecap .qs{font-size:12px;color:var(--muted)}
+.qruns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:10px}
+.qruns .qrun{margin-top:0}
+.flow{position:relative}
+.flowsvg{touch-action:pan-y}
+.flowsvg .fcur{stroke:var(--muted);stroke-width:1}
+.flowsvg .fdot{fill:var(--ink);stroke:var(--panel);stroke-width:2}
+.ftip{position:absolute;pointer-events:none;background:var(--ink);color:var(--panel);font-size:11.5px;font-weight:700;padding:3px 7px;border-radius:6px;white-space:nowrap;font-variant-numeric:tabular-nums;z-index:2}
 .qrecap .qrow:first-of-type{border-top:0}
 .qrecap .qw{font-weight:600}.qrecap .qw small{color:var(--muted);font-weight:500}
-.qrecap .qtot{margin-top:8px;font-size:13px;color:var(--muted);font-weight:600}
 .qrun{margin-top:10px;background:var(--panel-2);border-radius:calc(var(--radius) - 2px);padding:10px 12px;display:grid;gap:2px}
 .qrun small{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .qrun b{font-size:18px}.qrun span{font-size:12.5px;color:var(--muted)}
@@ -3851,6 +3858,29 @@ const E = (() => {
     }
     return out;
   }
+  // Game flow hover: the score and clock at the roll under the pointer, in a small label beside it
+  function flowHover(e) {
+    const sec = e.target.closest && e.target.closest('.flow[data-tips]');
+    document.querySelectorAll('.flow .ftip').forEach(t => { if (!sec || !sec.contains(t)) t.hidden = true; });
+    if (!sec) return;
+    const svg = sec.querySelector('.flowsvg'), tip = sec.querySelector('.ftip');
+    const box = svg.getBoundingClientRect();
+    if (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom) { tip.hidden = true; svg.querySelector('.fcur').setAttribute('visibility', 'hidden'); svg.querySelector('.fdot').setAttribute('visibility', 'hidden'); return; }
+    const tips = JSON.parse(sec.dataset.tips), n = +sec.dataset.n, total = +sec.dataset.total;
+    const i = Math.max(0, Math.min(n, Math.round(((e.clientX - box.left) / box.width) * total)));
+    const pt = svg.querySelector('.fline').points.getItem(i);
+    const cur = svg.querySelector('.fcur'), dot = svg.querySelector('.fdot');
+    cur.setAttribute('x1', pt.x); cur.setAttribute('x2', pt.x); cur.setAttribute('visibility', 'visible');
+    dot.setAttribute('cx', pt.x); dot.setAttribute('cy', pt.y); dot.setAttribute('visibility', 'visible');
+    tip.textContent = tips[i]; tip.hidden = false;
+    // place it just beside the point (flipped to the left near the right edge), measured from the section
+    const sb = sec.getBoundingClientRect(), x = pt.x * (box.width / 600), y = pt.y * (box.height / 150);
+    const w = tip.offsetWidth, ox = box.left - sb.left, oy = box.top - sb.top;
+    tip.style.left = (ox + (x + 12 + w > box.width ? x - w - 12 : x + 12)) + 'px';
+    tip.style.top = (oy + Math.max(0, y - 30)) + 'px';
+  }
+  document.addEventListener('pointermove', flowHover);
+  document.addEventListener('pointerdown', flowHover);
   function statsData() {
     const scope = S.statsScope;
     if (scope === 'season' || scope === 'night') return [D];
@@ -4210,8 +4240,7 @@ const E = (() => {
       aside += '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="mini">' + mini('Lead changes', st.lc) + mini('Largest lead · ' + esc(sname(gg.a)), st.bigA) + mini('Largest lead · ' + esc(sname(gg.h)), st.bigH) + '</div></section>';
     }
     if (st.n && !S.sheet.edit) {
-      main += flowChart(gg, st);
-      aside += quarterRecap(gg, st);
+      main += flowChart(gg, st) + quarterRecap(gg, st);
     }
     if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
@@ -4220,7 +4249,7 @@ const E = (() => {
         const cs = gg.calls.filter(c => c.r === i).map(c => '<span class="ctag ' + c.s + '">' + (c.s === 'a' ? 'A' : 'H') + ' ' + (c.t === 'o' ? 'off' : 'def') + '</span>').join('');
         return '<tr><td class="l">' + (i + 1) + '</td><td class="l">' + L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru) + cs + '</td><td>+' + r[0] + '</td><td>+' + r[1] + '</td><td><strong>' + a + '–' + h + '</strong></td></tr>';
       }).reverse().join('');
-      main += '<details class="matchup-panel roll-details" open><summary>Roll log<span>' + st.n + ' rolls</span></summary><div class="rlog"><table class="tbl"><tr><th class="l">#</th><th class="l">Clock</th><th>' + esc(sname(gg.a)) + '</th><th>' + esc(sname(gg.h)) + '</th><th>Score</th></tr>' + lines + '</table></div></details>';
+      main += '<details class="matchup-panel roll-details"><summary>Roll log<span>' + st.n + ' rolls</span></summary><div class="rlog"><table class="tbl"><tr><th class="l">#</th><th class="l">Clock</th><th>' + esc(sname(gg.a)) + '</th><th>' + esc(sname(gg.h)) + '</th><th>Score</th></tr>' + lines + '</table></div></details>';
     }
     body += '<div class="game-layout' + (S.sheet.edit ? ' is-editing' : '') + '"><div class="game-main">' + main + '</div>' + (S.sheet.edit ? '' : '<aside class="game-aside">' + aside + '</aside>') + '</div>';
     const canEdit = D.cur && st.final && !S.sheet.edit;
@@ -4253,44 +4282,64 @@ const E = (() => {
       }
     }
     const id = 'f' + String(gg.id).replace(/\W/g, '');
-    return '<section class="matchup-panel flow"><div class="section-heading"><h3 class="h3">Game flow</h3><span class="flow-key"><i class="ka"></i>' + esc(sname(gg.a)) + ' ahead <i class="kh"></i>' + esc(sname(gg.h)) + ' ahead</span></div>' +
+    // what the hover shows at each point: the clock and the score after that roll
+    let ra = 0, rh = 0;
+    const tips = ['Start · 0–0'].concat(rolls.map((r, i) => { ra += r[0]; rh += r[1]; return L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru) + ' · ' + ra + '–' + rh; }));
+    return '<section class="matchup-panel flow" data-tips="' + esc(JSON.stringify(tips)) + '" data-n="' + n + '" data-total="' + total + '" data-top="' + top + '"><div class="section-heading"><h3 class="h3">Game flow</h3><span class="flow-key"><i class="ka"></i>' + esc(sname(gg.a)) + ' ahead <i class="kh"></i>' + esc(sname(gg.h)) + ' ahead</span></div>' +
       '<svg viewBox="0 0 ' + W + ' ' + H + '" class="flowsvg" role="img" aria-label="Score difference after each roll; biggest lead ' + Math.max(...diffs.map(Math.abs)) + '">' +
       '<defs><clipPath id="' + id + 'u"><rect x="0" y="0" width="' + W + '" height="' + mid + '"/></clipPath><clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + W + '" height="' + mid + '"/></clipPath></defs>' +
       marks + '<line x1="0" x2="' + W + '" y1="' + mid + '" y2="' + mid + '" class="f0"/>' +
       '<path d="' + area + '" class="fa" clip-path="url(#' + id + 'u)"/><path d="' + area + '" class="fh" clip-path="url(#' + id + 'd)"/>' +
-      '<polyline points="' + pts + '" class="fline"/></svg></section>';
+      '<polyline points="' + pts + '" class="fline"/><line class="fcur" x1="0" x2="0" y1="4" y2="' + (H - 4) + '" visibility="hidden"/><circle class="fdot" r="4" cx="0" cy="0" visibility="hidden"/></svg><span class="ftip" hidden></span></section>';
   }
-  // Quarter by quarter: who won each one, quarters won, and the biggest run
-  function quarterRecap(gg, st) {
-    const A = esc(sname(gg.a)), Hn = esc(sname(gg.h));
-    let qa = 0, qh = 0;
-    const rows = st.periods.map((pr, i) => {
-      const a = pr[0], h = pr[1], open = !st.final && i === st.periods.length - 1;
-      if (!open) { if (a > h) qa++; else if (h > a) qh++; }
-      const who = a === h ? 'Tied' : (a > h ? A : Hn) + ' +' + Math.abs(a - h);
-      return '<div class="qrow"><b>' + L.perLabel(i + 1) + '</b><span>' + a + '–' + h + '</span><span class="qw">' + who + (open ? ' <small>so far</small>' : '') + '</span></div>';
-    }).join('');
-    // biggest run: the stretch of rolls one player outscored the other by the most
+  // The stretch of rolls (from..to) where one player outscored the other by the most: { who: 'a'|'h', a, h, from, to }
+  function bestRun(rolls, from, to) {
     let best = null;
     for (const sign of [1, -1]) {
-      let sum = 0, start = 0;
-      gg.rolls.forEach((r, i) => {
-        const v = sign * (r[0] - r[1]);
+      let sum = 0, start = from;
+      for (let i = from; i <= to; i++) {
         if (sum <= 0) { sum = 0; start = i; }
-        sum += v;
-        if (!best || sum > best.sum) best = { sum, start, end: i, sign };
+        sum += sign * (rolls[i][0] - rolls[i][1]);
+        if (sum > 0 && (!best || sum > best.sum)) best = { sum, from: start, to: i, who: sign > 0 ? 'a' : 'h' };
+      }
+    }
+    if (!best) return null;
+    best.a = 0; best.h = 0;
+    for (let i = best.from; i <= best.to; i++) { best.a += rolls[i][0]; best.h += rolls[i][1]; }
+    return best;
+  }
+  // Most points scored while the other player scored none: { who, pts, from, to }
+  function unansweredRun(rolls) {
+    let best = null;
+    for (const side of [0, 1]) {
+      let pts = 0, start = 0;
+      rolls.forEach((r, i) => {
+        if (r[1 - side] > 0) { pts = 0; start = i + 1; return; }
+        if (pts === 0 && r[side] === 0) start = i + 1;
+        pts += r[side];
+        if (pts > 0 && (!best || pts > best.pts)) best = { who: side ? 'h' : 'a', pts, from: start, to: i };
       });
     }
-    let run = '';
-    if (best && best.sum > 0) {
-      let ra = 0, rh = 0;
-      for (let i = best.start; i <= best.end; i++) { ra += gg.rolls[i][0]; rh += gg.rolls[i][1]; }
-      const who = best.sign > 0 ? A : Hn, other = best.sign > 0 ? Hn : A, hi = Math.max(ra, rh), lo = Math.min(ra, rh);
-      const p1 = L.perLabel(L.periodOf(best.start, D.ru).per), p2 = L.perLabel(L.periodOf(best.end, D.ru).per);
-      run = '<div class="qrun"><small>Biggest run</small><b>' + who + ' ' + hi + '–' + lo + '</b><span>over ' + (best.end - best.start + 1) + ' rolls · ' + (p1 === p2 ? p1 : p1 + '–' + p2) + '</span></div>';
-    }
-    return '<section class="matchup-panel qrecap"><h3 class="h3">Quarter by quarter</h3>' + rows +
-      '<div class="qtot">Quarters won: ' + A + ' ' + qa + ' · ' + Hn + ' ' + qh + '</div>' + run + '</section>';
+    return best;
+  }
+  // Quarter by quarter: the biggest run in each quarter, then the game's biggest run and most unanswered points
+  function quarterRecap(gg, st) {
+    const name = w => esc(sname(w === 'a' ? gg.a : gg.h));
+    const rolls = gg.rolls, n = rolls.length;
+    const span = (f, t) => { const p1 = L.perLabel(L.periodOf(f, D.ru).per), p2 = L.perLabel(L.periodOf(t, D.ru).per); return (t - f + 1) + (t === f ? ' roll' : ' rolls') + ' · ' + (p1 === p2 ? p1 : p1 + '–' + p2); };
+    const runTxt = r => name(r.who) + ' ' + Math.max(r.a, r.h) + '–' + Math.min(r.a, r.h);
+    const rows = st.periods.map((pr, q) => {
+      let f = -1, t = -1;
+      for (let i = 0; i < n; i++) if (L.periodOf(i, D.ru).per === q + 1) { if (f < 0) f = i; t = i; }
+      const open = !st.final && q === st.periods.length - 1;
+      const r = f >= 0 ? bestRun(rolls, f, t) : null;
+      return '<div class="qrow"><b>' + L.perLabel(q + 1) + '</b><span class="qw">' + (r ? runTxt(r) + ' run' : 'No run') + (open ? ' <small>so far</small>' : '') + '</span><span class="qs">' + (r ? (r.to - r.from + 1) + (r.to === r.from ? ' roll' : ' rolls') : '') + '</span></div>';
+    }).join('');
+    const big = n ? bestRun(rolls, 0, n - 1) : null, un = unansweredRun(rolls);
+    const card = (lab, val, sub) => '<div class="qrun"><small>' + lab + '</small><b>' + val + '</b><span>' + sub + '</span></div>';
+    return '<section class="matchup-panel qrecap"><h3 class="h3">Quarter by quarter <small class="muted">biggest run</small></h3>' + rows +
+      '<div class="qruns">' + (big ? card('Biggest run', runTxt(big), span(big.from, big.to)) : '') +
+      (un ? card('Most unanswered points', name(un.who) + ' ' + un.pts + '–0', span(un.from, un.to)) : '') + '</div></section>';
   }
   const mini = (k, v) => '<div><small>' + k + '</small><strong class="num">' + v + '</strong></div>';
 
