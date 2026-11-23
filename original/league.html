@@ -673,7 +673,9 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .game-aside .season-series .schip small{font-size:13.5px}
 .game-aside .season-series .schips{gap:10px}
 .game-aside .season-series .sstat{font-size:16px;margin:4px 0 12px}
-.game-aside .season-series .schip small:last-child{text-align:right}
+.game-aside .season-series .schip small:last-child,.game-aside .season-series .schip .sgs{text-align:right}
+.schip .sgd{font-size:15px;font-weight:500}
+.schip .sgs{font-family:var(--f-num);font-variant-numeric:tabular-nums}
 .gstats span{font-size:12px;color:var(--muted)}
 .qruns{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;margin-top:10px}
 .qruns .qrun{margin-top:0}
@@ -3363,7 +3365,7 @@ const E = (() => {
     games.slice(0, upto + 1).forEach(z => { if (z.st.final) { if ((z.st.a > z.st.h ? z.a : z.h) === g.a) aw++; else hw++; } });
     const complete = upto === games.length - 1 && games.every(z => z.st.final);
     const status = aw === hw ? 'Tied ' + aw + '–' + hw : sname(aw > hw ? g.a : g.h) + (complete ? ' wins ' : ' leads ') + Math.max(aw, hw) + '–' + Math.min(aw, hw);
-    return '<section class="sstrip season-series"><h3 class="h3">Season series · ' + games.length + ' games</h3><div class="sstat">' + esc(status) + '</div><div class="schips-wrap"><button type="button" class="sarrow" data-act="sscroll" data-dir="-1" aria-label="Earlier games">‹</button><div class="schips">' + games.map((z, i) => '<button type="button" class="schip' + (z.id === g.id ? ' on' : '') + '" data-act="game" data-n="' + D.season.n + '" data-id="' + z.id + '"><b>G' + (i + 1) + ' · Day ' + z.day + '</b><small>' + esc(sname(z.a)) + ' @ ' + esc(sname(z.h)) + '</small><small>' + (z.st.final ? 'Final · ' + z.st.a + '–' + z.st.h : z.st.live ? z.st.a + '–' + z.st.h : '') + '</small></button>').join('') + '</div><button type="button" class="sarrow" data-act="sscroll" data-dir="1" aria-label="Later games">›</button></div></section>';
+    return '<section class="sstrip season-series"><h3 class="h3">Season series · ' + games.length + ' games</h3><div class="sstat">' + esc(status) + '</div><div class="schips-wrap"><button type="button" class="sarrow" data-act="sscroll" data-dir="-1" aria-label="Earlier games">‹</button><div class="schips">' + games.map((z, i) => '<button type="button" class="schip' + (z.id === g.id ? ' on' : '') + '" data-act="game" data-n="' + D.season.n + '" data-id="' + z.id + '"><span class="sgd">G' + (i + 1) + ' · Day ' + z.day + '</span><small>' + esc(sname(z.a)) + ' @ ' + esc(sname(z.h)) + '</small>' + (z.st.final ? '<b class="sgs">' + z.st.a + '–' + z.st.h + '</b>' : '<small>' + (z.st.live ? z.st.a + '–' + z.st.h : '') + '</small>') + '</button>').join('') + '</div><button type="button" class="sarrow" data-act="sscroll" data-dir="1" aria-label="Later games">›</button></div></section>';
   }
 
   function viewTeams() {
