@@ -4431,7 +4431,7 @@ const E = (() => {
     const side = (sd, w, dice) => {
       const p = sd === 'a' ? g.a : g.h, on = now.side === sd;
       return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm" title="' + esc(pname(p)) + '">' + esc(sname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
-        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll both dice' : sd === 'h' ? 'After the away possession' : '') + '</span>') + '</div>' +
+        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll both dice' : sd === 'h' ? 'Next' : '') + '</span>') + '</div>' +
         (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
     };
     const cur = now.side ? (now.side === 'a' ? now.wa : now.wh) : null;
