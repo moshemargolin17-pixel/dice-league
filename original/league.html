@@ -3448,14 +3448,14 @@ const E = (() => {
     const one = (label, x, signed) => '<div' + (x ? ' class="click" data-act="game" data-n="' + x.n + '" data-id="' + x.g.id + '" tabindex="0" role="button"' : '') + '><small>' + label + '</small><strong>' + (x ? (signed && x.v > 0 ? '+' : '') + x.v + ' (' + qLabel(x.q) + ')' : '—') + '</strong></div>';
     const cnt = (key, label, n) => kv(label, gl(key, label, n));
     const wr = (key, label, x) => kv(label, gl(key, label, wlTxt(x)));
-    const bq = bestQuarterIdx(r), avg = v => (r.gp ? (v / r.gp).toFixed(1) : '—'), nh = r.hm[0] + r.hm[1], na = r.aw[0] + r.aw[1];
+    const avg = v => (r.gp ? (v / r.gp).toFixed(1) : '—'), nh = r.hm[0] + r.hm[1], na = r.aw[0] + r.aw[1];
     const sgn = v => { if (!r.gp) return '—'; const x = v / r.gp; return '<span class="' + (x > 0 ? 'pos' : x < 0 ? 'neg' : '') + '">' + (x > 0 ? '+' : '') + x.toFixed(1) + '</span>'; };
     return '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Advanced' + (career ? ' <small class="muted">career, regular season and postseason</small>' : ' <small class="muted">regular season and postseason</small>') + '</h3><div class="kv">' +
-      one('Best quarter', r.qbest) + one('Worst quarter', r.qworst) + one('Best quarter margin', r.qbm, true) + one('Worst quarter margin', r.qwm, true) + kv('Quarter won most', bq < 0 ? '—' : qLabel(bq) + ' (' + r.qw[bq] + ')') +
+      one('Best quarter', r.qbest) + one('Worst quarter', r.qworst) + one('Best quarter margin', r.qbm, true) + one('Worst quarter margin', r.qwm, true) +
       cnt('b90', BIG_GAME + '+ games', r.b90) + cnt('b100', HUGE_GAME + '+ games', r.b100) + cnt('bo', 'Blowouts', r.bo) + cnt('blo', 'Times blown out', r.blo) + cnt('cb', 'Comebacks', r.cb) + cnt('bl', 'Blown leads', r.bl) +
       cnt('lw', 'Longest win streak', r.lw) + cnt('ll', 'Longest losing streak', r.ll) +
-      wr('ot', 'Overtime', r.ot) + wr('cu', 'Clutch', r.cu) + wr('r90', 'Scoring ' + BIG_GAME + '+', r.r90) + wr('r100', 'Scoring ' + HUGE_GAME + '+', r.r100) + wr('ra80', 'Allowing under ' + LOW_ALLOWED, r.ra80) +
-      wr('per0', 'Early season', r.per[0]) + wr('per1', 'Mid season', r.per[1]) + wr('per2', 'Late season', r.per[2]) + wr('rest0', '1 day of rest', r.rest[0]) + wr('rest1', '2+ days of rest', r.rest[1]) +
+      wr('ot', 'Overtime', r.ot) + wr('cu', 'Clutch', r.cu) + wr('r90', 'Scoring ' + BIG_GAME + '+', r.r90) + wr('r100', 'Scoring ' + HUGE_GAME + '+', r.r100) +
+      wr('per0', 'Early season', r.per[0]) + wr('per1', 'Mid season', r.per[1]) + wr('per2', 'Late season', r.per[2]) +
       kv('Home points / game', nh ? (r.hpf / nh).toFixed(1) : '—') + kv('Away points / game', na ? (r.apf / na).toFixed(1) : '—') + '</div>' +
       '<div class="tscroll" style="margin-top:12px"><table class="tbl"><tr><th class="l">By quarter</th><th>Points / game</th><th>Allowed / game</th><th>Margin</th><th>Quarters won</th></tr>' + [0, 1, 2, 3].map(i => '<tr><td class="l">' + qLabel(i) + '</td><td>' + avg(r.q[i]) + '</td><td>' + avg(r.qa[i]) + '</td><td>' + sgn(r.q[i] - r.qa[i]) + '</td><td>' + r.qw[i] + '</td></tr>').join('') + '</table></div>' +
       '<div class="tscroll" style="margin-top:12px"><table class="tbl"><tr><th class="l">After each quarter</th><th>When leading</th><th>When trailing</th></tr>' + [0, 1, 2].map(i => '<tr><td class="l">After ' + qLabel(i) + '</td><td>' + gl('l' + i, 'Leading after ' + qLabel(i), wlTxt(r.ld[i])) + '</td><td>' + gl('t' + i, 'Trailing after ' + qLabel(i), wlTxt(r.tr[i])) + '</td></tr>').join('') + '</table></div>' +
