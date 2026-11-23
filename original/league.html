@@ -799,7 +799,11 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .scoreboard .board .mid .mid-st{display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:999px;white-space:nowrap}
 .scoreboard .board .mid .mid-st:empty{display:none}
 .scoreboard .side.r .teamlink{margin-left:auto}
-.game-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(260px,1fr);gap:18px;align-items:start}
+.game-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(260px,1fr);gap:18px;align-items:stretch}
+.game-main>:last-child,.game-aside>:last-child{flex-grow:1}
+.game-layout:has(.roll-details[open]) .game-aside>:last-child{flex-grow:0}
+.game-layout:has(.roll-details[open]){align-items:start}
+.startgame{white-space:nowrap}
 .game-main,.game-aside{display:flex;flex-direction:column;gap:16px;min-width:0}
 .game-layout.is-editing{grid-template-columns:1fr}
 .matchup-panel{border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0;background:var(--panel)}
@@ -2599,10 +2603,17 @@ const E = (() => {
 
   /* ---------- roll entry, advantages ---------- */
   const isCur = () => !!(D && D.cur);
+  // a game opens for rolls once its day is started and Start Game is pressed (a game with rolls is started)
+  const gameStarted = g => g.rolls.length > 0 || !!(recOf(g) && recOf(g).started);
+  const onToday = g => { const s = S.season; return isCur() && !!(s.day.active && g.day === s.day.cur && s.phase !== 'done'); };
   function editable(g) {
-    const s = S.season;
-    if (!isCur()) return false;
-    return !!(s.day.active && g.day === s.day.cur && s.phase !== 'done');
+    return onToday(g) && gameStarted(g);
+  }
+  function startGame(g) {
+    if (!g || !onToday(g) || gameStarted(g)) return;
+    ensureEntry(g).started = true;
+    saveDay(g.day, 0);
+    refresh(); render(); renderSheet();
   }
   function dayDoc(day) {
     if (!S.days[day]) S.days[day] = { day, games: {} };
@@ -2961,7 +2972,7 @@ const E = (() => {
       '<div class="frow"><button type="button" class="btn" data-act="tour">Play tutorial</button></div>' +
       '<div class="howtos">' +
       sec('Logging games', [
-        'Press <b>Start Day</b> (bottom left) to open a game night. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
+        'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
         'Roll the red die for the away player and the blue die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
@@ -4326,7 +4337,7 @@ const E = (() => {
     const x = gg.sid ? (D.season.post.series || []).find(s => s.id === gg.sid) : null;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + st.a + '</div></div>' +
-      '<div class="mid"><span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : (tipsOn() ? 'Not started' : '')) + '</span>' +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
@@ -4358,6 +4369,7 @@ const E = (() => {
       let msg;
       if (!D.cur) msg = 'This game was not played.';
       else if (gg.day === s.day.cur && !s.day.active) msg = 'Press Start Day ' + gg.day + ' to start logging this game.';
+      else if (onToday(gg)) msg = 'Press Start Game when you’re ready to roll.';
       else if (gg.day > s.day.cur) msg = 'This game is on Day ' + gg.day + '.';
       else msg = 'This game was not played.';
       main += tip('<div class="note">' + msg + '</div>');
@@ -4554,7 +4566,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it. Roll the <b>red die</b> for the away player and the <b>blue die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll the <b>red die</b> for the away player and the <b>blue die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
@@ -4755,6 +4767,7 @@ const E = (() => {
       case 'tback': tourShow(Math.max(0, Tour.i - 1)); break;
       case 'tskip': tourSkip(); break;
       case 'tdone': tourEnd(); break;
+      case 'startgame': startGame(D.byId[S.sheet.gid]); break;
       case 'sertab': S.serTab = { gid: S.sheet && S.sheet.gid, v: el.dataset.v }; renderSheet(); break;
       case 'sscroll': { const c = el.parentElement.querySelector('.schips'); if (c) c.scrollBy({ left: +el.dataset.dir * Math.max(120, c.clientWidth * 0.8), behavior: 'smooth' }); break; }
       case 'lgswitch': leagueGo(el.dataset.v); break;
