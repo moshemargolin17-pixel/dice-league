@@ -2752,8 +2752,14 @@ const E = (() => {
     const g = D.byId[S.sheet.gid];
     if (!g || !editable(g) || g.st.final) return;
     if (D.ru.poss) {
-      const now = possNow(g);
-      if (now.side) { toast('Finish both possessions first.'); return; }
+      let now = possNow(g);
+      if (now.side) {
+        // Enter logs the two dice just put in; the roll itself is logged once both possessions are done
+        if (now.dr.pend.length < 2) { toast('Put in both dice first.'); return; }
+        now.dr[now.side].push(now.dr.pend[0], now.dr.pend[1]); now.dr.pend = [];
+        now = possNow(g);
+        if (now.side) { renderSheet(); return; }
+      }
       possLog(g, [now.dr.a, now.dr.h]);
       const ng = D.byId[g.id];
       renderSheet(); render();
@@ -4381,13 +4387,13 @@ const E = (() => {
     const anyIn = now.dr.a.length || now.dr.pend.length;
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
-      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · roll these two dice' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + rollBox(now.side, k1, now.dr.pend) +
+      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · ' + (now.dr.pend.length === 2 ? 'press <b>Enter</b> to log these two dice' : 'roll these two dice') + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + rollBox(now.side, k1, now.dr.pend) +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(now.side, k1 + now.dr.pend.length)) + '">' +
         '<div class="chips pk-' + now.side + (k1 + now.dr.pend.length) + '">' +
         [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
         : '<div class="ppad"><div class="pask">Both possessions are in. Log the roll.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
-      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side ? ' disabled' : '') + '>Log roll</button></div>' + autoBtns(g) +
-      tip('<div class="note">Roll the two dice shown, then press (or tap) each number: the first box, then the second. Enter logs the roll, Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
+      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side && now.dr.pend.length < 2 ? ' disabled' : '') + '>Log roll</button></div>' + autoBtns(g) +
+      tip('<div class="note">Roll the two dice shown, press (or tap) each number, then press Enter (or Log roll) to log them and go on. Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
   }
   function possDie(v) {
     const g = D.byId[S.sheet.gid];
@@ -4395,8 +4401,8 @@ const E = (() => {
     const now = possNow(g);
     if (!now.side) return;
     const dr = now.dr;
-    dr.pend.push(v);
-    if (dr.pend.length === 2) { dr[now.side].push(dr.pend[0], dr.pend[1]); dr.pend = []; }   // both dice in: the game goes on
+    if (dr.pend.length >= 2) { toast('Press Enter to log these two dice.'); return; }
+    dr.pend.push(v);   // both dice in: Enter (or Log roll) logs them and the game goes on
     renderSheet();
   }
   document.addEventListener('input', e => {
