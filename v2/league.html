@@ -701,6 +701,10 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ptext{font-size:13.5px;color:var(--muted)}.ptext b{color:var(--ink)}
 .ppad{margin-top:12px;display:grid;gap:8px}
 .pask{font-size:15px}
+.rollbox{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:12px 14px;border-radius:calc(var(--radius) - 2px);background:var(--panel-2);border:1px solid var(--border);font-size:16px;font-weight:700}
+.rollbox .rb-l{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.rollbox .rb-and{font-weight:500;color:var(--muted)}
+.rollbox .rb-d{display:inline-flex;align-items:center;gap:6px}.rollbox .die{margin:0;width:16px;height:16px;border-radius:4px}.rollbox .die.h3,.rollbox .die.h4,.rollbox .die.a3,.rollbox .die.a4{width:12px;height:12px;border-radius:3px}
 .pin{width:100%;min-height:46px;font:700 20px var(--f-num);text-align:center;letter-spacing:.04em}
 .pin::placeholder{font:500 15px var(--f-body);letter-spacing:0}
 @media (pointer:fine){.pin{display:none}}   /* a computer has number keys: no box needed */
@@ -4355,6 +4359,9 @@ const E = (() => {
   const pdn = i => (Math.floor(i / 2) % 2 ? 3 : 1) + i % 2;
   const DIE_NAMES = { h: ['Green die', 'Cyan die', 'Small dark green die', 'Small lime die'], a: ['Red die', 'Orange die', 'Small maroon die', 'Small orange die'] };
   const dieName = (sd, n) => DIE_NAMES[sd][n - 1];
+  // what to pick up: the two big dice for a shot, the two small dice after a miss or a foul
+  const rollBox = (sd, n) => { const a = n <= 2 ? 1 : 3; const d = k => '<span class="die ' + sd + k + '"></span>' + dieName(sd, k).toLowerCase();
+    return '<div class="rollbox"><span class="rb-l">Roll</span><span class="rb-d">' + d(a) + '</span><span class="rb-and">and</span><span class="rb-d">' + d(a + 1) + '</span></div>'; };
   const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="' + dieName(sd, n) + '"></span>').join('');
   function possEntry(g) {
     const st = g.st, now = possNow(g);
@@ -4368,13 +4375,13 @@ const E = (() => {
     const fastNow = now.side && (now.side === 'a' ? now.dr.a : now.dr.h).length === 0 && possFast(g, st.n, now.side, now.dr.a);
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
-      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · <span class="die ' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '"></span><b>' + dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length)) + '</b>' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' +
+      (cur ? '<div class="ppad">' + rollBox(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length)) + '<div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · <span class="die ' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '"></span><b>' + dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length)) + '</b>' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(now.side, pdn((now.side === 'a' ? now.dr.a : now.dr.h).length))) + '">' +
         '<div class="chips pk-' + now.side + pdn((now.side === 'a' ? now.dr.a : now.dr.h).length) + '">' +
         [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
         : '<div class="ppad"><div class="pask">Both possessions are in. Log the roll.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
       '<div class="eacts"><button type="button" class="btn" data-act="' + (now.dr.a.length ? 'pback' : 'undo') + '"' + (now.dr.a.length || st.n ? '' : ' disabled') + '>' + (now.dr.a.length ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side ? ' disabled' : '') + '>Log roll</button></div>' + autoBtns(g) +
-      tip('<div class="note">Roll the die named above the box and type (or tap) what came up. Enter logs the roll, Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
+      tip('<div class="note">Roll the two dice in the Roll box, then press (or tap) the number on the die named under it. Enter logs the roll, Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
   }
   function possDie(v) {
     const g = D.byId[S.sheet.gid];
