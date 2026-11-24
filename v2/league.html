@@ -2766,7 +2766,7 @@ const E = (() => {
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
     const e = ensureEntry(g); e.started = true;
-    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.od2 = true; e.od3 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
+    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.tv2 = true; e.od2 = true; e.od3 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3159,7 +3159,7 @@ const E = (() => {
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll’s points, then Save' + (D.ru.poss ? ' (an edited game keeps its score but loses its play-by-play and box score, since the dice no longer match).' : '.'),
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Ratings and types', [
-        'Die 1 is the play: a 1 is a turnover (then die 2: 1–3 a dead ball, 4–6 a steal), 2–4 a 2-pointer and 5–6 a 3-pointer (a Center: 2–5 a 2-pointer, only 6 a 3-pointer). A steal gives the other player a fast break, except on the last possession of a quarter.',
+        'Die 1 is the play: a 1 is a turnover (then die 2: 1–3 a steal, 4–6 a dead ball), 2–4 a 2-pointer and 5–6 a 3-pointer (a Center: 2–5 a 2-pointer, only 6 a 3-pointer). A steal gives the other player a fast break, except on the last possession of a quarter.',
         'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss (free throws on die 3), 5–6 a make; after a make, die 3 is a foul only on a 6 (an and-one, its free throw on die 4). A Center’s 3-pointer: 1–4 a miss, 5 fouled on a miss, 6 a make with no and-one. An advantage moves that line by one number. A fast break makes it one number easier (at most 4 makes).',
         'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Center</b>. Guards and Forwards shoot 3s on a 5 or 6, a Center on a 6. Guards get no offensive rebounds and put back only a 6; Forwards rebound on a 2 (2–3 against a Guard) and put back 5–6; Centers rebound on 2–3 and put back 4–6. Guard against Guard and Center against Center use the regular rebounds. At the line, Guards are one number better and Centers one number worse: an and-one goes in on 2–6 for a Guard, 3–6 for a Forward, 4–6 for a Center (3 free throws for a Center on a 3: 1–2 none, 3 one, 4–5 two, 6 three).',
         'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
@@ -4449,11 +4449,11 @@ const E = (() => {
       if (old && old.to) {   // games played before: 1 a dead-ball turnover, 2 a steal
         if (d1 === 1) { bx.to++; say('to'); parts.push('turnover (dead ball)'); return out(true); }
         if (d1 === 2) { bx.to++; bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
-      } else if (d1 === 1) {   // a turnover; die 2: 1-3 a dead ball, 4-6 a steal
+      } else if (d1 === 1) {   // a turnover; die 2: 1-3 a steal, 4-6 a dead ball (games played before: 1-3 dead ball, 4-6 steal)
         bx.to++; say('to');
         if (i >= dice.length) return out(false, 'Die 2 · dead ball or steal?');
         const t2 = dice[i++];
-        if (t2 >= 4) { bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
+        if (old && old.tv ? t2 >= 4 : t2 <= 3) { bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
         say('dead'); parts.push('turnover (dead ball)'); return out(true);
       }
       // 3-pointers on die 1. Now: Guard and Forward 5-6, Center 6. Games played before (old.sh): Guard 5-6, Forward 6, Center none
@@ -4556,7 +4556,7 @@ const E = (() => {
   };
   // games logged before free throws went by type keep the old free throws (all like a Forward)
   // games logged before a rule change keep the rules they were played with: ft (free throws all like a Forward), to (die 1 = 2 a steal)
-  const possOld = g => { const r = recOf(g), had = !!(r && r.p && r.p.length); return { ft: had && !r.ft2, to: had && !r.to2, sh: had && !r.sh2, d2: had && !r.d22, adv: had && !r.ad1 }; };
+  const possOld = g => { const r = recOf(g), had = !!(r && r.p && r.p.length); return { ft: had && !r.ft2, to: had && !r.to2, sh: had && !r.sh2, d2: had && !r.d22, adv: had && !r.ad1, tv: had && !r.tv2 }; };
   const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'n' : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
   // is this possession a fast break? (the possession just before it ended in a steal) draftFirst: the dice of the roll's first possession, while it's being put in
@@ -4860,6 +4860,7 @@ const E = (() => {
     if (!n && !entry.sh2) entry.sh2 = true;
     if (!n && !entry.d22) entry.d22 = true;
     if (!n && !entry.ad1) entry.ad1 = true;
+    if (!n && !entry.tv2) entry.tv2 = true;
     if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
     if (!n && !entry.od2 && !entry.sk1) { entry.od2 = true; entry.od3 = true; }
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
