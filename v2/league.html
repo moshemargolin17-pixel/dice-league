@@ -701,6 +701,9 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ptext{font-size:13.5px;color:var(--muted)}.ptext b{color:var(--ink)}
 .ppad{margin-top:12px;display:grid;gap:8px}
 .pask{font-size:15px}
+/* the final possessions: red and pulsing */
+.mid-st.stakes,.ehead .num.stakes{color:#D2283C!important;border-color:#D2283C!important;font-weight:800;animation:stakes 1.6s ease-in-out infinite}
+@keyframes stakes{50%{opacity:.6}}
 .possentry .eacts .btn .kbd{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border:1px solid currentColor;border-radius:4px;font-size:11px;line-height:16px;opacity:.6}
 @media (pointer:coarse){.possentry .eacts .btn .kbd{display:none}}
 .pask .die{vertical-align:-1px}
@@ -1488,6 +1491,12 @@ const L = (() => {
       if (-d > deficitA) deficitA = -d;
       if (d > deficitH) deficitH = d;
     });
+    // 2.0 counts possessions, not a clock: "Q2 · 3 of 6", and at the end "3 possessions left" ... "Final possession"
+    const possText = (k, r) => {
+      const p = periodOf(k, r), end = k < 24 ? 24 : 24 + Math.floor((k - 24) / 3) * 3 + 3, left = end - k;
+      if ((k >= 24 || p.per === 4) && left <= 3) return (k >= 24 ? perLabel(p.per) + ' · ' : '') + (left === 1 ? 'Final possession' : left + ' possessions left');
+      return perLabel(p.per) + ' · ' + (p.k + 1) + ' of ' + p.len;
+    };
     const n = rolls.length;
     const atEnd = n >= 24 && (n - 24) % 3 === 0;
     const final = atEnd && a !== h;
@@ -1498,11 +1507,11 @@ const L = (() => {
     else {
       const p = periodOf(n - 1, ru);
       if (p.k === p.len - 1) { label = perLabel(p.per) === 'Q2' ? 'Halftime' : 'Start of ' + perLabel(p.per + 1); }   // between quarters: the next one is up
-      else { label = perLabel(p.per) + ' ' + fmtClock(p.mins - (p.k + 1) * p.mins / p.len); }
+      else label = possText(n, ru);
       short = label;
     }
     const next = periodOf(n, ru);
-    const nextLabel = perLabel(next.per) + ' ' + fmtClock(next.mins - next.k * next.mins / next.len);
+    const nextLabel = possText(n, ru);
     const comeback = final ? (a > h ? deficitA : deficitH) : 0;
     return { a, h, n, periods, lc, bigA, bigH, final, ot, label, short, nextLabel, nextPer: next.per, comeback, live: n > 0 && !final };
   }
@@ -4598,10 +4607,7 @@ const E = (() => {
     }
     return '';
   }
-  const pbpClock = n => {
-    const pr = L.periodOf(n, D.ru), secs = Math.round(pr.mins * 60 * (1 - pr.k / pr.len));
-    return L.perLabel(pr.per) + ' ' + Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
-  };
+  const pbpClock = n => { const pr = L.periodOf(n, D.ru); return L.perLabel(pr.per) + ' · ' + (pr.k + 1); };   // quarter and possession
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
     if (!list.length) return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol><li class="pbp-empty"><span class="pbp-t">' + pbpClock(0) + '</span><span class="pbp-x">Tip-off. Every play shows up here as you roll.</span><span class="pbp-s">0–0</span></li></ol></section>' : '';
@@ -4648,7 +4654,7 @@ const E = (() => {
     const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr.a);
     const anyIn = now.dr.a.length || now.dr.h.length;
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
-    return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
+    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num' + (/left|Final possession/.test(st.nextLabel) ? ' stakes' : '') + '">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
       (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
@@ -4883,7 +4889,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + possArrow(gg, st, 'a') + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && /left|Final possession/.test(st.n ? st.label : st.nextLabel) ? ' stakes' : '') + '">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
