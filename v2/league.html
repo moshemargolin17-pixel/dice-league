@@ -3753,11 +3753,7 @@ const E = (() => {
     boxAvg('rpg', 'Rebounds / game', 'Offensive and defensive rebounds per game', b => b.orb + b.drb),
     boxAvg('orpg', 'Off. rebounds / game', 'Offensive rebounds per game', b => b.orb),
     boxAvg('drpg', 'Def. rebounds / game', 'Defensive rebounds per game', b => b.drb),
-    boxAvg('spg', 'Steals / game', 'Steals per game', b => b.stl),
-    boxAvg('tog', 'Turnovers / game', 'Turnovers per game (fewest is best)', b => b.to, true),
-    boxAvg('pbg', 'Putbacks / game', 'Putbacks per game', b => b.pb),
-    boxAvg('fbg', 'Fast-break pts / game', 'Fast-break points per game', b => b.fbp),
-    { k: 'a1t', l: 'And-ones', t: 'And-ones (made the shot and got fouled)', v: r => (r.bgp ? r.bx.a1 : null), f: r => (r.bx ? r.bx.a1 : 0) }
+    boxAvg('tog', 'Turnovers / game', 'Turnovers per game (fewest is best)', b => b.to, true)
   ];
   const STAT_Q = [
     quarterDef('qb', 'Best quarter', 'Most points scored in one quarter', r => r.qbest),
@@ -4854,7 +4850,7 @@ const E = (() => {
     [b => b.tpm + '-' + b.tpa, '3P', '3-pointers made-attempted'], [b => pct(b.tpm, b.tpa), '3P%', '3-point percentage'],
     [b => b.ftm + '-' + b.fta, 'FT', 'Free throws made-attempted'], [b => pct(b.ftm, b.fta), 'FT%', 'Free-throw percentage'],
     [b => b.orb, 'OREB', 'Offensive rebounds'], [b => b.drb, 'DREB', 'Defensive rebounds'], [b => b.orb + b.drb, 'REB', 'Total rebounds'],
-    [b => b.to, 'TO', 'Turnovers'], [b => b.stl, 'STL', 'Steals'], [b => b.pb, 'PB', 'Putbacks'], [b => b.fbp, 'FBP', 'Fast-break points'], [b => b.a1, 'AND1', 'And-ones']
+    [b => b.to, 'TO', 'Turnovers']
   ];
   function boxScorePanel(gg) {
     const bx = boxOf(gg);
