@@ -4842,15 +4842,7 @@ const E = (() => {
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
     }
-    if (st.n && !S.sheet.edit) {
-      let a = 0, h = 0;
-      const lines = gg.rolls.map((r, i) => {
-        a += r[0]; h += r[1];
-        const cs = gg.calls.filter(c => c.r === i).map(c => '<span class="ctag ' + c.s + '">' + (c.s === 'a' ? 'A' : 'H') + ' ' + (c.t === 'o' ? 'off' : 'def') + '</span>').join('');
-        return '<tr><td class="l">' + (i + 1) + '</td><td class="l">' + L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru) + cs + '</td><td>+' + r[0] + '</td><td>+' + r[1] + '</td><td><strong>' + a + '–' + h + '</strong></td></tr>';
-      }).reverse().join('');
-      main += '<details class="matchup-panel roll-details"><summary>Roll log<span>' + st.n + ' rolls</span></summary><div class="rlog"><table class="tbl"><tr><th class="l">#</th><th class="l">Clock</th><th>' + esc(sname(gg.a)) + '</th><th>' + esc(sname(gg.h)) + '</th><th>Score</th></tr>' + lines + '</table></div></details>';
-    }
+    // no roll log in 2.0: the play-by-play is the log of every roll
     body += '<div class="game-layout' + (S.sheet.edit ? ' is-editing' : '') + '"><div class="game-main">' + main + '</div>' + (S.sheet.edit ? '' : '<aside class="game-aside">' + aside + '</aside>') + '</div>';
     const canEdit = D.cur && st.final && !S.sheet.edit;
     if (!host) { host = document.createElement('div'); host.id = 'sheetHost'; document.body.appendChild(host); }
