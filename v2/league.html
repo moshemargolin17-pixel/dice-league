@@ -2764,7 +2764,7 @@ const E = (() => {
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
     const e = ensureEntry(g); e.started = true;
-    if (D.ru.poss) { e.ft2 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
+    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3157,6 +3157,7 @@ const E = (() => {
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll’s points, then Save' + (D.ru.poss ? ' (an edited game keeps its score but loses its play-by-play and box score, since the dice no longer match).' : '.'),
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Ratings and types', [
+        'Die 1 is the play: a 1 is a turnover (then die 2: 1–3 a dead ball, 4–6 a steal), 2–5 a 2-pointer and 6 a 3-pointer (by type, below). A steal gives the other player a fast break, except on the last possession of a quarter.',
         'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense sets which die 2 numbers go in: 4–5 when within 1 star, 3–5 when 2 stars better, 2–5 when 3 or more better, and 5 only when 2 or more worse. A fast break makes one number easier (2–5 at best).',
         'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Center</b>. A Guard shoots 3s on a 5 or 6, a Forward on a 6, a Center never. Guards get no offensive rebounds and put back only a 6; Forwards rebound on a 2 (2–3 against a Guard) and put back 5–6; Centers rebound on 2–3 and put back 4–6. Guard against Guard and Center against Center use the regular rebounds. At the line, Guards are one number better and Centers one number worse: an and-one goes in on 2–6 for a Guard, 3–6 for a Forward, 4–6 for a Center.',
         'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
@@ -4427,7 +4428,8 @@ const E = (() => {
   // Die 2 makes from makeLow to 5. Within 1 star: no shift (4-5). 2 stars: 1 shift (better 3-5, worse 5 only).
   // 3 or more: 2 shifts (better 2-5; worse would leave no makes, so it stays at 1 shift, 5 only). A fast break makes one number easier, at best 2-5.
   const makeLow = (edge, fb) => { const d = edge || 0, sh = Math.sign(d) * (Math.abs(d) >= 3 ? 2 : Math.abs(d) === 2 ? 1 : 0); const low = Math.max(2, Math.min(5, 4 - sh)); return fb ? Math.max(2, low - 1) : low; };   // a fast break makes at best on 2-5
-  function possWalk(dice, fast, type, opp, edge, ftOld) {
+  function possWalk(dice, fast, type, opp, edge, old) {
+    const ftOld = old && old.ft;
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
     // box score for this possession. odrb (defensive rebounds) and ostl (steals) go to the other player.
@@ -4440,8 +4442,16 @@ const E = (() => {
     for (;;) {
       if (i >= dice.length) return out(false, 'Die 1 · shot or turnover');
       const d1 = dice[i++];
-      if (d1 === 1) { bx.to++; say('to'); parts.push('turnover (dead ball)'); return out(true); }
-      if (d1 === 2) { bx.to++; bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
+      if (old && old.to) {   // games played before: 1 a dead-ball turnover, 2 a steal
+        if (d1 === 1) { bx.to++; say('to'); parts.push('turnover (dead ball)'); return out(true); }
+        if (d1 === 2) { bx.to++; bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
+      } else if (d1 === 1) {   // a turnover; die 2: 1-3 a dead ball, 4-6 a steal
+        bx.to++; say('to');
+        if (i >= dice.length) return out(false, 'Die 2 · dead ball or steal?');
+        const t2 = dice[i++];
+        if (t2 >= 4) { bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
+        say('dead'); parts.push('turnover (dead ball)'); return out(true);
+      }
       const val = type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2), fb = first && fast;   // Guard: 5-6 are 3s · Forward: 6 · Center: no 3s
       first = false;
       say('sh', { v: val, fb });
@@ -4494,7 +4504,8 @@ const E = (() => {
   const possRt = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.rt ? r.rt[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? [3, 3] : [pl.off || 3, pl.def || 3]; };
   const possEdge = (g, side) => possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
   // games logged before free throws went by type keep the old free throws (all like a Forward)
-  const possFtOld = g => { const r = recOf(g); return !!(r && r.p && r.p.length && !r.ft2); };
+  // games logged before a rule change keep the rules they were played with: ft (free throws all like a Forward), to (die 1 = 2 a steal)
+  const possOld = g => { const r = recOf(g), had = !!(r && r.p && r.p.length); return { ft: had && !r.ft2, to: had && !r.to2 }; };
   const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'n' : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
   // is this possession a fast break? (the possession just before it ended in a steal) draftFirst: the dice of the roll's first possession, while it's being put in
@@ -4503,7 +4514,8 @@ const E = (() => {
     let pn, ps, dice;
     if (at > 0) { pn = n; ps = seq[at - 1]; dice = draftFirst || sideDice(p[n], ps); }
     else { if (n === 0 || !p[n - 1]) return false; pn = n - 1; const sq = seqOf(n - 1); ps = sq[sq.length - 1]; dice = sideDice(p[n - 1], ps); }
-    return !!(dice && dice.length && possWalk(dice, possFast(g, pn, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps), possFtOld(g)).steal);
+    if (!possOld(g).to && lastOfPeriod(pn, ps)) return false;   // a break between periods: no fast break
+    return !!(dice && dice.length && possWalk(dice, possFast(g, pn, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps), possOld(g)).steal);
   }
   // the possessions of the roll being put in, in order: { wa, wh, side (whose turn, or null when both are done) }
   function rollWalks(g, dr, n) {
@@ -4511,7 +4523,7 @@ const E = (() => {
     let side = null;
     seq.forEach((sd, j) => {
       if (side) return;
-      w[sd] = possWalk(dr[sd], possFast(g, n, sd, j ? dr[seq[0]] : undefined), possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possFtOld(g));
+      w[sd] = possWalk(dr[sd], possFast(g, n, sd, j ? dr[seq[0]] : undefined), possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
       if (!w[sd].done) side = sd;
     });
     return { wa: w.a || null, wh: w.h || null, side };
@@ -4526,8 +4538,8 @@ const E = (() => {
     const sides = [z(), z()];
     let fast = false;   // a steal on the possession before gives a fast break
     for (let n = 0; n < g.rolls.length; n++) seqOf(n).forEach(sd => {
-      const w = possWalk(sideDice(p[n], sd), fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possFtOld(g));
-      fast = w.steal;
+      const w = possWalk(sideDice(p[n], sd), fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
+      fast = w.steal && (possOld(g).to || !lastOfPeriod(n, sd));
       [[w, sd === 'a' ? 0 : 1]].forEach(([w, k]) => {
         const me = sides[k], th = sides[1 - k], b = w.bx;
         me.pts += w.pts; ['fga', 'fgm', 'tpa', 'tpm', 'fta', 'ftm', 'orb', 'to', 'pb', 'fbp', 'a1'].forEach(x => { me[x] += b[x]; });
@@ -4571,14 +4583,15 @@ const E = (() => {
     const p = possOf(g), out = [];
     let a = 0, h = 0, fast = false;
     const walk = (n, sd, dice, fb) => {
-      const w = possWalk(dice, fb, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possFtOld(g));
+      const w = possWalk(dice, fb, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
       w.ev.forEach((e, j) => { if (sd === 'a') a += e.p; else h += e.p; if (e.k !== 'nopb') out.push({ key: n + sd + j, n, sd, e, a, h }); });   // a missed putback isn't its own line
       return w;
     };
     let n = 0;
-    for (; n < g.rolls.length && p[n]; n++) seqOf(n).forEach(sd => { fast = walk(n, sd, sideDice(p[n], sd), fast).steal; });
+    const fastAfter = (w, n, sd) => w.steal && (possOld(g).to || !lastOfPeriod(n, sd));
+    for (; n < g.rolls.length && p[n]; n++) seqOf(n).forEach(sd => { fast = fastAfter(walk(n, sd, sideDice(p[n], sd), fast), n, sd); });
     const dr = !g.st.final && n === g.rolls.length ? possSaved(g) : null;   // the roll being put in
-    if (dr) { let on = true; seqOf(n).forEach(sd => { if (!on) return; const w = walk(n, sd, dr[sd], fast); fast = w.steal; on = w.done; }); }
+    if (dr) { let on = true; seqOf(n).forEach(sd => { if (!on) return; const w = walk(n, sd, dr[sd], fast); fast = fastAfter(w, n, sd); on = w.done; }); }
     return out;
   }
   const pbpWho = x => (['dreb', 'stl', 'lose'].includes(x.e.k) ? (x.sd === 'a' ? 'h' : 'a') : x.sd);
@@ -4612,6 +4625,7 @@ const E = (() => {
     const th = pname(x.sd === 'a' ? g.h : g.a), e = x.e, shot = v => (v === 3 ? '3-pointer' : '2-pointer');
     switch (e.k) {
       case 'to': return 'Turnover';
+      case 'dead': return 'Dead ball';
       case 'stl': return 'Steal';
       case 'sh': return e.fb ? 'Fast break' : 'Shoots a ' + shot(e.v);
       case 'mk': return 'Makes the ' + shot(e.v);
@@ -4632,6 +4646,8 @@ const E = (() => {
     return '';
   }
   // possessions are counted for each player: 12 a quarter (6 each), 48 a game, 7 in an overtime (home first and last). i = 0-based possession of the game.
+  // is this the last possession of a quarter (or of an overtime)?
+  const lastOfPeriod = (n, sd) => { const i = possIdx(n, sd); return i < 48 ? i % 12 === 11 : (i - 48) % 7 === 6; };
   const possIdx = (n, sd) => (n < 24 ? 2 * n + (sd === 'h' ? 1 : 0) : 48 + Math.floor((n - 24) / 4) * 7 + 2 * ((n - 24) % 4) + (sd === 'a' ? 1 : 0));
   function possPer(i) {
     if (i < 48) return { per: Math.floor(i / 12) + 1, k: i % 12, len: 12, end: (Math.floor(i / 12) + 1) * 12 };   // end: where this quarter ends
@@ -4727,7 +4743,7 @@ const E = (() => {
       if (at > 0) { const ps = seq[at - 1]; return { sd: ps, w: ps === 'a' ? now.wa : now.wh, dice: now.dr[ps] }; }
       const p0 = possOf(g)[st.n - 1]; if (!p0) return null;
       const sq = seqOf(st.n - 1), ps = sq[sq.length - 1];
-      return { sd: ps, w: possWalk(sideDice(p0, ps), possFast(g, st.n - 1, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps), possFtOld(g)), dice: sideDice(p0, ps) };
+      return { sd: ps, w: possWalk(sideDice(p0, ps), possFast(g, st.n - 1, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps), possOld(g)), dice: sideDice(p0, ps) };
     };
     const pv = prevPoss();
     pair = pv ? side(pv.sd, pv.w, pv.dice, false, 'last possession') + side(cur, curW, now.dr[cur], true, 'has the ball')
@@ -4787,6 +4803,7 @@ const E = (() => {
     const entry = ensureEntry(g);
     if (!entry.ty) entry.ty = [possTy(g, 'a'), possTy(g, 'h')];
     if (!n && !entry.ft2) entry.ft2 = true;
+    if (!n && !entry.to2) entry.to2 = true;
     if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
     delete entry.d;   // the roll is logged: nothing in progress
@@ -4865,8 +4882,8 @@ const E = (() => {
     let a = 0, h = 0, fast = false, missing = null;
     const own = { stl: 'Stolen', lose: 'Lost the ball' };
     ep.forEach((pr, n) => seqOf(n).forEach(sd => {
-      const dice = pr[sd === 'a' ? 0 : 1], w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possFtOld(g));
-      fast = w.steal;
+      const dice = pr[sd === 'a' ? 0 : 1], w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
+      fast = w.steal && (possOld(g).to || !lastOfPeriod(n, sd));
       if (sd === 'a') a += w.pts; else h += w.pts;
       if (!w.done && !missing) missing = { n, sd };
       const what = w.ev.filter(e => e.k !== 'sh' && e.k !== 'nopb').map((e, j) => { const t = own[e.k] || pbpAction({ sd, e }, g); return j ? t.charAt(0).toLowerCase() + t.slice(1) : t; }).join(', ');
