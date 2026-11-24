@@ -2766,7 +2766,7 @@ const E = (() => {
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
     const e = ensureEntry(g); e.started = true;
-    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.tv2 = true; e.od2 = true; e.od3 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
+    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.tv2 = true; e.pf1 = true; e.od2 = true; e.od3 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3128,7 +3128,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss, 5–6 a make (then die 3: a 6 is an and-one). The shooter’s Offense against the other player’s Defense: 3 or more stars higher makes the shot one number easier; 3 or more stars lower makes it one number harder. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Center on 6) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss, 5–6 a make (then die 3: a 6 is an and-one). On a 3, the foul is only contact and die 3 decides: 1 defensive rebound, 2 out of bounds, 3 offensive rebound, 4–5 fouled, 6 made and fouled (a Center: 3–4 offensive rebound, 5–6 fouled). The shooter’s Offense against the other player’s Defense: 3 or more stars higher makes the shot one number easier; 3 or more stars lower makes it one number harder. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Center on 6) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -3160,7 +3160,7 @@ const E = (() => {
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Ratings and types', [
         'Die 1 is the play: a 1 is a turnover (then die 2: 1–3 a steal, 4–6 a dead ball), 2–4 a 2-pointer and 5–6 a 3-pointer (a Center: 2–5 a 2-pointer, only 6 a 3-pointer). A steal gives the other player a fast break, except on the last possession of a quarter.',
-        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss (free throws on die 3), 5–6 a make; after a make, die 3 is a foul only on a 6 (an and-one, its free throw on die 4). A Center’s 3-pointer: 1–4 a miss, 5 fouled on a miss, 6 a make with no and-one. An advantage moves that line by one number. A fast break makes it one number easier (at most 4 makes).',
+        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss (free throws on die 3), 5–6 a make; after a make, die 3 is a foul only on a 6 (an and-one, its free throw on die 4). A Center’s 3-pointer: 1–4 a miss, 5 fouled on a miss, 6 a make with no and-one. On a 3-pointer the foul number is only contact, and die 3 decides: 1 a missed 3 and defensive rebound, 2 out of bounds, 3 an offensive rebound, 4–5 fouled (free throws on die 4), 6 a made 3 and fouled (and-one on die 4). A Center: 1 defensive rebound, 2 out of bounds, 3–4 offensive rebound, 5–6 fouled. An advantage moves that line by one number. A fast break makes it one number easier (at most 4 makes).',
         'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Center</b>. Guards and Forwards shoot 3s on a 5 or 6, a Center on a 6. Guards get no offensive rebounds and put back only a 6; Forwards rebound on a 2 (2–3 against a Guard) and put back 5–6; Centers rebound on 2–3 and put back 4–6. Guard against Guard and Center against Center use the regular rebounds. At the line, Guards are one number better and Centers one number worse: an and-one goes in on 2–6 for a Guard, 3–6 for a Forward, 4–6 for a Center (3 free throws for a Center on a 3: 1–2 none, 3 one, 4–5 two, 6 three).',
         'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
       sec('Standings and the playoffs', [
@@ -4444,6 +4444,7 @@ const E = (() => {
     const out = (done, need) => ({ done, need: need || null, pts, steal, bx, ev, used: i, text: parts.join(', ') });
     const shot = (v, made) => { bx.fga++; if (v === 3) bx.tpa++; if (made) { bx.fgm++; if (v === 3) bx.tpm++; } };
     for (;;) {
+      let rk = null;   // a missed 3 with no foul: die 3 already says the rebound ('d' defensive, 'b' out of bounds, 'o' offensive)
       if (i >= dice.length) return out(false, 'Die 1 · shot or turnover');
       const d1 = dice[i++];
       if (old && old.to) {   // games played before: 1 a dead-ball turnover, 2 a steal
@@ -4482,7 +4483,24 @@ const E = (() => {
           bx.fta++; bx.ftm += ft; bx.a1++; if (fb) bx.fbp += ft; parts.push('and-one ' + (ft ? 'made' : 'missed'));
           return out(true);
         }
-        if (d2 === low - 1) {
+        if (d2 === low - 1 && val === 3 && !(old && old.pf)) {
+          // a 3: contact on the shot, die 3 decides. 1 defensive rebound, 2 out of bounds, 3 offensive rebound (a Center 3-4),
+          // 4-5 fouled (a Center 5-6), 6 a made 3 and fouled (not a Center). Games played before: always fouled.
+          say('flq', { v: val });
+          if (i >= dice.length) return out(false, 'Contact · foul?');
+          const f = dice[i++];
+          if (!c3 && f === 6) {
+            pts += val; say('and1', { v: val, p: val }); shot(val, true); if (fb) bx.fbp += val;
+            parts.push((fb ? 'fast break, ' : '') + 'made ' + val + ' and fouled');
+            if (i >= dice.length) return out(false, 'And-one free throw');
+            const ft = dice[i++] >= AND1_MAKE[ftType] ? 1 : 0;
+            say(ft ? 'a1m' : 'a1x', { p: ft, v: val }); pts += ft;
+            bx.fta++; bx.ftm += ft; bx.a1++; if (fb) bx.fbp += ft; parts.push('and-one ' + (ft ? 'made' : 'missed'));
+            return out(true);
+          }
+          if (f < (c3 ? 5 : 4)) rk = f === 1 ? 'd' : f === 2 ? 'b' : 'o';
+        }
+        if (d2 === low - 1 && !rk) {
           say('flm', { v: val });
           if (i >= dice.length) return out(false, 'Free throws');
           const made = (val === 3 ? FT3 : FT2)[ftType][dice[i++] - 1];
@@ -4514,14 +4532,14 @@ const E = (() => {
       }
       if (old && old.d2 && d2 >= makeLow(edge, fb)) { pts += val; say('mk', { v: val, fb, p: val }); shot(val, true); if (fb) bx.fbp += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
       shot(val, false); say('ms', { v: val });
-      parts.push((fb ? 'fast break, ' : '') + 'missed ' + val);
-      if (i >= dice.length) return out(false, 'Rebound');
-      const r1 = dice[i++];
-      if (r1 > orebTop(type, opp)) { bx.odrb++; say('dreb'); parts.push('defensive rebound'); return out(true); }
-      say(r1 === 1 ? 'oob' : 'oreb');
-      if (i >= dice.length) return out(false, r1 === 1 ? 'Out of bounds · whose ball?' : 'Offensive rebound · putback?');
+      parts.push((fb ? 'fast break, ' : '') + (rk ? 'no foul, ' : '') + 'missed ' + val);
+      if (!rk && i >= dice.length) return out(false, 'Rebound');
+      const r1 = rk ? 0 : dice[i++], rb = rk || (r1 > orebTop(type, opp) ? 'd' : r1 === 1 ? 'b' : 'o');
+      if (rb === 'd') { bx.odrb++; say('dreb'); parts.push('defensive rebound'); return out(true); }
+      say(rb === 'b' ? 'oob' : 'oreb');
+      if (i >= dice.length) return out(false, rb === 'b' ? 'Out of bounds · whose ball?' : 'Offensive rebound · putback?');
       const r2 = dice[i++];
-      if (r1 === 1) {
+      if (rb === 'b') {
         if (r2 === 1) { say('keep'); parts.push('out of bounds, still his ball'); continue; }
         say('lose'); parts.push('out of bounds'); return out(true);
       }
@@ -4556,7 +4574,7 @@ const E = (() => {
   };
   // games logged before free throws went by type keep the old free throws (all like a Forward)
   // games logged before a rule change keep the rules they were played with: ft (free throws all like a Forward), to (die 1 = 2 a steal)
-  const possOld = g => { const r = recOf(g), had = !!(r && r.p && r.p.length); return { ft: had && !r.ft2, to: had && !r.to2, sh: had && !r.sh2, d2: had && !r.d22, adv: had && !r.ad1, tv: had && !r.tv2 }; };
+  const possOld = g => { const r = recOf(g), had = !!(r && r.p && r.p.length); return { ft: had && !r.ft2, to: had && !r.to2, sh: had && !r.sh2, d2: had && !r.d22, adv: had && !r.ad1, tv: had && !r.tv2, pf: had && !r.pf1 }; };
   const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'n' : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
   // is this possession a fast break? (the possession just before it ended in a steal) draftFirst: the dice of the roll's first possession, while it's being put in
@@ -4656,6 +4674,8 @@ const E = (() => {
       case 'mk': return me + ' makes the ' + shot(e.v);
       case 'ms': return me + ' misses the ' + shot(e.v);
       case 'fl': return th + ' fouls ' + me;
+      case 'flq': return 'Contact on ' + me + '’s shot';
+      case 'flm': return th + ' fouls ' + me + ', misses the shot';
       case 'and1': return me + ' makes the ' + shot(e.v) + ', and-one';
       case 'nogo': return me + ' misses the shot, ' + e.v + ' free throws';
       case 'a1m': return me + ' makes the free throw';
@@ -4682,6 +4702,7 @@ const E = (() => {
       case 'mk': return 'Makes the ' + shot(e.v);
       case 'ms': return 'Misses the ' + shot(e.v);
       case 'fl': return 'Fouled';
+      case 'flq': return 'Contact on the shot';
       case 'flm': return 'Fouled, misses the shot';
       case 'a1f': return 'Fouled, and-one';
       case 'and1': return 'Makes the ' + shot(e.v) + ', and-one';
@@ -4861,6 +4882,7 @@ const E = (() => {
     if (!n && !entry.d22) entry.d22 = true;
     if (!n && !entry.ad1) entry.ad1 = true;
     if (!n && !entry.tv2) entry.tv2 = true;
+    if (!n && !entry.pf1) entry.pf1 = true;
     if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
     if (!n && !entry.od2 && !entry.sk1) { entry.od2 = true; entry.od3 = true; }
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
