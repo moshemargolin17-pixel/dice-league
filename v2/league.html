@@ -703,29 +703,15 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .pask{font-size:15px}
 .pask .die{vertical-align:-1px}
 .pslots.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pslots.four .pslot{padding:8px;gap:6px}.pslots.four .ps-n{font-size:13.5px}
 .pslot.small .ps-v{width:28px;height:28px;font-size:15px}
 .pslot.wait{opacity:.55}
 @media (max-width:560px){.pslots.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
-/* the live court */
-.courtbox{padding:10px}
-.court{width:100%;height:auto;max-height:300px;display:block;margin:0 auto}
-.court .floor{fill:#E8C48F}
-.court .paint{fill:rgba(255,255,255,.18);stroke:#fff;stroke-width:2.5}
-.court .cl{fill:none;stroke:#fff;stroke-width:2.5}
-.court .board{stroke:#38404F;stroke-width:4}
-.court .rim{fill:none;stroke:#E2561D;stroke-width:3}
-.court .cend{fill:rgba(60,40,15,.55);font:700 13px var(--f-body)}
-.court .cpl circle{stroke:#fff;stroke-width:3}
-.court .cpl-a circle{fill:#D2283C}.court .cpl-h circle{fill:#1E9E4A}
-.court .cpl text{fill:#fff;font:800 12px var(--f-body);text-anchor:middle}
-.court .cball{fill:#F28A2E;stroke:#7A3A0C;stroke-width:1.5}
-.court .cbs{fill:#000}
-.court .cfx{font:800 30px var(--f-display);text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:5;animation:cfxup 1.1s ease-out forwards}
-.court .cfx-a{fill:#D2283C}.court .cfx-h{fill:#1E9E4A}
-@keyframes cfxup{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-26px)}}
-.court-cap{margin-top:8px;font:800 19px/1.25 var(--f-display);text-align:center;min-height:24px}
-.court-cap.cap-a{color:#D2283C}.court-cap.cap-h{color:#178A3F}
-html[data-design="v20"] .court-cap.cap-h{color:var(--accent)}
+.playbox{padding:18px 16px;text-align:center}
+.play-cap{font:800 22px/1.25 var(--f-display);min-height:28px}
+.play-cap.cap-a{color:#D2283C}.play-cap.cap-h{color:#178A3F}
+.play-cap.cap-pts{animation:cappop .35s ease-out}
+@keyframes cappop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 /* play-by-play */
 .pbp ol{list-style:none;margin:8px 0 0;padding:0;max-height:340px;overflow:auto}
 .pbp li{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
@@ -3119,7 +3105,7 @@ const E = (() => {
       '<div class="howtos">' +
       sec('Logging games', [
         'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Whoever has the ball rolls all 4 dice at once: two big (the shot) and two small (the rebound or free throws). The game asks for one die at a time by its color and says what happened, on the court and in the play-by-play. When both possessions are done the roll logs itself. <b>Backspace</b> takes off the last die; <b>Undo</b> takes back the last roll.',
+        'Whoever has the ball rolls all 4 dice at once: two big (the shot) and two small (the rebound or free throws). The game asks for one die at a time by its color and says what happened, at the top of the game and in the play-by-play. When both possessions are done the roll logs itself. <b>Backspace</b> takes off the last die; <b>Undo</b> takes back the last roll.',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the two dice in the boxes, then press Enter to log them. Auto-rolled games count like any other.']) +
@@ -4568,134 +4554,15 @@ const E = (() => {
       : '<details class="matchup-panel roll-details pbp"><summary>Play-by-play<span>' + list.length + ' plays</span></summary><ol>' + rows + '</ol></details>';
   }
 
-  /* ---------- the court: a short 1-on-1 court (64 by 46 feet, half court just past the 3-point arcs) ----------
-     Away attacks the right hoop, home the left. The players and the ball move with every die. */
-  const CRT = { L: 64, W: 46, hl: 5.25, hr: 58.75, cy: 23 };
-  const Court = { gid: null, seen: 0, pos: null, plan: null, q: [], busy: false, cap: '', capSd: '' };
-  const hoopX = sd => (sd === 'a' ? CRT.hr : CRT.hl);
-  const spot = (sd, d, deg) => ({ x: hoopX(sd) + (sd === 'a' ? -1 : 1) * d * Math.cos(deg * Math.PI / 180), y: CRT.cy + d * Math.sin(deg * Math.PI / 180) });
-  const rnd = key => { let h = 2166136261; for (const c of String(key)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return ((h >>> 0) % 10000) / 10000; };
-  const sceneStart = () => ({ a: { x: 29, y: 23 }, h: { x: 35, y: 23 }, b: { x: 32, y: 23 }, hold: null });
-  const cloneScene = s => ({ a: Object.assign({}, s.a), h: Object.assign({}, s.h), b: Object.assign({}, s.b), hold: s.hold });
-  // the steps for one play-by-play event, from the scene before it; updates the scene
-  function courtSteps(x, sc, g) {
-    const sd = x.sd, od = sd === 'a' ? 'h' : 'a', e = x.e, r = rnd(g.id + x.key), ang = (r - 0.5) * 100;
-    const steps = [], hoop = { x: hoopX(sd), y: CRT.cy };
-    const go = (ms, f, more) => { f(sc); steps.push(Object.assign({ to: cloneScene(sc), ms }, more || {})); };
-    const cap = pbpText(x, g);
-    // a new roll of the 4 dice: bring the ball up (a long run when the other end had it)
-    if (e.i % 4 === 0) go(e.k === 'sh' && e.fb ? 450 : 700, s => { const at = spot(sd, 23, ang * 0.4), d = spot(sd, e.k === 'sh' && e.fb ? 34 : 18, ang * 0.4); s[sd] = at; s[od] = d; s.hold = sd; });
-    switch (e.k) {
-      case 'sh': go(500, s => { s[sd] = e.fb ? spot(sd, 3, ang) : e.v === 3 ? spot(sd, 24.6, ang) : spot(sd, 8 + r * 6, ang); s[od] = e.fb ? spot(sd, 12, ang) : spot(sd, (e.v === 3 ? 21 : 5), ang); s.hold = sd; }, { cap }); break;
-      case 'mk': case 'and1': case 'pb':
-        if (e.k === 'pb') go(250, s => { s[sd] = spot(sd, 2.5, ang); s.hold = sd; });
-        go(650, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true, fx: '+' + e.p, fxAt: hoop, fxSd: sd }); break;
-      case 'ms': case 'a1x': go(600, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true });
-        go(350, s => { s.b = spot(sd, 6 + r * 4, ang + 40 * (r > 0.5 ? 1 : -1)); }); break;
-      case 'a1m': go(650, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true, fx: '+1', fxAt: hoop, fxSd: sd }); break;
-      case 'ft':
-        if (e.m) go(650, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true, fx: '+' + e.m, fxAt: hoop, fxSd: sd });
-        else { go(600, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true }); go(300, s => { s.b = spot(sd, 7, 30); }); }
-        break;
-      case 'fl': go(350, s => { s[od] = { x: (s[sd].x + s[od].x) / 2 + (s[sd].x - s[od].x) * 0.3, y: s[sd].y + 1.5 }; }, { cap, fx: 'FOUL', fxAt: sc[sd], fxSd: od }); break;
-      case 'nogo': go(700, s => { s[sd] = spot(sd, 14, 0); s[od] = spot(sd, 9, 75); s.hold = sd; }, { cap }); break;
-      case 'oob': go(450, s => { s.b = { x: s.b.x, y: s.b.y < CRT.cy ? -1.5 : CRT.W + 1.5 }; s.hold = null; }, { cap }); break;
-      case 'keep': go(500, s => { s[sd] = { x: s.b.x, y: s.b.y < 0 ? 1 : CRT.W - 1 }; s.hold = sd; }, { cap }); break;
-      case 'lose': go(500, s => { s[od] = { x: s.b.x, y: s.b.y < 0 ? 1 : CRT.W - 1 }; s.hold = od; }, { cap }); break;
-      case 'oreb': go(450, s => { s[sd] = Object.assign({}, s.b); s.hold = sd; s[od] = spot(sd, 3, -ang); }, { cap }); break;
-      case 'dreb': go(450, s => { s[od] = Object.assign({}, s.b); s.hold = od; }, { cap }); break;
-      case 'nopb': go(550, s => { s[sd] = spot(sd, 20, ang); s.hold = sd; }, { cap }); break;
-      case 'stl': go(400, s => { s[od] = { x: s[sd].x + (s[od].x - s[sd].x) * 0.2, y: s[sd].y - 1 }; s.hold = od; }, { cap, fx: 'STEAL', fxAt: sc[sd], fxSd: od }); break;
-      case 'to': go(450, s => { s.b = { x: s[sd].x, y: s[sd].y < CRT.cy ? -1.5 : CRT.W + 1.5 }; s.hold = null; }, { cap });
-        go(400, s => { s[od] = { x: s.b.x, y: s.b.y < 0 ? 1 : CRT.W - 1 }; s.hold = od; }); break;
-    }
-    return steps;
+  /* ---------- the latest play, in words, at the top of a live game ---------- */
+  function playCapSync(g) {
+    const el = document.getElementById('playCap');
+    if (!el) return;
+    const list = pbpOf(g), last = list[list.length - 1];
+    el.textContent = last ? pbpText(last, g) : 'Tip-off';
+    el.className = 'play-cap' + (last ? ' cap-' + pbpWho(last) + (last.e.p ? ' cap-pts' : '') : '');
   }
-  const PX = 10;   // pixels per foot
-  function courtSvg(g) {
-    const arc = side => { const hx = side === 'l' ? CRT.hl : CRT.hr, s = side === 'l' ? 1 : -1, R = 23.75, cy = CRT.cy, dy = 22, dx = Math.sqrt(R * R - dy * dy);
-      const x0 = side === 'l' ? 0 : CRT.L, xc = hx + s * dx;
-      return '<path class="cl" d="M' + x0 * PX + ' ' + (cy - dy) * PX + ' L' + xc * PX + ' ' + (cy - dy) * PX + ' A' + R * PX + ' ' + R * PX + ' 0 0 ' + (side === 'l' ? 1 : 0) + ' ' + xc * PX + ' ' + (cy + dy) * PX + ' L' + x0 * PX + ' ' + (cy + dy) * PX + '"/>'; };
-    const end = side => { const hx = side === 'l' ? CRT.hl : CRT.hr, s = side === 'l' ? 1 : -1, x0 = side === 'l' ? 0 : CRT.L, ftx = x0 + s * 19;
-      return '<rect class="paint" x="' + Math.min(x0, ftx) * PX + '" y="' + (CRT.cy - 8) * PX + '" width="' + 19 * PX + '" height="' + 16 * PX + '"/>' +
-        '<circle class="cl" cx="' + ftx * PX + '" cy="' + CRT.cy * PX + '" r="' + 6 * PX + '"/>' + arc(side) +
-        '<line class="board" x1="' + (x0 + s * 4) * PX + '" y1="' + (CRT.cy - 3) * PX + '" x2="' + (x0 + s * 4) * PX + '" y2="' + (CRT.cy + 3) * PX + '"/>' +
-        '<circle class="rim" id="rim' + side + '" cx="' + hx * PX + '" cy="' + CRT.cy * PX + '" r="' + 0.75 * PX + '"/>'; };
-    const pl = sd => '<g id="cp' + sd + '" class="cpl cpl-' + sd + '"><circle r="16"/><text dy="4">' + esc(sname(sd === 'a' ? g.a : g.h)) + '</text></g>';
-    return '<svg id="court" class="court" viewBox="-20 -20 ' + (CRT.L * PX + 40) + ' ' + (CRT.W * PX + 40) + '" role="img" aria-label="Live court">' +
-      '<rect class="floor" x="0" y="0" width="' + CRT.L * PX + '" height="' + CRT.W * PX + '" rx="6"/>' + end('l') + end('r') +
-      '<line class="cl" x1="' + CRT.L / 2 * PX + '" y1="0" x2="' + CRT.L / 2 * PX + '" y2="' + CRT.W * PX + '"/><circle class="cl" cx="' + CRT.L / 2 * PX + '" cy="' + CRT.cy * PX + '" r="' + 6 * PX + '"/>' +
-      '<text class="cend" x="' + 8 * PX + '" y="' + (CRT.W - 1.5) * PX + '">' + esc(sname(g.h)) + ' shoots here</text><text class="cend" x="' + (CRT.L - 8) * PX + '" y="' + (CRT.W - 1.5) * PX + '" text-anchor="end">' + esc(sname(g.a)) + ' shoots here</text>' +
-      pl('a') + pl('h') + '<ellipse id="cbs" class="cbs" rx="6" ry="3"/><circle id="cb" class="cball" r="6"/><g id="cfx"></g></svg>';
-  }
-  function courtDraw(sc, lift) {
-    const set = (id, x, y) => { const el = document.getElementById(id); if (el) el.setAttribute('transform', 'translate(' + (x * PX).toFixed(1) + ' ' + (y * PX).toFixed(1) + ')'); };
-    set('cpa', sc.a.x, sc.a.y); set('cph', sc.h.x, sc.h.y);
-    const b = sc.hold ? { x: sc[sc.hold].x + 1.2, y: sc[sc.hold].y + 1 } : sc.b;
-    const ball = document.getElementById('cb'), sh = document.getElementById('cbs');
-    if (ball) { ball.setAttribute('cx', (b.x * PX).toFixed(1)); ball.setAttribute('cy', ((b.y - (lift || 0) * 3.5) * PX).toFixed(1)); ball.setAttribute('r', (6 + (lift || 0) * 5).toFixed(1)); }
-    if (sh) { sh.setAttribute('cx', (b.x * PX).toFixed(1)); sh.setAttribute('cy', (b.y * PX + 4).toFixed(1)); sh.setAttribute('opacity', (0.35 - (lift || 0) * 0.2).toFixed(2)); }
-  }
-  function courtCaption() {
-    const el = document.getElementById('courtCap');
-    if (el) { el.textContent = Court.cap || 'Tip-off'; el.className = 'court-cap' + (Court.capSd ? ' cap-' + Court.capSd : ''); }
-  }
-  function courtFx(st) {
-    const host = document.getElementById('cfx'); if (!host || !st.fx) return;
-    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    t.setAttribute('x', (st.fxAt.x * PX).toFixed(1)); t.setAttribute('y', ((st.fxAt.y - 2.5) * PX).toFixed(1));
-    t.setAttribute('class', 'cfx cfx-' + st.fxSd); t.textContent = st.fx; host.appendChild(t);
-    setTimeout(() => t.remove(), 1100);
-  }
-  const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
-  function courtPlay() {
-    if (Court.busy) return;
-    const st = Court.q.shift();
-    if (!st) return;
-    Court.busy = true;
-    if (st.cap) { Court.cap = st.cap; Court.capSd = st.capSd || ''; courtCaption(); }
-    const from = cloneScene(Court.pos), to = st.to, t0 = performance.now();
-    const fast = Court.q.length > 6 || matchMedia('(prefers-reduced-motion: reduce)').matches;   // catch up when far behind
-    const ms = fast ? 0 : st.ms;
-    // the ball goes from where it is (or who holds it) to where it ends up
-    const bAt = s => (s.hold ? { x: s[s.hold].x + 1.2, y: s[s.hold].y + 1 } : s.b);
-    const fb = bAt(from), tb = bAt(to);
-    const frame = now => {
-      const t = ms ? Math.min(1, (now - t0) / ms) : 1, k = ease(t);
-      const mix = (p, q) => ({ x: p.x + (q.x - p.x) * k, y: p.y + (q.y - p.y) * k });
-      Court.pos = { a: mix(from.a, to.a), h: mix(from.h, to.h), b: mix(fb, tb), hold: null };
-      courtDraw(Court.pos, st.arc ? 4 * t * (1 - t) : 0);
-      if (t < 1) return requestAnimationFrame(frame);
-      Court.pos = cloneScene(to);
-      courtDraw(Court.pos, 0);
-      courtFx(st);
-      Court.busy = false;
-      courtPlay();
-    };
-    requestAnimationFrame(frame);
-  }
-  // after the game screen is drawn: put the players where they are, and play anything new
-  function courtSync(g) {
-    if (!document.getElementById('court')) return;
-    const list = pbpOf(g);
-    if (Court.gid !== g.id || list.length < Court.seen) {
-      Court.gid = g.id; Court.q = []; Court.busy = false;
-      const sc = sceneStart();
-      list.forEach(x => courtSteps(x, sc, g));
-      Court.plan = sc; Court.pos = cloneScene(sc); Court.seen = list.length;
-      const last = list[list.length - 1];
-      Court.cap = last ? pbpText(last, g) : ''; Court.capSd = last ? pbpWho(last) : '';
-    }
-    courtDraw(Court.pos, 0); courtCaption();
-    if (list.length > Court.seen) {
-      list.slice(Court.seen).forEach(x => courtSteps(x, Court.plan, g).forEach(st => { if (st.cap) st.capSd = pbpWho(x); Court.q.push(st); }));
-      Court.seen = list.length;
-      courtPlay();
-    }
-  }
-  function courtPanel(g) {
-    return '<section class="matchup-panel courtbox">' + courtSvg(g) + '<div id="courtCap" class="court-cap" aria-live="polite"></div></section>';
-  }
+  const playCapPanel = () => '<section class="matchup-panel playbox"><div id="playCap" class="play-cap" aria-live="polite"></div></section>';
 
   // entering a roll: all 4 dice are rolled together, then read one at a time; each die tells what happened
   function possEntry(g) {
@@ -4845,7 +4712,7 @@ const E = (() => {
   function renderSheet() {
     renderSheet1();
     const g = S.sheet && D && D.byId[S.sheet.gid];
-    if (g && D.ru.poss) courtSync(g);
+    if (g && D.ru.poss) playCapSync(g);
   }
   function renderSheet1() {
     const wasOpen = !!document.querySelector('.sheet');
@@ -4959,7 +4826,7 @@ const E = (() => {
       '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Times tied</small><strong>' + timesTied(gg.rolls) + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
     // the box score goes at the top (under the dice while the game is being played)
     if (st.n && !S.sheet.edit) main = st.final ? boxScorePanel(gg) + main : main + boxScorePanel(gg);
-    if (D.ru.poss && liveGame && can) main = courtPanel(gg) + main;
+    if (D.ru.poss && liveGame && can) main = playCapPanel() + main;
     if (D.ru.poss && liveGame) aside += pbpPanel(gg, true);
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
@@ -5168,7 +5035,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened; watch it play out on the court. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened, play by play. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
