@@ -4587,18 +4587,25 @@ const E = (() => {
   // entering a roll: all 4 dice are rolled together, then read one at a time; each die tells what happened
   function possEntry(g) {
     const st = g.st, now = possNow(g);
-    const side = (sd, w, dice) => {
-      const p = sd === 'a' ? g.a : g.h, on = now.side === sd;
-      return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm" title="' + esc(pname(p)) + '">' + esc(sname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
-        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll' : sd === 'h' ? 'Next' : '') + '</span>') + '</div>' +
+    const side = (sd, w, dice, on, tag) => {
+      const p = sd === 'a' ? g.a : g.h;
+      return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm" title="' + esc(pname(p)) + '">' + esc(sname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (tag ? ' · ' + tag : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
+        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll' : 'Next') + '</span>') + '</div>' +
         (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
     };
+    // left: the possession that just ended; right: the one being played. At tip-off, the first two.
+    let pair;
+    const lastHome = () => { const p0 = possOf(g)[st.n - 1]; if (!p0) return null; const w = possWalk(p0[1], possFast(g, st.n - 1, 'h', p0[0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')); return { w, dice: p0[1] }; };
+    if (now.side === 'h') pair = side('a', now.wa, now.dr.a, false, 'last possession') + side('h', now.wh, now.dr.h, true, 'has the ball');
+    else { const lh = st.n ? lastHome() : null;
+      pair = lh ? side('h', lh.w, lh.dice, false, 'last possession') + side('a', now.wa, now.dr.a, true, 'has the ball')
+        : side('a', now.wa, now.dr.a, true, 'has the ball') + side('h', null, [], false, ''); }
     const sd = now.side, dice = sd ? now.dr[sd] : [], len = dice.length, grp = dice.slice(len - len % 4), next = len % 4 + 1;
     const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr.a);
     const anyIn = now.dr.a.length || now.dr.h.length;
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
-      '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
+      '<div class="epair">' + pair + '</div>' +
       (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
         '<div class="chips pk-' + sd + next + '">' + [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>' : '') +
