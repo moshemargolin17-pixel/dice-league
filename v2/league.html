@@ -4952,7 +4952,9 @@ const E = (() => {
     return best;
   }
   // Pregame: the two players side by side before a game starts, with their season series so far
+  // 2.0 pregame: a table like the box score, one row per player, with this season's numbers
   function pregamePanel(gg, x) {
+    if (D.ru.poss) return pregameTable(gg, x);
     const ra = D.rows[gg.a], rh = D.rows[gg.h];
     const avg = (v, n) => (n ? (v / n).toFixed(1) : '—');
     const meet = D.reg.filter(z => z.st.final && ((z.a === gg.a && z.h === gg.h) || (z.a === gg.h && z.h === gg.a)));
@@ -4969,6 +4971,29 @@ const E = (() => {
       rows = row('Seed', origSeed(gg.a) || '—', origSeed(gg.h) || '—') + (x.bo > 1 ? row('Series', w(gg.a), w(gg.h)) : '') + rows;
     }
     return '<section class="matchup-panel pregame"><h3 class="h3">Pregame</h3><table class="pgt"><tr><td class="pgn">' + esc(sname(gg.a)) + '</td><th></th><td class="pgn">' + esc(sname(gg.h)) + '</td></tr>' + rows + '</table></section>';
+  }
+  function pregameTable(gg, x) {
+    const avg = (v, n) => (n ? (v / n).toFixed(1) : '–');
+    // this season's box score totals for one player (regular season and postseason, finished games)
+    const season = p => {
+      const t = Object.fromEntries(BOX_KEYS.map(k => [k, 0])); let gp = 0;
+      D.games.forEach(z => { if (!z.st.final || (z.a !== p && z.h !== p)) return; const b = boxOf(z); if (!b) return; const m = b[z.a === p ? 0 : 1]; BOX_KEYS.forEach(k => { t[k] += m[k]; }); gp++; });
+      return { t, gp };
+    };
+    const meet = D.reg.filter(z => z.st.final && ((z.a === gg.a && z.h === gg.h) || (z.a === gg.h && z.h === gg.a)));
+    const vsAvg = p => { let pts = 0; meet.forEach(z => { pts += z.a === p ? z.st.a : z.st.h; }); return avg(pts, meet.length); };
+    const si = x ? seriesAt(x, gg) : null;
+    const cols = [];
+    if (x) { cols.push(['Seed', 'Playoff seed', p => origSeed(p) || '–']); if (x.bo > 1) cols.push(['Series', 'Series wins', p => (p === x.hi ? si.wh : si.wl)]); }
+    cols.push(['Last 10', 'Record in the last 10 games', p => D.rows[p].l10[0] + '–' + D.rows[p].l10[1]],
+      ['PTS/G', 'Points per game', p => avg(D.rows[p].pf, D.rows[p].gp)], ['OPP/G', 'Points allowed per game', p => avg(D.rows[p].pa, D.rows[p].gp)],
+      ['FG%', 'Field-goal percentage', p => pct(season(p).t.fgm, season(p).t.fga)], ['3P%', '3-point percentage', p => pct(season(p).t.tpm, season(p).t.tpa)],
+      ['FT%', 'Free-throw percentage', p => pct(season(p).t.ftm, season(p).t.fta)],
+      ['REB/G', 'Rebounds per game', p => { const s2 = season(p); return avg(s2.t.orb + s2.t.drb, s2.gp); }], ['TO/G', 'Turnovers per game', p => { const s2 = season(p); return avg(s2.t.to, s2.gp); }]);
+    if (meet.length) cols.push(['VS', 'Average score in games against each other this season', vsAvg]);
+    const th = cols.map(([h, t]) => '<th title="' + esc(t) + '">' + h + '</th>').join('');
+    const row = p => '<tr><td class="l"><b>' + esc(sname(p)) + '</b></td>' + cols.map(([, , f]) => '<td>' + f(p) + '</td>').join('') + '</tr>';
+    return '<section class="matchup-panel boxscore pregame2"><h3 class="h3">Pregame</h3><div class="tscroll"><table class="tbl"><tr><th class="l"></th>' + th + '</tr>' + row(gg.a) + row(gg.h) + '</table></div></section>';
   }
   // Game stats, under the game flow: lead changes, largest leads, the biggest run and most unanswered points
   // 2.0 box score columns: [key or function, header, what it means]
