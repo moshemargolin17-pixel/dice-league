@@ -3098,7 +3098,7 @@ const E = (() => {
       foot = '<div class="gfoot">' + esc(roundName(x.round)) + (x.bo > 1 ? ' · Game ' + g.no + ' · ' + seriesText(x, seriesAt(x, g)) : '') + '</div>';
     }
     return '<article class="gcard' + (live ? ' is-live' : '') + '" data-act="game" data-n="' + D.season.n + '" data-id="' + g.id + '" tabindex="0" role="button" aria-label="Open ' + esc(vsLine(g)) + '">' +
-      '<div class="gtop"><span class="gst">' + (live ? '<span class="dot" aria-hidden="true"></span>' : '') + (st.n ? esc(st.short) : tip(esc(st.short))) + '</span><span class="gmeta">' + gameKind(g) + '</span></div>' +
+      '<div class="gtop"><span class="gst">' + (live ? '<span class="dot" aria-hidden="true"></span>' : '') + (st.n || gameStarted(g) ? esc(liveLabel(g)) : tip(esc(st.short))) + '</span><span class="gmeta">' + gameKind(g) + '</span></div>' +
       '<div class="gbody">' + score(g.a, 'a') + score(g.h, 'h') + foot + '</div></article>';
   }
   function recPanel(title, cls, list, emptyMsg) {
@@ -3356,7 +3356,7 @@ const E = (() => {
     const home = g.h === me, opp = home ? g.a : g.h;
     let res;
     if (st.final) { const my = home ? st.h : st.a, th = home ? st.a : st.h; res = '<span class="' + (my > th ? 'w' : 'l') + '">' + (my > th ? 'W ' : 'L ') + my + '–' + th + '</span>' + (st.ot ? ' <small>' + (st.ot === 1 ? 'OT' : st.ot + 'OT') + '</small>' : ''); }
-    else if (st.live) res = '<span class="livetxt">' + (home ? st.h + '–' + st.a : st.a + '–' + st.h) + ' · ' + (st.n ? esc(st.short) : tip(esc(st.short))) + '</span>';
+    else if (st.live) res = '<span class="livetxt">' + (home ? st.h + '–' + st.a : st.a + '–' + st.h) + ' · ' + (st.n ? esc(liveLabel(g)) : tip(esc(st.short))) + '</span>';
     else res = '<span class="muted">Upcoming</span>';
     return '<article tabindex="0" role="button" class="grow' + (st.live ? ' is-live' : '') + '" data-act="game" data-n="' + s.n + '" data-id="' + g.id + '"><span class="gm">' + tag + (home ? 'vs ' : '@ ') + teamLink(opp, g) + '</span><span class="gr">' + res + (recAfter ? '<small class="grec">' + recAfter + '</small>' : '') + '</span></article>';
   }
@@ -4607,11 +4607,38 @@ const E = (() => {
     }
     return '';
   }
-  const pbpClock = n => { const pr = L.periodOf(n, D.ru); return L.perLabel(pr.per) + ' · ' + (pr.k + 1); };   // quarter and possession
+  // possessions are counted for each player: 12 a quarter (6 each), 48 a game, 6 in an overtime. i = 0-based possession of the game.
+  const possIdx = (n, sd) => 2 * n + (sd === 'h' ? 1 : 0);
+  function possPer(i) {
+    if (i < 48) return { per: Math.floor(i / 12) + 1, k: i % 12, len: 12, end: 48 };
+    const o = i - 48, j = Math.floor(o / 6);
+    return { per: 5 + j, k: o % 6, len: 6, end: 48 + (j + 1) * 6 };
+  }
+  function possWords(i) {
+    const p = possPer(i), left = p.end - i;
+    if ((p.per >= 4) && left <= 3) return (p.per > 4 ? L.perLabel(p.per) + ' · ' : '') + (left === 1 ? 'Final possession' : left + ' possessions left');
+    return L.perLabel(p.per) + ' · ' + (p.k + 1) + ' of ' + p.len;
+  }
+  // which possession of the game is being played now (counting the dice already put in for this roll)
+  function curPoss(g) {
+    const dr = possSaved(g);
+    const home = dr && possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).done;
+    return possIdx(g.st.n, home ? 'h' : 'a');
+  }
+  // the words for a game in progress: between quarters, or which possession (with the countdown at the end)
+  function liveLabel(g) {
+    const st = g.st;
+    if (!D.ru.poss || st.final) return st.short;
+    if (!st.n && !gameStarted(g)) return st.short;
+    const i = curPoss(g);
+    if (i > 0 && i % 12 === 0 && i <= 48 && (i < 48 || st.a === st.h)) return i === 24 ? 'Halftime' : i === 48 ? 'Start of OT' : 'Start of Q' + (i / 12 + 1);
+    return possWords(i);
+  }
+  const pbpClock = (n, sd) => { const p = possPer(possIdx(n, sd || 'a')); return L.perLabel(p.per) + ' · ' + (p.k + 1); };   // quarter and possession
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
     if (!list.length) return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol><li class="pbp-empty"><span class="pbp-t">' + pbpClock(0) + '</span><span class="pbp-x">Tip-off. Every play shows up here as you roll.</span><span class="pbp-s">0–0</span></li></ol></section>' : '';
-    const rows = list.slice().reverse().map(x => '<li class="pbp-' + pbpWho(x) + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-w">' + esc(pname(pbpWho(x) === 'a' ? gg.a : gg.h)) + '</span><span class="pbp-x">' + esc(pbpAction(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
+    const rows = list.slice().reverse().map(x => '<li class="pbp-' + pbpWho(x) + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n, x.sd) + '</span><span class="pbp-w">' + esc(pname(pbpWho(x) === 'a' ? gg.a : gg.h)) + '</span><span class="pbp-x">' + esc(pbpAction(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
     return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol>' + rows + '</ol></section>'
       : '<details class="matchup-panel roll-details pbp"><summary>Play-by-play<span>' + list.length + ' plays</span></summary><ol>' + rows + '</ol></details>';
   }
@@ -4654,7 +4681,7 @@ const E = (() => {
     const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr.a);
     const anyIn = now.dr.a.length || now.dr.h.length;
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
-    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num' + (/left|Final possession/.test(st.nextLabel) ? ' stakes' : '') + '">' + esc(st.nextLabel) + '</span></div>' +
+    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (/left|Final possession/.test(possWords(curPoss(g))) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
       (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
@@ -4889,7 +4916,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + possArrow(gg, st, 'a') + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && /left|Final possession/.test(st.n ? st.label : st.nextLabel) ? ' stakes' : '') + '">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && /left|Final possession/.test(liveLabel(gg)) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
