@@ -4529,7 +4529,7 @@ const E = (() => {
     let a = 0, h = 0, fastA = false;
     const walk = (n, sd, dice, fast) => {
       const w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
-      w.ev.forEach((e, j) => { if (sd === 'a') a += e.p; else h += e.p; out.push({ key: n + sd + j, n, sd, e, a, h }); });
+      w.ev.forEach((e, j) => { if (sd === 'a') a += e.p; else h += e.p; if (e.k !== 'nopb') out.push({ key: n + sd + j, n, sd, e, a, h }); });   // a missed putback isn't its own line
       return w;
     };
     let n = 0;
