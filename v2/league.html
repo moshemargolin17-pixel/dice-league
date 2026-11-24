@@ -2766,7 +2766,7 @@ const E = (() => {
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
     const e = ensureEntry(g); e.started = true;
-    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.sk1 = true; e.sk = [[P(g.a).sk || 3, P(g.a).first || 'o'], [P(g.h).sk || 3, P(g.h).first || 'o']]; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
+    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.od2 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3128,7 +3128,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Skill is in stars, 5 is best, and First says which advantage a player gets first. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss, 5–6 a make (then die 3: a 6 is an and-one). A player 2 levels better gets one advantage, the one that comes first: offense makes their own shots one number easier, defense makes the other player’s one number harder. 3 or more levels better gets both. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Center on 6) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss, 5–6 a make (then die 3: a 6 is an and-one). The shooter’s Offense against the other player’s Defense: 2 or more stars higher makes the shot one number easier; 3 or more stars lower makes it one number harder. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Center on 6) and rebounds: Guards get no offensive rebounds and putback only on a 6; Forwards rebound on 2 (2–3 against a Guard) and putback on 5–6; Centers rebound on 2–3 and putback on 4–6. Guard against Guard and Center against Center use the regular rules (2, putback 5–6). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -3160,9 +3160,9 @@ const E = (() => {
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Ratings and types', [
         'Die 1 is the play: a 1 is a turnover (then die 2: 1–3 a dead ball, 4–6 a steal), 2–4 a 2-pointer and 5–6 a 3-pointer (a Center: 2–5 a 2-pointer, only 6 a 3-pointer). A steal gives the other player a fast break, except on the last possession of a quarter.',
-        'Every player has a <b>Skill</b> level in stars (5 is best) and an advantage that comes <b>first</b>, offense or defense. A player 2 levels better gets that advantage; 3 or more levels better gets both. Offense: their own shots are one number easier. Defense: the other player’s shots are one number harder. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss (free throws on die 3), 5–6 a make; after a make, die 3 is a foul only on a 6 (an and-one, its free throw on die 4). A Center’s 3-pointer: 1–4 a miss, 5 fouled on a miss, 6 a make with no and-one. An advantage moves that line by one number. A fast break makes it one number easier (at most 4 makes).',
+        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 2 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Die 2 on a shot: 1–3 a miss, 4 fouled on a miss (free throws on die 3), 5–6 a make; after a make, die 3 is a foul only on a 6 (an and-one, its free throw on die 4). A Center’s 3-pointer: 1–4 a miss, 5 fouled on a miss, 6 a make with no and-one. An advantage moves that line by one number. A fast break makes it one number easier (at most 4 makes).',
         'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Center</b>. Guards and Forwards shoot 3s on a 5 or 6, a Center on a 6. Guards get no offensive rebounds and put back only a 6; Forwards rebound on a 2 (2–3 against a Guard) and put back 5–6; Centers rebound on 2–3 and put back 4–6. Guard against Guard and Center against Center use the regular rebounds. At the line, Guards are one number better and Centers one number worse: an and-one goes in on 2–6 for a Guard, 3–6 for a Forward, 4–6 for a Center (3 free throws for a Center on a 3: 1–2 none, 3 one, 4–5 two, 6 three).',
-        'Types are set in Settings before a season and stay until it’s over. Skill and First can change any time; a game keeps the skills and types it started with.']) +
+        'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
       sec('Standings and the playoffs', [
         'Clinch marks show only when mathematically certain: ' + markKeys().map(k => '<b>' + k + '</b> ' + MARK_SHORT()[k].toLowerCase()).join(', ') + '.',
         'Clinch and elimination marks count the tiebreakers: a player who can at best tie, and would lose the tiebreaker, is marked out right away.',
@@ -4320,9 +4320,9 @@ const E = (() => {
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       (L.hasDivs() ? '<div class="frow">' + divList().map(i => '<div class="field"><label for="div' + i + '">Division ' + (i + 1) + (L.confCount() > 1 ? ' (' + confName(L.confOf(L.divIds(i)[0])) + ')' : '') + '</label><input type="text" id="div' + i + '" value="' + esc(c.divNames[i] || 'Division ' + (i + 1)) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       '<div><button type="submit" class="btn primary">Save names</button></div></form></div>';
-    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Skill</th><th class="l">First</th></tr>' +
-      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + '<td>' + ratingSel('psk' + p, pl.sk, 'Skill of ' + esc(pl.name) + ', in stars') + '</td><td>' + firstSel('pfi' + p, pl.first, 'Advantage first for ' + esc(pl.name)) + '</td></tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
-      '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + '<div class="field short"><label for="addSk">Skill</label>' + ratingSel('addSk', 3, 'Skill, in stars') + '</div><div class="field short"><label for="addFirst">First</label>' + firstSel('addFirst', 'o', 'Advantage first') + '</div></div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
+    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th></tr>' +
+      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + '<td>' + ratingSel('poff' + p, pl.off, 'Offense of ' + esc(pl.name) + ', in stars') + '</td><td>' + ratingSel('pdef' + p, pl.def, 'Defense of ' + esc(pl.name) + ', in stars') + '</td></tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
+      '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + '<div class="field short"><label for="addOff">Offense</label>' + ratingSel('addOff', 3, 'Offense, in stars') + '</div><div class="field short"><label for="addDef">Defense</label>' + ratingSel('addDef', 3, 'Defense, in stars') + '</div></div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
     out += setupPanel();
     const fin = D.games.filter(g => g.st.final).length;
     out += '<div class="panel"><div class="form"><h3 class="h3">Season</h3>' +
@@ -4538,12 +4538,16 @@ const E = (() => {
   const possRt = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.rt ? r.rt[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? [3, 3] : [pl.off || 3, pl.def || 3]; };
   // skill and the advantage that comes first ([stars, 'o' | 'd']), as the game started with
   const possSk = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.sk ? r.sk[side === 'a' ? 0 : 1] : [pl.sk || 3, pl.first || 'o']; };
-  const possNewAdv = g => { const r = recOf(g); return !(r && r.p && r.p.length && !r.sk1); };
+  // which advantage system a game uses: 'od2' (now), 'sk' (the short-lived Skill/First system) or 'old' (raw Offense minus Defense)
+  const advMode = g => { const r = recOf(g); if (!(r && r.p && r.p.length) || r.od2) return 'od2'; return r.sk1 ? 'sk' : 'old'; };
   // The shift on a shot by `side`. Skill system: 2 levels better gets one shift on the advantage that comes first (offense: your shots are easier;
   // defense: the other player's are harder); 3 or more levels better gets both. Returned as an edge of +-2 (one shift) or 0.
   // Games played before keep the Offense/Defense stars: the shooter's Offense minus the other player's Defense.
   const possEdge = (g, side) => {
-    if (!possNewAdv(g)) return possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
+    const mode = advMode(g);
+    // now: the shooter's Offense against the other player's Defense. 2 or more stars higher: one shift easier; 3 or more lower: one shift harder
+    if (mode === 'od2') { const d = possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1]; return d >= 2 ? 2 : d <= -3 ? -2 : 0; }
+    if (mode === 'old') return possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
     const me = possSk(g, side), th = possSk(g, side === 'a' ? 'h' : 'a'), d = me[0] - th[0];
     if (d >= 3 || (d === 2 && me[1] === 'o')) return 2;    // the shooter's offense advantage
     if (d <= -3 || (d === -2 && th[1] === 'd')) return -2; // the other player's defense advantage
@@ -4856,7 +4860,7 @@ const E = (() => {
     if (!n && !entry.d22) entry.d22 = true;
     if (!n && !entry.ad1) entry.ad1 = true;
     if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
-    if (!n && !entry.sk1) { entry.sk1 = true; entry.sk = [possSk(g, 'a'), possSk(g, 'h')]; }
+    if (!n && !entry.od2 && !entry.sk1) entry.od2 = true;
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
     delete entry.d;   // the roll is logged: nothing in progress
     const rolls = g.rolls.concat([[wa.pts, wh.pts]]);
@@ -5377,7 +5381,7 @@ const E = (() => {
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
         b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened, play by play. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Ratings and types',
-        b: '<p>Every player has a <b>Skill</b> level in stars, an advantage that comes <b>first</b> (offense or defense), and a type: <b>Guard</b>, <b>Forward</b> or <b>Center</b>. A player 2 levels better gets their first advantage; 3 or more levels better gets both. The type decides 3-pointers, rebounds and free throws.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
+        b: '<p>Every player has <b>Offense</b> and <b>Defense</b> stars and a type: <b>Guard</b>, <b>Forward</b> or <b>Center</b>. When the shooter’s Offense is 2 or more stars above the other player’s Defense, the shot is one number easier; 3 or more below, one number harder. The type decides 3-pointers, rebounds and free throws.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
         b: '<p>The whole schedule as a calendar. It opens on today; tap a day to see its games, and use the arrows for earlier or later days.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
       { view: 'standings', at: 'main .tbl tr', t: 'Standings',
@@ -5682,8 +5686,7 @@ const E = (() => {
         if (short && short !== pl.short) { pl.short = short; delete pl.shortAuto; }
         else if (!short || (pl.shortAuto && pl.name !== oldName)) { pl.short = autoShort(pl.name, new Set(c.players.filter(o => o !== pl).map(o => o.short))); pl.shortAuto = true; }
         const ty = document.getElementById('pty' + p); if (ty && !ty.disabled && !typesLocked() && PTYPES[ty.value]) pl.type = ty.value;
-        const sk = document.getElementById('psk' + p); if (sk) pl.sk = Math.max(1, Math.min(5, parseInt(sk.value, 10) || 3));
-        const fi = document.getElementById('pfi' + p); if (fi && (fi.value === 'o' || fi.value === 'd')) pl.first = fi.value;
+        [['off', 'poff'], ['def', 'pdef']].forEach(([k, id]) => { const el = document.getElementById(id + p); if (el) pl[k] = Math.max(1, Math.min(5, parseInt(el.value, 10) || 3)); });
       });
       if (D.ru.skillCalls) {
         const touchedDays = new Set();
@@ -5702,7 +5705,7 @@ const E = (() => {
       if (!name) { toast('Type a name for the new player.'); return; }
       const short = (document.getElementById('addShort').value || '').trim().slice(0, 4).toUpperCase();
       const pl = { name, type: document.getElementById('addType').value };
-      pl.sk = Math.max(1, Math.min(5, parseInt(document.getElementById('addSk').value, 10) || 3)); pl.first = document.getElementById('addFirst').value === 'd' ? 'd' : 'o';
+      pl.off = Math.max(1, Math.min(5, parseInt(document.getElementById('addOff').value, 10) || 3)); pl.def = Math.max(1, Math.min(5, parseInt(document.getElementById('addDef').value, 10) || 3));
       if (short) pl.short = short;
       const tf = document.querySelector('form[data-form=teams]'); if (tf) tf.requestSubmit();   // keep edits typed in the table above
       c.players.push(pl); normPlayers(c);
