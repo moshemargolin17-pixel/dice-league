@@ -4719,9 +4719,9 @@ const E = (() => {
     const g = S.sheet && D && D.byId[S.sheet.gid];
     if (g && D.ru.poss) { playCapSync(g); pbpFit(); }
   }
-  // during a game the play-by-play ends level with the bottom of the roll box (side by side only)
+  // during a game the play-by-play ends level with the bottom of the box score (side by side only); newest plays on top
   function pbpFit() {
-    const box = document.querySelector('#sheetHost .possentry'), pb = document.querySelector('#sheetHost .game-aside .pbp');
+    const box = document.querySelector('#sheetHost .game-main .boxscore') || document.querySelector('#sheetHost .possentry'), pb = document.querySelector('#sheetHost .game-aside .pbp');
     if (!pb) return;
     pb.style.height = '';
     if (!box) return;
