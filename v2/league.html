@@ -715,7 +715,12 @@ html[data-design="chalk"] .board .big{font-weight:400}
 @keyframes cappop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 /* play-by-play */
 .pbp ol{list-style:none;margin:8px 0 0;padding:0;max-height:340px;overflow:auto}
-.pbp-full,.box-full{margin-top:16px}.pbp-full ol{max-height:480px}
+.pbp-full,.box-full{margin-top:16px}
+.xtras{margin-top:16px;align-items:start}
+.xtra .xtra-in{margin-top:10px}
+.roll-details.xtra summary{justify-content:flex-start;gap:10px}
+.xtra .xtra-in>.matchup-panel{border:0;padding:0;background:none}
+.xtra .xtra-in .h3:first-child{display:none}.pbp-full ol{max-height:480px}
 .game-aside .pbp{display:flex;flex-direction:column;min-height:0}.game-aside .pbp[style*=height] ol{flex:1;min-height:0;max-height:none}
 .pbp li{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
 .pbp li:first-child{border-top:0}
@@ -4880,6 +4885,11 @@ const E = (() => {
     // no roll log in 2.0: the play-by-play is the log of every roll
     body += '<div class="game-layout' + (S.sheet.edit ? ' is-editing' : '') + (preGame && D.ru.poss ? ' pre' : '') + '"><div class="game-main">' + main + '</div>' + (S.sheet.edit ? '' : '<aside class="game-aside">' + aside + '</aside>') + '</div>';
     if (liveBox) body += liveBox.replace('class="matchup-panel boxscore', 'class="matchup-panel boxscore box-full');
+    // during a game: Averages and the series move to the bottom, each closed until tapped
+    if (liveBox && D.ru.poss && series) {
+      const fold = (title, inner, cls) => '<details class="matchup-panel roll-details xtra ' + cls + '"' + (S.xtraOpen && S.xtraOpen[cls] ? ' open' : '') + ' data-xtra="' + cls + '"><summary>' + title + '</summary><div class="xtra-in' + (cls === 'x-ser' ? ' game-aside' : '') + '">' + inner + '</div></details>';
+      body += '<div class="game-layout xtras">' + fold('Averages', pregameTable(gg), 'x-avg') + fold(x && x.bo > 1 ? 'Playoff series' : 'Season series', series, 'x-ser') + '</div>';
+    }
     // a finished game: the play-by-play across the whole bottom
     if (st.final && !S.sheet.edit && D.ru.poss) body += pbpPanel(gg, false).replace('class="matchup-panel roll-details pbp"', 'class="matchup-panel roll-details pbp pbp-full"');   // closed until tapped
     const canEdit = D.cur && st.final && !S.sheet.edit;
@@ -5249,6 +5259,7 @@ const E = (() => {
   }, true);
   const autoBtns = g => canAuto(g) ? '<div class="autorow"><button type="button" class="btn" data-act="autoroll" aria-keyshortcuts="7">Auto roll <small class="kbd">7</small></button></div>' : '';
 
+  document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.xtra) { S.xtraOpen = S.xtraOpen || {}; S.xtraOpen[d.dataset.xtra] = d.open; } }, true);
   document.addEventListener('scroll', e => { if (e.target.classList && e.target.classList.contains('schips')) syncChips(e.target.parentElement.parentElement); }, true);
   window.addEventListener('resize', () => { syncChips(); if (Tour.cur) tourPlace(); });
   window.addEventListener('scroll', () => { if (Tour.cur) tourPlace(); }, { passive: true });
