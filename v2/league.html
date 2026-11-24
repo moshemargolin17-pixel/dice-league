@@ -4870,7 +4870,7 @@ const E = (() => {
     // no roll log in 2.0: the play-by-play is the log of every roll
     body += '<div class="game-layout' + (S.sheet.edit ? ' is-editing' : '') + '"><div class="game-main">' + main + '</div>' + (S.sheet.edit ? '' : '<aside class="game-aside">' + aside + '</aside>') + '</div>';
     // a finished game: the play-by-play across the whole bottom
-    if (st.final && !S.sheet.edit && D.ru.poss) body += pbpPanel(gg, true).replace('class="matchup-panel pbp"', 'class="matchup-panel pbp pbp-full"');
+    if (st.final && !S.sheet.edit && D.ru.poss) body += pbpPanel(gg, false).replace('class="matchup-panel roll-details pbp"', 'class="matchup-panel roll-details pbp pbp-full"');   // closed until tapped
     const canEdit = D.cur && st.final && !S.sheet.edit;
     if (!host) { host = document.createElement('div'); host.id = 'sheetHost'; document.body.appendChild(host); }
     host.innerHTML = '<div class="overlay" data-act="closebg"><div class="sheet game-sheet" role="dialog" aria-modal="true" aria-label="Game details"><div class="shd"><strong>' + head + '</strong><span class="shbtns">' +
