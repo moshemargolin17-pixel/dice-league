@@ -701,14 +701,15 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ptext{font-size:13.5px;color:var(--muted)}.ptext b{color:var(--ink)}
 .ppad{margin-top:12px;display:grid;gap:8px}
 .pask{font-size:15px}
+.possentry .eacts .btn .kbd{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border:1px solid currentColor;border-radius:4px;font-size:11px;line-height:16px;opacity:.6}
+@media (pointer:coarse){.possentry .eacts .btn .kbd{display:none}}
 .pask .die{vertical-align:-1px}
 .pslots.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .pslots.four .pslot{padding:8px;gap:6px}.pslots.four .ps-n{font-size:13.5px}
 .pslot.small .ps-v{width:28px;height:28px;font-size:15px}
 .pslot.wait{opacity:.55}
 @media (max-width:560px){.pslots.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.playbox{padding:18px 16px;text-align:center}
-.play-cap{font:800 22px/1.25 var(--f-display);min-height:28px}
+.play-cap{font:800 22px/1.25 var(--f-display);min-height:28px;text-align:center;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .play-cap.cap-a{color:#D2283C}.play-cap.cap-h{color:#178A3F}
 .play-cap.cap-pts{animation:cappop .35s ease-out}
 @keyframes cappop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
@@ -4562,7 +4563,6 @@ const E = (() => {
     el.textContent = last ? pbpText(last, g) : 'Tip-off';
     el.className = 'play-cap' + (last ? ' cap-' + pbpWho(last) + (last.e.p ? ' cap-pts' : '') : '');
   }
-  const playCapPanel = () => '<section class="matchup-panel playbox"><div id="playCap" class="play-cap" aria-live="polite"></div></section>';
 
   // entering a roll: all 4 dice are rolled together, then read one at a time; each die tells what happened
   function possEntry(g) {
@@ -4582,7 +4582,7 @@ const E = (() => {
       (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
         '<div class="chips pk-' + sd + next + '">' + [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>' : '') +
-      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button></div>' + autoBtns(g) +
+      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button>' + (canAuto(g) ? '<button type="button" class="btn" data-act="autoroll" aria-keyshortcuts="7">Auto roll <small class="kbd">7</small></button>' : '') + '</div>' +
       tip('<div class="note">Roll all 4 dice, then press (or tap) the number on the die it asks for. Each die tells you what happened, and the roll logs itself when both possessions are done. Backspace takes off the last die; Undo takes back the last roll.</div>') + '</div>';
   }
   function possDie(v) {
@@ -4799,7 +4799,7 @@ const E = (() => {
         return si || ls ? '<div class="ls-row">' + wins(gg.a) + ls + wins(gg.h) + '</div>' : '';
       })() +
       '</div>' +
-      '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + (st.h + live.h) + '</div></div></div></div>';
+      '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + (st.h + live.h) + '</div></div></div>' + (D.ru.poss && can && !st.final && gameStarted(gg) && !S.sheet.edit ? '<div id="playCap" class="play-cap" aria-live="polite"></div>' : '') + '</div>';
     // a playoff game shows its playoff series, with a switch to the regular-season series
     const serTab = x && S.serTab && S.serTab.gid === gg.id ? S.serTab.v : 'po';
     const series = x
@@ -4826,7 +4826,6 @@ const E = (() => {
       '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Times tied</small><strong>' + timesTied(gg.rolls) + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
     // the box score goes at the top (under the dice while the game is being played)
     if (st.n && !S.sheet.edit) main = st.final ? boxScorePanel(gg) + main : main + boxScorePanel(gg);
-    if (D.ru.poss && liveGame && can) main = playCapPanel() + main;
     if (D.ru.poss && liveGame) aside += pbpPanel(gg, true);
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
