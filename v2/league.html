@@ -715,6 +715,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 @keyframes cappop{0%{transform:scale(1.12)}100%{transform:scale(1)}}
 /* play-by-play */
 .pbp ol{list-style:none;margin:8px 0 0;padding:0;max-height:340px;overflow:auto}
+.game-aside .pbp{display:flex;flex-direction:column;min-height:0}.game-aside .pbp[style*=height] ol{flex:1;min-height:0;max-height:none}
 .pbp li{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
 .pbp li:first-child{border-top:0}
 .pbp .pbp-t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
@@ -4711,8 +4712,20 @@ const E = (() => {
   function renderSheet() {
     renderSheet1();
     const g = S.sheet && D && D.byId[S.sheet.gid];
-    if (g && D.ru.poss) playCapSync(g);
+    if (g && D.ru.poss) { playCapSync(g); pbpFit(); }
   }
+  // during a game the play-by-play ends level with the bottom of the roll box (side by side only)
+  function pbpFit() {
+    const box = document.querySelector('#sheetHost .possentry'), pb = document.querySelector('#sheetHost .game-aside .pbp');
+    if (!pb) return;
+    pb.style.height = '';
+    if (!box) return;
+    const b = box.getBoundingClientRect(), r = pb.getBoundingClientRect();
+    if (r.left < b.right) return;   // stacked on a phone: leave it
+    const h = b.bottom - r.top;
+    if (h > 120) pb.style.height = h + 'px';
+  }
+  window.addEventListener('resize', () => { if (S.sheet) pbpFit(); });
   function renderSheet1() {
     const wasOpen = !!document.querySelector('.sheet');
     const hadP = document.activeElement && document.activeElement.id === 'pIn';
