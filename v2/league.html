@@ -714,7 +714,8 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .play-cap .cw-a{color:#D2283C}.play-cap .cw-h{color:#178A3F}
 /* 2.0 scoreboard: each score in its player's color, and the possession arrow */
 .scoreboard .board .side:not(.r) .big{color:#D2283C}.scoreboard .board .side.r .big{color:#178A3F}
-.poss-arrow{display:flex;justify-content:center;margin-top:8px}.poss-arrow svg{display:block}
+.poss-arrow{display:inline-flex;vertical-align:middle;margin:0 14px}.poss-arrow svg{display:block;width:30px;height:34px}
+@media (max-width:560px){.poss-arrow{margin:0 8px}.poss-arrow svg{width:22px;height:26px}}
 .poss-arrow.pa-a path{fill:#D2283C}.poss-arrow.pa-h path{fill:#178A3F}
 .play-cap .cap-what{color:var(--ink)}
 @media (max-width:560px){.play-cap{font-size:18px;gap:10px}.play-cap .cap-who{padding-right:10px}}
@@ -4610,10 +4611,11 @@ const E = (() => {
   }
 
   /* ---------- the latest play, in words, at the top of a live game ---------- */
-  // the possession arrow in the middle of the scoreboard: points at whoever has the ball, in their color
-  function possArrow(gg, st) {
+  // the possession arrow beside the score of whoever has the ball, pointing at it, in their color
+  function possArrow(gg, st, at) {
     if (!D.ru.poss || st.final || S.sheet.edit || !gameStarted(gg) || !editable(gg)) return '';
     const sd = possNow(gg).side || 'a', who = pname(sd === 'a' ? gg.a : gg.h);
+    if (sd !== at) return '';   // only beside the score of whoever has the ball, pointing at it
     const path = sd === 'a' ? 'M30 4 L6 20 L30 36 Z' : 'M6 4 L30 20 L6 36 Z';
     return '<div class="poss-arrow pa-' + sd + '" role="img" aria-label="' + esc(who) + ' has the ball" title="' + esc(who) + ' has the ball"><svg width="36" height="40" viewBox="0 0 36 40" aria-hidden="true"><path d="' + path + '"/></svg></div>';
   }
@@ -4880,8 +4882,8 @@ const E = (() => {
     const live = S.sheet.edit ? { a: 0, h: 0 } : possLive(gg);
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
-    let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>' + possArrow(gg, st)) +
+    let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + possArrow(gg, st, 'a') + '</div></div>' +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
@@ -4898,7 +4900,7 @@ const E = (() => {
         return si || ls ? '<div class="ls-row">' + wins(gg.a) + ls + wins(gg.h) + '</div>' : '';
       })() +
       '</div>' +
-      '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + (st.h + live.h) + '</div></div></div>' + (D.ru.poss && can && !st.final && gameStarted(gg) && !S.sheet.edit ? '<div id="playCap" class="play-cap" aria-live="polite"></div>' : '') + '</div>';
+      '<div class="side r">' + teamLink(gg.h, gg) + '<small>' + recStreak(gg, gg.h) + '</small><div class="big">' + possArrow(gg, st, 'h') + (st.h + live.h) + '</div></div></div>' + (D.ru.poss && can && !st.final && gameStarted(gg) && !S.sheet.edit ? '<div id="playCap" class="play-cap" aria-live="polite"></div>' : '') + '</div>';
     // a playoff game shows its playoff series, with a switch to the regular-season series
     const serTab = x && S.serTab && S.serTab.gid === gg.id ? S.serTab.v : 'po';
     const series = x
