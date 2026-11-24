@@ -3109,7 +3109,7 @@ const E = (() => {
         'Whoever has the ball rolls all 4 dice at once: two big (the shot) and two small (the rebound or free throws). The game asks for one die at a time by its color and says what happened, at the top of the game and in the play-by-play. When both possessions are done the roll logs itself. <b>Backspace</b> takes off the last die; <b>Undo</b> takes back the last roll.',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
-        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the two dice in the boxes, then press Enter to log them. Auto-rolled games count like any other.']) +
+        '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Advantages', [
         'Better players get calls: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one.',
         D.ru.skillCalls ? 'Skill runs from 1 star to 5 stars (best). ' + skillCallsText(D.ru) + ' Equal levels get no skill calls. ' + homeCallsText(D.ru) : 'Under this season’s original rules, one skill tier up gets 3 calls; two tiers up gets 6. A 10 gets 3 over a 7 or 8. The home player gets 1 extra call.',
@@ -4265,7 +4265,7 @@ const E = (() => {
       '<button type="button" class="theme' + (c.theme === d.id ? ' on' : '') + '" data-act="theme" data-v="' + d.id + '" aria-pressed="' + (c.theme === d.id) + '">' +
       '<div class="sw" style="background:' + d.sw[0] + '"><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif">112</span><span style="background:' + d.sw[2] + ';color:' + d.sw[1] + ';font-family:\'' + d.sw[3] + '\',sans-serif;opacity:.55">97</span></div>' +
       '<div class="tx"><b>' + d.name + (c.theme === d.id ? ' · in use' : '') + '</b><small>' + d.desc + '</small></div></button>').join('') + '</div></div>';
-    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b>: the site rolls the two dice in the boxes, and you press Enter to log them. You can still enter dice yourself.</div>' +
+    out += '<div class="panel"><div class="form"><h3 class="h3">Auto roll</h3><div class="note">When it’s on, each game has <b>Auto roll</b>: each press rolls the die the game is asking for. You can still enter dice yourself.</div>' +
       '<div class="seg autoset" role="group" aria-label="Auto roll"><button type="button" class="' + (c.autoRoll ? 'on' : '') + '" data-act="autoset" data-v="1" aria-pressed="' + !!c.autoRoll + '">On</button><button type="button" class="' + (c.autoRoll ? '' : 'on') + '" data-act="autoset" data-v="0" aria-pressed="' + !c.autoRoll + '">Off</button></div></div></div>';
     out += '<div class="panel"><form class="form" data-form="league"><h3 class="h3">League names</h3>' +
       '<div class="frow"><div class="field"><label for="lgName">League name</label><input type="text" id="lgName" value="' + esc(c.leagueName) + '" maxlength="40"></div></div>' +
@@ -5153,24 +5153,12 @@ const E = (() => {
       }, 70);
     });
   }
-  const Auto = { t: null };
   function autoRoll() {
     const g0 = D.byId[S.sheet && S.sheet.gid];
     if (!canAuto(g0)) return;
-    if (D.ru.poss) {   // 2.0: roll all 4 dice, then read the ones needed one at a time, so you can watch it happen
-      if (Auto.t) return;
-      const now = possNow(g0);
-      if (!now.side) return;
-      const sd = now.side, n0 = g0.st.n, vals = Array.from({ length: 4 - now.dr[sd].length % 4 }, d6);
-      const step = () => {
-        Auto.t = null;
-        const g = D.byId[g0.id];
-        if (!g || !S.sheet || S.sheet.gid !== g.id || g.st.final || g.st.n !== n0 || possNow(g).side !== sd || !vals.length) return;
-        possDie(vals.shift());
-        const g2 = D.byId[g0.id];
-        if (vals.length && g2.st.n === n0 && possNow(g2).side === sd) Auto.t = setTimeout(step, 1100);
-      };
-      step(); return;
+    if (D.ru.poss) {   // 2.0: one press rolls the one die being asked for
+      if (!possNow(g0).side) return;
+      possDie(d6()); return;
     }
     S.poss = null;
     const g = simRoll(g0);
