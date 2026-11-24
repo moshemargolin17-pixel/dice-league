@@ -4574,12 +4574,12 @@ const E = (() => {
     }
     return '';
   }
-  // the same plays without the name of the player whose possession it is (that name sits on the left of the scoreboard line)
+  // the same plays without the player's name (it sits on the left): whose possession it is, or for a defensive rebound, a steal or a loose ball, the other player who made the play
   function pbpAction(x, g) {
     const th = pname(x.sd === 'a' ? g.h : g.a), e = x.e, shot = v => (v === 3 ? '3-pointer' : '2-pointer');
     switch (e.k) {
       case 'to': return 'Turnover';
-      case 'stl': return 'Steal by ' + th;
+      case 'stl': return 'Steal';
       case 'sh': return e.fb ? 'Fast break' : 'Shoots a ' + shot(e.v);
       case 'mk': return 'Makes the ' + shot(e.v);
       case 'ms': return 'Misses the ' + shot(e.v);
@@ -4591,9 +4591,9 @@ const E = (() => {
       case 'ft': return 'Makes ' + e.m + ' of ' + e.v + ' free throws';
       case 'oob': return 'Out of bounds';
       case 'oreb': return 'Offensive rebound';
-      case 'dreb': return 'Defensive rebound by ' + th;
+      case 'dreb': return 'Defensive rebound';
       case 'keep': return 'Keeps the ball';
-      case 'lose': return th + '’s ball';
+      case 'lose': return 'Gets the ball';
       case 'pb': return 'Makes the putback';
     }
     return '';
@@ -4605,7 +4605,7 @@ const E = (() => {
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
     if (!list.length) return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol><li class="pbp-empty"><span class="pbp-t">' + pbpClock(0) + '</span><span class="pbp-x">Tip-off. Every play shows up here as you roll.</span><span class="pbp-s">0–0</span></li></ol></section>' : '';
-    const rows = list.slice().reverse().map(x => '<li class="pbp-' + x.sd + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-w">' + esc(pname(x.sd === 'a' ? gg.a : gg.h)) + '</span><span class="pbp-x">' + esc(pbpAction(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
+    const rows = list.slice().reverse().map(x => '<li class="pbp-' + pbpWho(x) + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-w">' + esc(pname(pbpWho(x) === 'a' ? gg.a : gg.h)) + '</span><span class="pbp-x">' + esc(pbpAction(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
     return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol>' + rows + '</ol></section>'
       : '<details class="matchup-panel roll-details pbp"><summary>Play-by-play<span>' + list.length + ' plays</span></summary><ol>' + rows + '</ol></details>';
   }
@@ -4623,7 +4623,7 @@ const E = (() => {
     const el = document.getElementById('playCap');
     if (!el) return;
     const list = pbpOf(g), last = list[list.length - 1];
-    const sd = last ? last.sd : 'a', who = pname(sd === 'a' ? g.a : g.h);   // whose possession it is, then what happened
+    const sd = last ? pbpWho(last) : 'a', who = pname(sd === 'a' ? g.a : g.h);   // who made the play, then what happened
     el.innerHTML = '<span class="cap-who cw-' + sd + '">' + esc(who) + '</span><span class="cap-what">' + esc(last ? pbpAction(last, g) : 'Tip-off') + '</span>';
     el.className = 'play-cap' + (last && last.e.p ? ' cap-pts' : '');
   }
