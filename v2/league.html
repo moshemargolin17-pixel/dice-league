@@ -3749,10 +3749,8 @@ const E = (() => {
     boxPct('fgp', 'FG%', 'Field-goal percentage (putbacks count; a foul on a missed shot doesn’t)', 'fgm', 'fga'),
     boxPct('tpp', '3P%', '3-point percentage', 'tpm', 'tpa'),
     boxPct('ftp', 'FT%', 'Free-throw percentage', 'ftm', 'fta'),
-    boxAvg('tpg', '3-pointers / game', '3-pointers made per game', b => b.tpm),
     boxAvg('rpg', 'Rebounds / game', 'Offensive and defensive rebounds per game', b => b.orb + b.drb),
     boxAvg('orpg', 'Off. rebounds / game', 'Offensive rebounds per game', b => b.orb),
-    boxAvg('drpg', 'Def. rebounds / game', 'Defensive rebounds per game', b => b.drb),
     boxAvg('tog', 'Turnovers / game', 'Turnovers per game (fewest is best)', b => b.to, true)
   ];
   const STAT_Q = [
