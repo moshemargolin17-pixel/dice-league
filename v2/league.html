@@ -4855,8 +4855,7 @@ const E = (() => {
     if (!bx) return '';
     const th = BOX_COLS.map(([, h, t]) => '<th title="' + esc(t) + '">' + h + '</th>').join('');
     const row = (p, b) => '<tr><td class="l"><b>' + esc(sname(p)) + '</b></td>' + BOX_COLS.map(([f]) => '<td>' + f(b) + '</td>').join('') + '</tr>';
-    return '<section class="matchup-panel boxscore"><h3 class="h3">Box score</h3><div class="tscroll"><table class="tbl"><tr><th class="l"></th>' + th + '</tr>' + row(gg.a, bx[0]) + row(gg.h, bx[1]) + '</table></div>' +
-      tip('<div class="note">Counted from the dice. A foul on a missed shot isn’t a field-goal attempt; a putback is. Hover a column name for what it means.</div>') + '</section>';
+    return '<section class="matchup-panel boxscore"><h3 class="h3">Box score</h3><div class="tscroll"><table class="tbl"><tr><th class="l"></th>' + th + '</tr>' + row(gg.a, bx[0]) + row(gg.h, bx[1]) + '</table></div>' + '</section>';
   }
   function gameStatsPanel(gg, st) {
     const name = w => esc(sname(w === 'a' ? gg.a : gg.h));
