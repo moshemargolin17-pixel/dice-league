@@ -921,7 +921,9 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .game-layout.measuring{align-items:start}.game-layout.measuring .game-main>*,.game-layout.measuring .game-aside>*{flex-grow:0!important}
 .game-aside.tight .season-series .schip,.game-aside.tight .post-series .schip{padding:9px 14px;min-height:0}
 .game-aside.tight .season-series .schips,.game-aside.tight .post-series .schips{gap:6px}
-.game-aside .schips[style*=max-height]{overflow-y:auto}
+.game-aside.tighter .season-series .schip,.game-aside.tighter .post-series .schip{padding:6px 12px}
+.game-aside.tighter .season-series .schips,.game-aside.tighter .post-series .schips{gap:4px}
+.game-aside.tighter .season-series .sstat{margin:2px 0 8px}
 .game-layout:has(.roll-details[open]) .game-aside>:last-child{flex-grow:0}
 .game-layout:has(.roll-details[open]){align-items:start}
 .startgame{white-space:nowrap}
@@ -4725,19 +4727,18 @@ const E = (() => {
     if (g && D.ru.poss) { playCapSync(g); pbpFit(); }
     seriesFit();
   }
-  // the series beside a game never makes that side longer: it fits into the space next to the game (compact rows, then it scrolls)
+  // the series beside a game never makes that side longer: its rows get more compact to fit the space next to the game (never a scroll)
   function seriesFit() {
     const lay = document.querySelector('#sheetHost .game-layout'), main = lay && lay.querySelector('.game-main'), aside = lay && lay.querySelector('.game-aside');
     const list = aside && aside.querySelector('.schips');
     if (!list || aside.querySelector('.pbp')) return;
-    aside.classList.remove('tight'); list.style.maxHeight = '';
+    aside.classList.remove('tight', 'tighter');
     if (aside.getBoundingClientRect().left < main.getBoundingClientRect().right) return;   // stacked on a phone
     const natural = () => { lay.classList.add('measuring'); const m = main.getBoundingClientRect().height, a = aside.getBoundingClientRect().height; lay.classList.remove('measuring'); return a - m; };
     let over = natural();
     if (over <= 1) return;
     aside.classList.add('tight');
-    over = natural();
-    if (over > 1) list.style.maxHeight = Math.max(120, list.getBoundingClientRect().height - over) + 'px';
+    if (natural() > 1) aside.classList.add('tighter');
   }
   // during a game the play-by-play ends level with the bottom of the box score (side by side only); newest plays on top
   function pbpFit() {
