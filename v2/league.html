@@ -896,6 +896,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .startgame{white-space:nowrap}
 .game-main,.game-aside{display:flex;flex-direction:column;gap:16px;min-width:0}
 .game-layout.is-editing{grid-template-columns:1fr}
+.boxscore .tbl td,.boxscore .tbl th{white-space:nowrap}
 .matchup-panel{border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0;background:var(--panel)}
 .section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .game-aside .h3{font-size:15px;margin-bottom:10px}
@@ -2219,9 +2220,11 @@ const E = (() => {
   };
   // per-player situational records and scoring from final games [{g, d, n}], indexed by profile id; opponents are classed
   // by their regular-season record in that season (.500 or better / under .500). gl keeps the games behind each number.
-  const SIT_PTS = 10, BLOWOUT = 15, CLOSE = 5, BIG_GAME = 90, HUGE_GAME = 100, LOW_ALLOWED = 80, MID_Q4 = 21;
+  // 2.0 scores run about 19 a game, so these are set for that scale
+  const BOX_KEYS = ['pts', 'fga', 'fgm', 'tpa', 'tpm', 'fta', 'ftm', 'orb', 'drb', 'to', 'stl', 'pb', 'fbp', 'a1'];   // 2.0 box score
+  const SIT_PTS = 6, BLOWOUT = 10, CLOSE = 3, BIG_GAME = 25, HUGE_GAME = 30, LOW_ALLOWED = 15, MID_Q4 = 21;
   // shape of a game, from the score after every roll (away minus home).
-  // Mid-4th = after 3 of the 4th quarter's 6 rolls. Blowout: a game won by 15 or more.
+  // Mid-4th = after 3 of the 4th quarter's 6 rolls. Blowout: a game won by 10 or more.
   // Close: the game ends within 5. Clutch: within 5 at any point from mid-4th on. qs: the score margin after Q1, Q2 and Q3.
   function lateFlags(g) {
     if (g._lf) return g._lf;
@@ -2239,7 +2242,8 @@ const E = (() => {
       up: [0, 0], dn: [0, 0], hm: [0, 0], aw: [0, 0], cl: [0, 0], ot: [0, 0], cu: [0, 0], ld: [[0, 0], [0, 0], [0, 0]], tr: [[0, 0], [0, 0], [0, 0]],
       r90: [0, 0], r100: [0, 0], ra80: [0, 0], per: [[0, 0], [0, 0], [0, 0]], rest: [[0, 0], [0, 0]],
       cb: 0, bl: 0, bo: 0, blo: 0, b90: 0, b100: 0, otw: 0, gp: 0, wins: 0, losses: 0, pf: 0, pa: 0, hpf: 0, apf: 0,
-      q: [0, 0, 0, 0], qa: [0, 0, 0, 0], qw: [0, 0, 0, 0], qbest: null, qworst: null, qbm: null, qwm: null, mg: 0, mw: 0, ml: 0, lo: null, loG: null, seq: [], gl: {}
+      q: [0, 0, 0, 0], qa: [0, 0, 0, 0], qw: [0, 0, 0, 0], qbest: null, qworst: null, qbm: null, qwm: null, mg: 0, mw: 0, ml: 0, lo: null, loG: null, seq: [], gl: {},
+      bx: Object.fromEntries(BOX_KEYS.map(k => [k, 0])), bgp: 0   // 2.0 box score totals, over the games whose dice are kept
     }));
     const lastDay = {};
     list.slice().sort((x, y) => (x.n || 0) - (y.n || 0) || x.g.day - y.g.day || x.g.idx - y.g.idx).forEach(x => {
@@ -2265,6 +2269,7 @@ const E = (() => {
         if (lastDay[lk] != null) { const more = g.day - lastDay[lk] > 2 ? 1 : 0; tally('rest' + more, r.rest[more]); }
         lastDay[lk] = g.day;
         r.gp++; r.mg += m; r.pf += mine; r.pa += theirs; if (sd === 'h') r.hpf += mine; else r.apf += mine;
+        const gbx = boxOf(g); if (gbx) { const b = gbx[sd === 'a' ? 0 : 1]; BOX_KEYS.forEach(k2 => { r.bx[k2] += b[k2]; }); r.bgp++; }
         if (won) { r.wins++; r.mw += m; } else { r.losses++; r.ml += -m; }
         if (r.lo == null || mine < r.lo) { r.lo = mine; r.loG = x; }
         for (let i = 0; i < 4; i++) {
@@ -3535,6 +3540,8 @@ const E = (() => {
       [['Home', pSit.hm[0], pSit.hm[1]], ['Away', pSit.aw[0], pSit.aw[1]], ['Division', dw, dl], ['Conference', cw, cl], ['Interconference', iw, il], ['Last 10', last10.filter(Boolean).length, last10.filter(x => !x).length]].map(x => '<tr><td class="l">' + x[0] + '</td><td>' + x[1] + '–' + x[2] + '</td></tr>').join('') +
       SIT_COLS.filter(([k]) => k !== 'hm' && k !== 'aw').map(([k, lb, t]) => '<tr><td class="l" title="' + esc(t) + '">' + lb + '</td><td>' + (Array.isArray(pSit[k]) ? pSit[k][0] + '–' + pSit[k][1] : pSit[k]) + '</td></tr>').join('') + '</table></div></div>' +
       pBestWorst(id, mineAll, career) + '</section>';
+    if (D.ru.poss && pAdv.bgp) out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Box score stats <small class="muted">' + (career ? 'career, ' : '') + 'regular season and postseason · ' + pAdv.bgp + (pAdv.bgp === 1 ? ' game' : ' games') + '</small></h3><div class="kv">' +
+      STAT_BOX.map(d => '<div title="' + esc(d.t) + '"><small>' + d.l + '</small><strong>' + d.f(pAdv) + '</strong></div>').join('') + '</div></div>';
     out += playerAdvanced(id, pAdv, career) + playerHistory(id);
     if (!career) {
       const mine = D.games.filter(g => g.a === p || g.h === p).sort((x, y) => x.day - y.day || x.idx - y.idx);
@@ -3734,6 +3741,23 @@ const E = (() => {
     cntDef('b90', BIG_GAME + '+ games', 'Games scoring ' + BIG_GAME + ' or more'),
     cntDef('b100', HUGE_GAME + '+ games', 'Games scoring ' + HUGE_GAME + ' or more'),
     cntDef('bo', 'Blowouts', 'Wins by ' + BLOWOUT + ' or more')
+  ];
+  // 2.0 box score stats: percentages and per-game numbers, over games whose dice are kept
+  const boxPct = (k, l, t, m, a) => ({ k, l, t, v: r => (r.bx && r.bx[a] ? r.bx[m] / r.bx[a] : null), f: r => (r.bx && r.bx[a] ? (r.bx[m] / r.bx[a] * 100).toFixed(1) + '%' : '—') });
+  const boxAvg = (k, l, t, calc, low) => avgDef(k, l, t, r => (r.bgp ? calc(r.bx) / r.bgp : null), low);
+  const STAT_BOX = [
+    boxPct('fgp', 'FG%', 'Field-goal percentage (putbacks count; a foul on a missed shot doesn’t)', 'fgm', 'fga'),
+    boxPct('tpp', '3P%', '3-point percentage', 'tpm', 'tpa'),
+    boxPct('ftp', 'FT%', 'Free-throw percentage', 'ftm', 'fta'),
+    boxAvg('tpg', '3-pointers / game', '3-pointers made per game', b => b.tpm),
+    boxAvg('rpg', 'Rebounds / game', 'Offensive and defensive rebounds per game', b => b.orb + b.drb),
+    boxAvg('orpg', 'Off. rebounds / game', 'Offensive rebounds per game', b => b.orb),
+    boxAvg('drpg', 'Def. rebounds / game', 'Defensive rebounds per game', b => b.drb),
+    boxAvg('spg', 'Steals / game', 'Steals per game', b => b.stl),
+    boxAvg('tog', 'Turnovers / game', 'Turnovers per game (fewest is best)', b => b.to, true),
+    boxAvg('pbg', 'Putbacks / game', 'Putbacks per game', b => b.pb),
+    boxAvg('fbg', 'Fast-break pts / game', 'Fast-break points per game', b => b.fbp),
+    { k: 'a1t', l: 'And-ones', t: 'And-ones (made the shot and got fouled)', v: r => (r.bgp ? r.bx.a1 : null), f: r => (r.bx ? r.bx.a1 : 0) }
   ];
   const STAT_Q = [
     quarterDef('qb', 'Best quarter', 'Most points scored in one quarter', r => r.qbest),
@@ -4191,7 +4215,7 @@ const E = (() => {
       colsDef.map(([key, l]) => '<th class="sort' + (k === key ? ' on' : '') + '" data-act="sort" data-v="' + key + '">' + l + (k === key ? (dir < 0 ? ' ▾' : ' ▴') : '') + '</th>').join('') + '</tr>' +
       agg.map((r, i) => '<tr><td class="l"><span class="seed">' + (i + 1) + '</span></td><td class="l"><span class="pname" data-act="team" data-p="' + r.p + '"' + attr + '>' + esc(nm(r.p)) + '</span></td>' + colsDef.map(([key]) => '<td>' + cell(r, key) + '</td>').join('') + '</tr>').join('') +
       '</table></div></div>';
-    out += tip('<div class="note">Tap a box to see everyone ranked by that stat.</div>') + statSection('Situational records', STAT_SIT, items, attr) + statSection('Player stats', STAT_PLAYER, items, attr);
+    out += tip('<div class="note">Tap a box to see everyone ranked by that stat.</div>') + statSection('Situational records', STAT_SIT, items, attr) + statSection('Player stats', STAT_PLAYER, items, attr) + (D.ru.poss ? statSection('Box score stats', STAT_BOX, items, attr) : '');
     out += '<h3 class="h3 pmuted" style="color:var(--page-ink)">League leaders</h3>';
         // single-game highs and lows: top 5 here, tap the title for the top 10
     const multi = data.length > 1;
@@ -4347,12 +4371,15 @@ const E = (() => {
   function possWalk(dice, fast, type, opp, edge) {
     let i = 0, pts = 0, first = true, steal = false;
     const parts = [];
-    const out = (done, need) => ({ done, need: need || null, pts, steal, text: parts.join(', ') });
+    // box score for this possession. odrb (defensive rebounds) and ostl (steals) go to the other player.
+    const bx = { fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, orb: 0, odrb: 0, to: 0, ostl: 0, pb: 0, fbp: 0, a1: 0 };
+    const out = (done, need) => ({ done, need: need || null, pts, steal, bx, text: parts.join(', ') });
+    const shot = (v, made) => { bx.fga++; if (v === 3) bx.tpa++; if (made) { bx.fgm++; if (v === 3) bx.tpm++; } };
     for (;;) {
       if (i >= dice.length) return out(false, 'Die 1 · shot or turnover');
       const d1 = dice[i++];
-      if (d1 === 1) { parts.push('turnover (dead ball)'); return out(true); }
-      if (d1 === 2) { parts.push('turnover (stolen)'); steal = true; return out(true); }
+      if (d1 === 1) { bx.to++; parts.push('turnover (dead ball)'); return out(true); }
+      if (d1 === 2) { bx.to++; bx.ostl++; parts.push('turnover (stolen)'); steal = true; return out(true); }
       const val = type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2), fb = first && fast;   // Guard: 5-6 are 3s · Forward: 6 · Center: no 3s
       first = false;
       if (i >= dice.length) return out(false, 'Die 2 · make, miss or foul');
@@ -4365,26 +4392,30 @@ const E = (() => {
         if (f1 === 6) {
           const ft = f2 >= 3 ? 1 : 0;
           pts += val + ft;
+          shot(val, true); bx.fta++; bx.ftm += ft; bx.a1++; if (fb) bx.fbp += val + ft;
           parts.push((fb ? 'fast break, ' : '') + 'made ' + val + ' and fouled, and-one ' + (ft ? 'made' : 'missed'));
         } else {
           const made = val === 3 ? [0, 1, 2, 2, 3, 3][f2 - 1] : [0, 1, 1, 1, 2, 2][f2 - 1];
           pts += made;
+          bx.fta += val; bx.ftm += made; if (fb) bx.fbp += made;   // fouled on a missed shot: not a field-goal attempt
           parts.push((fb ? 'fast break, ' : '') + 'fouled on a ' + val + ', ' + made + ' of ' + val + ' free throws');
         }
         return out(true);
       }
-      if (d2 >= makeLow(edge, fb)) { pts += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
+      if (d2 >= makeLow(edge, fb)) { pts += val; shot(val, true); if (fb) bx.fbp += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
+      shot(val, false);
       parts.push((fb ? 'fast break, ' : '') + 'missed ' + val);
       if (i >= dice.length) return out(false, 'Rebound');
       const r1 = dice[i++];
-      if (r1 > orebTop(type, opp)) { parts.push('defensive rebound'); return out(true); }
+      if (r1 > orebTop(type, opp)) { bx.odrb++; parts.push('defensive rebound'); return out(true); }
       if (i >= dice.length) return out(false, r1 === 1 ? 'Out of bounds · whose ball?' : 'Offensive rebound · putback?');
       const r2 = dice[i++];
       if (r1 === 1) {
         if (r2 === 1) { parts.push('out of bounds, still his ball'); continue; }
         parts.push('out of bounds'); return out(true);
       }
-      if (r2 >= PUTBACK[rebType(type, opp)]) { pts += 2; parts.push('offensive rebound and putback'); return out(true); }
+      bx.orb++;
+      if (r2 >= PUTBACK[rebType(type, opp)]) { pts += 2; shot(2, true); bx.pb++; parts.push('offensive rebound and putback'); return out(true); }
       parts.push('offensive rebound'); // keeps the ball and rolls again
     }
   }
@@ -4393,7 +4424,7 @@ const E = (() => {
   // a game keeps the ratings it started with; games logged before ratings existed count as even (3 and 3)
   const possRt = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.rt ? r.rt[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? [3, 3] : [pl.off || 3, pl.def || 3]; };
   const possEdge = (g, side) => possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
-  const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : P(side === 'a' ? g.a : g.h).type) || 'n'; };
+  const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'n' : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
   function possFast(g, n, side, draftA) {
     const p = possOf(g);
@@ -4401,6 +4432,27 @@ const E = (() => {
     if (side === 'h') { const prev = draftA || (p[n] && p[n][0]); return !!(prev && possWalk(prev, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).steal); }
     const prev = n > 0 && p[n - 1] ? p[n - 1][1] : null;
     return !!(prev && possWalk(prev, possFast(g, n - 1, 'h', p[n - 1][0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')).steal);
+  }
+  // Box score of a game for both players [away, home], from the dice of every logged possession (null if the dice aren't kept).
+  function boxOf(g) {
+    const p = possOf(g);
+    if (!D.ru.poss || !p.length || p.length < g.rolls.length) return null;
+    if (g._box && g._box.n === g.rolls.length) return g._box.v;
+    const z = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0]));
+    const sides = [z(), z()];
+    let fastA = false;   // a steal by home on the possession before gives away a fast break
+    for (let n = 0; n < g.rolls.length; n++) {
+      const wa = possWalk(p[n][0], fastA, possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
+      const wh = possWalk(p[n][1], wa.steal, possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h'));
+      fastA = wh.steal;
+      [[wa, 0], [wh, 1]].forEach(([w, k]) => {
+        const me = sides[k], th = sides[1 - k], b = w.bx;
+        me.pts += w.pts; ['fga', 'fgm', 'tpa', 'tpm', 'fta', 'ftm', 'orb', 'to', 'pb', 'fbp', 'a1'].forEach(x => { me[x] += b[x]; });
+        th.drb += b.odrb; th.stl += b.ostl;
+      });
+    }
+    g._box = { n: g.rolls.length, v: sides };
+    return sides;
   }
   // the possessions being put in for the next roll. They're saved with the day (entry.d), so closing the page keeps them.
   const possSaved = g => {
@@ -4694,6 +4746,7 @@ const E = (() => {
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st);
     }
+    if (st.n && !S.sheet.edit) main += boxScorePanel(gg);
     if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
       const lines = gg.rolls.map((r, i) => {
@@ -4794,6 +4847,23 @@ const E = (() => {
     return '<section class="matchup-panel pregame"><h3 class="h3">Pregame</h3><table class="pgt"><tr><td class="pgn">' + esc(sname(gg.a)) + '</td><th></th><td class="pgn">' + esc(sname(gg.h)) + '</td></tr>' + rows + '</table></section>';
   }
   // Game stats, under the game flow: lead changes, largest leads, the biggest run and most unanswered points
+  // 2.0 box score columns: [key or function, header, what it means]
+  const pct = (m, a) => (a ? Math.round(m / a * 100) + '%' : '–');
+  const BOX_COLS = [
+    [b => b.pts, 'PTS', 'Points'], [b => b.fgm + '-' + b.fga, 'FG', 'Field goals made-attempted (putbacks count)'], [b => pct(b.fgm, b.fga), 'FG%', 'Field-goal percentage'],
+    [b => b.tpm + '-' + b.tpa, '3P', '3-pointers made-attempted'], [b => pct(b.tpm, b.tpa), '3P%', '3-point percentage'],
+    [b => b.ftm + '-' + b.fta, 'FT', 'Free throws made-attempted'], [b => pct(b.ftm, b.fta), 'FT%', 'Free-throw percentage'],
+    [b => b.orb, 'OREB', 'Offensive rebounds'], [b => b.drb, 'DREB', 'Defensive rebounds'], [b => b.orb + b.drb, 'REB', 'Total rebounds'],
+    [b => b.to, 'TO', 'Turnovers'], [b => b.stl, 'STL', 'Steals'], [b => b.pb, 'PB', 'Putbacks'], [b => b.fbp, 'FBP', 'Fast-break points'], [b => b.a1, 'AND1', 'And-ones']
+  ];
+  function boxScorePanel(gg) {
+    const bx = boxOf(gg);
+    if (!bx) return '';
+    const th = BOX_COLS.map(([, h, t]) => '<th title="' + esc(t) + '">' + h + '</th>').join('');
+    const row = (p, b) => '<tr><td class="l"><b>' + esc(sname(p)) + '</b></td>' + BOX_COLS.map(([f]) => '<td>' + f(b) + '</td>').join('') + '</tr>';
+    return '<section class="matchup-panel boxscore"><h3 class="h3">Box score</h3><div class="tscroll"><table class="tbl"><tr><th class="l"></th>' + th + '</tr>' + row(gg.a, bx[0]) + row(gg.h, bx[1]) + '</table></div>' +
+      tip('<div class="note">Counted from the dice. A foul on a missed shot isn’t a field-goal attempt; a putback is. Hover a column name for what it means.</div>') + '</section>';
+  }
   function gameStatsPanel(gg, st) {
     const name = w => esc(sname(w === 'a' ? gg.a : gg.h));
     const rolls = gg.rolls, n = rolls.length;
