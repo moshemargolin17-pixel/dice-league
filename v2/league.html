@@ -4541,25 +4541,26 @@ const E = (() => {
   const pbpWho = x => (['dreb', 'stl', 'lose'].includes(x.e.k) ? (x.sd === 'a' ? 'h' : 'a') : x.sd);
   function pbpText(x, g) {
     const me = pname(x.sd === 'a' ? g.a : g.h), th = pname(x.sd === 'a' ? g.h : g.a), e = x.e;
+    const shot = v => (v === 3 ? '3-pointer' : '2-pointer');
     switch (e.k) {
-      case 'to': return me + ' turns it over';
-      case 'stl': return th + ' steals it from ' + me + '!';
-      case 'sh': return e.fb ? me + ' races out on the fast break' : e.v === 3 ? me + ' pulls up from three' : me + ' drives to the basket';
-      case 'mk': return e.fb ? me + ' finishes the fast break!' : e.v === 3 ? me + ' drains the three!' : me + ' scores';
-      case 'ms': return me + ' misses the ' + (e.v === 3 ? 'three' : 'shot');
-      case 'fl': return me + ' is fouled on the shot';
-      case 'and1': return 'It goes in! And-one for ' + me;
-      case 'nogo': return 'No good. ' + me + ' goes to the line for ' + e.v;
-      case 'a1m': return me + ' hits the free throw. ' + (e.v + 1) + '-point play!';
+      case 'to': return 'Turnover by ' + me;
+      case 'stl': return 'Steal by ' + th;
+      case 'sh': return e.fb ? me + ' on a fast break' : me + ' shoots a ' + shot(e.v);
+      case 'mk': return me + ' makes the ' + shot(e.v);
+      case 'ms': return me + ' misses the ' + shot(e.v);
+      case 'fl': return th + ' fouls ' + me;
+      case 'and1': return me + ' makes the ' + shot(e.v) + ', and-one';
+      case 'nogo': return me + ' misses the shot, ' + e.v + ' free throws';
+      case 'a1m': return me + ' makes the free throw';
       case 'a1x': return me + ' misses the free throw';
-      case 'ft': return me + ' makes ' + e.m + ' of ' + e.v + ' at the line';
-      case 'oob': return 'Loose ball, out of bounds';
-      case 'oreb': return me + ' grabs the offensive rebound!';
-      case 'dreb': return th + ' pulls down the rebound';
-      case 'keep': return 'Still ' + me + '’s ball';
+      case 'ft': return me + ' makes ' + e.m + ' of ' + e.v + ' free throws';
+      case 'oob': return 'Out of bounds';
+      case 'oreb': return 'Offensive rebound by ' + me;
+      case 'dreb': return 'Defensive rebound by ' + th;
+      case 'keep': return me + '’s ball';
       case 'lose': return th + '’s ball';
-      case 'pb': return me + ' puts it back in!';
-      case 'nopb': return me + ' kicks it back out';
+      case 'pb': return me + ' makes the putback';
+      case 'nopb': return 'No putback, ' + me + ' keeps the ball';
     }
     return '';
   }
