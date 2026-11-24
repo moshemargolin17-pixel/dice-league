@@ -4738,10 +4738,11 @@ const E = (() => {
     if (!st.n && !S.sheet.edit && !st.final && !gameStarted(gg)) main += pregamePanel(gg, x);
     if (liveGame) aside = '<section class="matchup-panel game-stats live-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
       '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Times tied</small><strong>' + timesTied(gg.rolls) + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
+    // the box score goes at the top (under the dice while the game is being played)
+    if (st.n && !S.sheet.edit) main = st.final ? boxScorePanel(gg) + main : main + boxScorePanel(gg);
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st);
     }
-    if (st.n && !S.sheet.edit) main += boxScorePanel(gg);
     if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
       const lines = gg.rolls.map((r, i) => {
@@ -4852,7 +4853,7 @@ const E = (() => {
   // 2.0 box score columns: [key or function, header, what it means]
   const pct = (m, a) => (a ? Math.round(m / a * 100) + '%' : '–');
   const BOX_COLS = [
-    [b => b.pts, 'PTS', 'Points'], [b => b.fgm + '-' + b.fga, 'FG', 'Field goals made-attempted (putbacks count)'], [b => pct(b.fgm, b.fga), 'FG%', 'Field-goal percentage'],
+    [b => b.fgm + '-' + b.fga, 'FG', 'Field goals made-attempted (putbacks count)'], [b => pct(b.fgm, b.fga), 'FG%', 'Field-goal percentage'],
     [b => b.tpm + '-' + b.tpa, '3P', '3-pointers made-attempted'], [b => pct(b.tpm, b.tpa), '3P%', '3-point percentage'],
     [b => b.ftm + '-' + b.fta, 'FT', 'Free throws made-attempted'], [b => pct(b.ftm, b.fta), 'FT%', 'Free-throw percentage'],
     [b => b.orb, 'OREB', 'Offensive rebounds'], [b => b.drb, 'DREB', 'Defensive rebounds'], [b => b.orb + b.drb, 'REB', 'Total rebounds'],
