@@ -3540,7 +3540,7 @@ const E = (() => {
       [['Home', pSit.hm[0], pSit.hm[1]], ['Away', pSit.aw[0], pSit.aw[1]], ['Division', dw, dl], ['Conference', cw, cl], ['Interconference', iw, il], ['Last 10', last10.filter(Boolean).length, last10.filter(x => !x).length]].map(x => '<tr><td class="l">' + x[0] + '</td><td>' + x[1] + '–' + x[2] + '</td></tr>').join('') +
       SIT_COLS.filter(([k]) => k !== 'hm' && k !== 'aw').map(([k, lb, t]) => '<tr><td class="l" title="' + esc(t) + '">' + lb + '</td><td>' + (Array.isArray(pSit[k]) ? pSit[k][0] + '–' + pSit[k][1] : pSit[k]) + '</td></tr>').join('') + '</table></div></div>' +
       pBestWorst(id, mineAll, career) + '</section>';
-    if (D.ru.poss && pAdv.bgp) out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Box score stats <small class="muted">' + (career ? 'career, ' : '') + 'regular season and postseason · ' + pAdv.bgp + (pAdv.bgp === 1 ? ' game' : ' games') + '</small></h3><div class="kv">' +
+    if (D.ru.poss && pAdv.bgp) out += '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Box score stats</h3><div class="kv">' +
       STAT_BOX.map(d => '<div title="' + esc(d.t) + '"><small>' + d.l + '</small><strong>' + d.f(pAdv) + '</strong></div>').join('') + '</div></div>';
     out += playerAdvanced(id, pAdv, career) + playerHistory(id);
     if (!career) {
@@ -3805,7 +3805,7 @@ const E = (() => {
     const one = (label, x, signed) => '<div' + (x ? ' class="click" data-act="game" data-n="' + x.n + '" data-id="' + x.g.id + '" tabindex="0" role="button"' : '') + '><small>' + label + '</small><strong>' + (x ? (signed && x.v > 0 ? '+' : '') + x.v + ' (' + qLabel(x.q) + ')' : '—') + '</strong></div>';
     const cnt = (key, label, n) => kv(label, gl(key, label, n));
     const wr = (key, label, x) => kv(label, gl(key, label, wlTxt(x)));
-    return '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Advanced' + (career ? ' <small class="muted">career, regular season and postseason</small>' : ' <small class="muted">regular season and postseason</small>') + '</h3><div class="kv">' +
+    return '<div class="panel"><h3 class="h3" style="margin-bottom:8px">Advanced</h3><div class="kv">' +
       one('Best quarter', r.qbest) + one('Worst quarter', r.qworst) + one('Best quarter margin', r.qbm, true) + one('Worst quarter margin', r.qwm, true) +
       cnt('b90', BIG_GAME + '+ games', r.b90) + cnt('b100', HUGE_GAME + '+ games', r.b100) + cnt('cb', 'Comebacks', r.cb) + cnt('bo', 'Blowouts', r.bo) + cnt('blo', 'Times blown out', r.blo) +
       cnt('lw', 'Longest win streak', r.lw) + cnt('ll', 'Longest losing streak', r.ll) +
