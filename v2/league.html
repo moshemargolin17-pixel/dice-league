@@ -4825,7 +4825,7 @@ const E = (() => {
       '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Times tied</small><strong>' + timesTied(gg.rolls) + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
     // the box score goes at the top (under the dice while the game is being played)
     if (st.n && !S.sheet.edit) main = st.final ? boxScorePanel(gg) + main : main + boxScorePanel(gg);
-    if (D.ru.poss && liveGame) aside += pbpPanel(gg, true);
+    if (D.ru.poss && liveGame) aside = pbpPanel(gg, true) + aside;   // play-by-play first, then the game stats
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
     }
