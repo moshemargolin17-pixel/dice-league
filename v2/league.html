@@ -702,6 +702,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ppad{margin-top:12px;display:grid;gap:8px}
 .pask{font-size:15px}
 /* the final possessions: red and pulsing */
+.decided{margin-top:8px;font:800 15px var(--f-display);text-transform:uppercase;letter-spacing:.04em}.decided.dc-a{color:#D2283C}.decided.dc-h{color:#178A3F}
 .mid-st.stakes,.ehead .num.stakes{color:#D2283C!important;border-color:#D2283C!important;font-weight:800;animation:stakes 1.6s ease-in-out infinite}
 @keyframes stakes{50%{opacity:.6}}
 .possentry .eacts .btn .kbd{display:inline-block;margin-left:6px;min-width:18px;padding:0 5px;border:1px solid currentColor;border-radius:4px;font-size:11px;line-height:16px;opacity:.6}
@@ -4634,6 +4635,19 @@ const E = (() => {
     return L.perLabel(p.per) + ' · ' + (p.k + 1) + ' of ' + p.len;
   }
   const possStakes = label => /left|Final possession/.test(label) && !/^Q[123] /.test(label);
+  // Out of reach: the trailing player can't even tie with every possession left at its best (4 points; a Center's best is 3).
+  // The leader has won, though the game is still played out. Returns 'a', 'h' or null.
+  function decidedSide(g) {
+    if (!D.ru.poss || g.st.final || !gameStarted(g)) return null;
+    const lv = possLive(g), a = g.st.a + lv.a, h = g.st.h + lv.h;
+    if (a === h) return null;
+    const lead = a > h ? 'a' : 'h', tr = lead === 'a' ? 'h' : 'a', i = curPoss(g);
+    const end = i < 48 ? 48 : possPer(i).end;
+    let left = 0;
+    for (let j = i; j < end; j++) { const sd = j < 48 ? (j % 2 ? 'h' : 'a') : ((j - 48) % 7) % 2 ? 'a' : 'h'; if (sd === tr) left++; }
+    const best = possTy(g, tr) === 'b' ? 3 : 4;
+    return Math.abs(a - h) > left * best ? lead : null;
+  }
   // which possession of the game is being played now (counting the dice already put in for this roll)
   function curPoss(g) {
     const dr = possSaved(g) || { a: [], h: [] }, side = rollWalks(g, dr, g.st.n).side || seqOf(g.st.n)[0];
@@ -4703,7 +4717,7 @@ const E = (() => {
     const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr[seqOf(st.n)[0]]);
     const anyIn = now.dr.a.length || now.dr.h.length;
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
-    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (possStakes(possWords(curPoss(g))) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
+    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (possStakes(possWords(curPoss(g))) && !decidedSide(g) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
       (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
@@ -4938,7 +4952,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + possArrow(gg, st, 'a') + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && possStakes(liveLabel(gg)) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && possStakes(liveLabel(gg)) && !decidedSide(gg) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : (tipsOn() ? 'Not started' : '')) + '</span>' + (decidedSide(gg) ? '<div class="decided dc-' + decidedSide(gg) + '">' + esc(pname(decidedSide(gg) === 'a' ? gg.a : gg.h)) + ' wins</div>' : '')) +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
