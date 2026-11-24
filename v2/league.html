@@ -4590,7 +4590,7 @@ const E = (() => {
     const side = (sd, w, dice) => {
       const p = sd === 'a' ? g.a : g.h, on = now.side === sd;
       return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm" title="' + esc(pname(p)) + '">' + esc(sname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
-        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll all 4 dice' : sd === 'h' ? 'Next' : '') + '</span>') + '</div>' +
+        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll' : sd === 'h' ? 'Next' : '') + '</span>') + '</div>' +
         (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
     };
     const sd = now.side, dice = sd ? now.dr[sd] : [], len = dice.length, grp = dice.slice(len - len % 4), next = len % 4 + 1;
