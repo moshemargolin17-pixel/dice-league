@@ -4740,9 +4740,9 @@ const E = (() => {
     aside.classList.add('tight');
     if (natural() > 1) aside.classList.add('tighter');
   }
-  // during a game the play-by-play ends level with the bottom of the box score (side by side only); newest plays on top
+  // during a game the play-by-play ends level with the bottom of the roll box (side by side only); newest plays on top
   function pbpFit() {
-    const box = document.querySelector('#sheetHost .game-main .boxscore') || document.querySelector('#sheetHost .possentry'), pb = document.querySelector('#sheetHost .game-aside .pbp');
+    const box = document.querySelector('#sheetHost .possentry'), pb = document.querySelector('#sheetHost .game-aside .pbp');
     if (!pb) return;
     pb.style.height = '';
     if (!box) return;
