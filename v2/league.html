@@ -701,6 +701,40 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .ptext{font-size:13.5px;color:var(--muted)}.ptext b{color:var(--ink)}
 .ppad{margin-top:12px;display:grid;gap:8px}
 .pask{font-size:15px}
+.pask .die{vertical-align:-1px}
+.pslots.four{grid-template-columns:repeat(4,minmax(0,1fr))}
+.pslot.small .ps-v{width:28px;height:28px;font-size:15px}
+.pslot.wait{opacity:.55}
+@media (max-width:560px){.pslots.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* the live court */
+.courtbox{padding:10px}
+.court{width:100%;height:auto;max-height:300px;display:block;margin:0 auto}
+.court .floor{fill:#E8C48F}
+.court .paint{fill:rgba(255,255,255,.18);stroke:#fff;stroke-width:2.5}
+.court .cl{fill:none;stroke:#fff;stroke-width:2.5}
+.court .board{stroke:#38404F;stroke-width:4}
+.court .rim{fill:none;stroke:#E2561D;stroke-width:3}
+.court .cend{fill:rgba(60,40,15,.55);font:700 13px var(--f-body)}
+.court .cpl circle{stroke:#fff;stroke-width:3}
+.court .cpl-a circle{fill:#D2283C}.court .cpl-h circle{fill:#1E9E4A}
+.court .cpl text{fill:#fff;font:800 12px var(--f-body);text-anchor:middle}
+.court .cball{fill:#F28A2E;stroke:#7A3A0C;stroke-width:1.5}
+.court .cbs{fill:#000}
+.court .cfx{font:800 30px var(--f-display);text-anchor:middle;paint-order:stroke;stroke:#fff;stroke-width:5;animation:cfxup 1.1s ease-out forwards}
+.court .cfx-a{fill:#D2283C}.court .cfx-h{fill:#1E9E4A}
+@keyframes cfxup{0%{opacity:0;transform:translateY(8px)}15%{opacity:1}100%{opacity:0;transform:translateY(-26px)}}
+.court-cap{margin-top:8px;font:800 19px/1.25 var(--f-display);text-align:center;min-height:24px}
+.court-cap.cap-a{color:#D2283C}.court-cap.cap-h{color:#178A3F}
+html[data-design="v20"] .court-cap.cap-h{color:var(--accent)}
+/* play-by-play */
+.pbp ol{list-style:none;margin:8px 0 0;padding:0;max-height:340px;overflow:auto}
+.pbp li{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
+.pbp li:first-child{border-top:0}
+.pbp .pbp-t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.pbp li.pts .pbp-x{font-weight:700}
+.pbp .pbp-s{font-variant-numeric:tabular-nums;color:var(--muted)}
+.pbp li.pts .pbp-s{color:var(--ink);font-weight:700}
+.pbp li.pbp-a .pbp-x{border-left:3px solid #D2283C;padding-left:7px}.pbp li.pbp-h .pbp-x{border-left:3px solid #1E9E4A;padding-left:7px}
 .pslots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pslot{display:flex;align-items:center;gap:8px;min-width:0;padding:10px 12px;border-radius:calc(var(--radius) - 2px);background:var(--panel);border:1px solid var(--border);font-weight:700}
 .pslot.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
@@ -2778,12 +2812,7 @@ const E = (() => {
     if (!g || !editable(g) || g.st.final) return;
     if (D.ru.poss) {
       const now = possNow(g);
-      if (now.side) {
-        // Enter logs the two dice just put in; the roll itself is logged once both possessions are done
-        if (now.dr.pend.length < 2) { toast('Put in both dice first.'); return; }
-        now.dr[now.side].push(now.dr.pend[0], now.dr.pend[1]); now.dr.pend = [];
-        possSave(g); renderSheet(); render(); return;   // once both possessions are in, Enter again logs the roll (the cards on Home update now)
-      }
+      if (now.side) { toast('Finish both possessions first.'); return; }
       possLog(g, [now.dr.a, now.dr.h]);
       const ng = D.byId[g.id];
       renderSheet(); render();
@@ -3090,7 +3119,7 @@ const E = (() => {
       '<div class="howtos">' +
       sec('Logging games', [
         'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Roll for whoever has the ball. The big dice are the shot: die 1 (green home, red away) is shot or turnover, die 2 (cyan home, orange away) is make, miss or foul. After a miss or a foul roll the small dice: die 3 (dark green home, maroon away) and die 4 (lime home, orange away). Tap each number as it comes up, then press Enter (<b>Log possession</b>).',
+        'Whoever has the ball rolls all 4 dice at once: two big (the shot) and two small (the rebound or free throws). The game asks for one die at a time by its color and says what happened, on the court and in the play-by-play. When both possessions are done the roll logs itself. <b>Backspace</b> takes off the last die; <b>Undo</b> takes back the last roll.',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the two dice in the boxes, then press Enter to log them. Auto-rolled games count like any other.']) +
@@ -3751,7 +3780,6 @@ const E = (() => {
     boxPct('tpp', '3P%', '3-point percentage', 'tpm', 'tpa'),
     boxPct('ftp', 'FT%', 'Free-throw percentage', 'ftm', 'fta'),
     boxAvg('rpg', 'Rebounds / game', 'Offensive and defensive rebounds per game', b => b.orb + b.drb),
-    boxAvg('orpg', 'Off. rebounds / game', 'Offensive rebounds per game', b => b.orb),
     boxAvg('tog', 'Turnovers / game', 'Turnovers per game (fewest is best)', b => b.to, true)
   ];
   const STAT_Q = [
@@ -4368,50 +4396,58 @@ const E = (() => {
     const parts = [];
     // box score for this possession. odrb (defensive rebounds) and ostl (steals) go to the other player.
     const bx = { fga: 0, fgm: 0, tpa: 0, tpm: 0, fta: 0, ftm: 0, orb: 0, odrb: 0, to: 0, ostl: 0, pb: 0, fbp: 0, a1: 0 };
-    const out = (done, need) => ({ done, need: need || null, pts, steal, bx, text: parts.join(', ') });
+    // play-by-play: one event per die read: { i (which die in the list), k (what happened), v (2 or 3), fb (fast break), m (free throws made), p (points) }
+    const ev = [];
+    const say = (k, x) => ev.push(Object.assign({ i: i - 1, k, p: 0 }, x || {}));
+    const out = (done, need) => ({ done, need: need || null, pts, steal, bx, ev, text: parts.join(', ') });
     const shot = (v, made) => { bx.fga++; if (v === 3) bx.tpa++; if (made) { bx.fgm++; if (v === 3) bx.tpm++; } };
     for (;;) {
       if (i >= dice.length) return out(false, 'Die 1 · shot or turnover');
       const d1 = dice[i++];
-      if (d1 === 1) { bx.to++; parts.push('turnover (dead ball)'); return out(true); }
-      if (d1 === 2) { bx.to++; bx.ostl++; parts.push('turnover (stolen)'); steal = true; return out(true); }
+      if (d1 === 1) { bx.to++; say('to'); parts.push('turnover (dead ball)'); return out(true); }
+      if (d1 === 2) { bx.to++; bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
       const val = type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2), fb = first && fast;   // Guard: 5-6 are 3s · Forward: 6 · Center: no 3s
       first = false;
+      say('sh', { v: val, fb });
       if (i >= dice.length) return out(false, 'Die 2 · make, miss or foul');
       const d2 = dice[i++];
       if (d2 === 6) {
+        say('fl', { v: val });
         if (i >= dice.length) return out(false, 'Foul · did the shot go in?');
         const f1 = dice[i++];
+        if (f1 === 6) { pts += val; say('and1', { v: val, p: val }); } else say('nogo', { v: val });
         if (i >= dice.length) return out(false, 'Free throws');
         const f2 = dice[i++];
         if (f1 === 6) {
           const ft = f2 >= 3 ? 1 : 0;
-          pts += val + ft;
+          say(ft ? 'a1m' : 'a1x', { p: ft, v: val });
+          pts += ft;
           shot(val, true); bx.fta++; bx.ftm += ft; bx.a1++; if (fb) bx.fbp += val + ft;
           parts.push((fb ? 'fast break, ' : '') + 'made ' + val + ' and fouled, and-one ' + (ft ? 'made' : 'missed'));
         } else {
           const made = val === 3 ? [0, 1, 2, 2, 3, 3][f2 - 1] : [0, 1, 1, 1, 2, 2][f2 - 1];
-          pts += made;
+          pts += made; say('ft', { v: val, m: made, p: made });
           bx.fta += val; bx.ftm += made; if (fb) bx.fbp += made;   // fouled on a missed shot: not a field-goal attempt
           parts.push((fb ? 'fast break, ' : '') + 'fouled on a ' + val + ', ' + made + ' of ' + val + ' free throws');
         }
         return out(true);
       }
-      if (d2 >= makeLow(edge, fb)) { pts += val; shot(val, true); if (fb) bx.fbp += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
-      shot(val, false);
+      if (d2 >= makeLow(edge, fb)) { pts += val; say('mk', { v: val, fb, p: val }); shot(val, true); if (fb) bx.fbp += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
+      shot(val, false); say('ms', { v: val });
       parts.push((fb ? 'fast break, ' : '') + 'missed ' + val);
       if (i >= dice.length) return out(false, 'Rebound');
       const r1 = dice[i++];
-      if (r1 > orebTop(type, opp)) { bx.odrb++; parts.push('defensive rebound'); return out(true); }
+      if (r1 > orebTop(type, opp)) { bx.odrb++; say('dreb'); parts.push('defensive rebound'); return out(true); }
+      say(r1 === 1 ? 'oob' : 'oreb');
       if (i >= dice.length) return out(false, r1 === 1 ? 'Out of bounds · whose ball?' : 'Offensive rebound · putback?');
       const r2 = dice[i++];
       if (r1 === 1) {
-        if (r2 === 1) { parts.push('out of bounds, still his ball'); continue; }
-        parts.push('out of bounds'); return out(true);
+        if (r2 === 1) { say('keep'); parts.push('out of bounds, still his ball'); continue; }
+        say('lose'); parts.push('out of bounds'); return out(true);
       }
       bx.orb++;
-      if (r2 >= PUTBACK[rebType(type, opp)]) { pts += 2; shot(2, true); bx.pb++; parts.push('offensive rebound and putback'); return out(true); }
-      parts.push('offensive rebound'); // keeps the ball and rolls again
+      if (r2 >= PUTBACK[rebType(type, opp)]) { pts += 2; say('pb', { p: 2 }); shot(2, true); bx.pb++; parts.push('offensive rebound and putback'); return out(true); }
+      say('nopb'); parts.push('offensive rebound'); // keeps the ball and rolls again
     }
   }
   // dice of every logged possession: entry.p[roll] = [awayDice, homeDice]
@@ -4468,6 +4504,7 @@ const E = (() => {
   // the state of the roll being entered: whose ball, what each possession has so far
   function possNow(g) {
     const dr = possDraft(g), n = g.st.n;
+    if (dr.pend && dr.pend.length) { const wa0 = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')); dr[wa0.done ? 'h' : 'a'].push(...dr.pend); dr.pend = []; }
     const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
     const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')) : null;
     return { dr, wa, wh, side: !wa.done ? 'a' : !wh.done ? 'h' : null };
@@ -4476,43 +4513,222 @@ const E = (() => {
   const pdn = i => (Math.floor(i / 2) % 2 ? 3 : 1) + i % 2;
   const DIE_NAMES = { h: ['Green die', 'Cyan die', 'Small dark green die', 'Small lime die'], a: ['Red die', 'Orange die', 'Small maroon die', 'Small orange die'] };
   const dieName = (sd, n) => DIE_NAMES[sd][n - 1];
-  // the two dice to roll, a box for each: the big dice for a shot, the small dice after a miss or a foul.
-  // Both boxes are filled before the game goes on.
-  const rollBox = (sd, k, pend) => '<div class="pslots">' + [k, k + 1].map((n, j) => '<div class="pslot' + (j === pend.length ? ' on' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n">' + dieName(sd, n) + '</span><span class="pd ps-v' + (pend[j] != null ? ' ' + sd + n : '') + '">' + (pend[j] != null ? pend[j] : '') + '</span></div>').join('') + '</div>';
   const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="' + dieName(sd, n) + '"></span>').join('');
+  const d6 = () => 1 + Math.floor(Math.random() * 6);
+
+  /* ---------- play-by-play: every die read, in order, with the clock and the score ---------- */
+  function pbpOf(g) {
+    const p = possOf(g), out = [];
+    let a = 0, h = 0, fastA = false;
+    const walk = (n, sd, dice, fast) => {
+      const w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
+      w.ev.forEach((e, j) => { if (sd === 'a') a += e.p; else h += e.p; out.push({ key: n + sd + j, n, sd, e, a, h }); });
+      return w;
+    };
+    let n = 0;
+    for (; n < g.rolls.length && p[n]; n++) { const wa = walk(n, 'a', p[n][0], fastA); const wh = walk(n, 'h', p[n][1], wa.steal); fastA = wh.steal; }
+    const dr = !g.st.final && n === g.rolls.length ? possSaved(g) : null;   // the roll being put in
+    if (dr) { const wa = walk(n, 'a', dr.a, fastA); if (wa.done) walk(n, 'h', dr.h, wa.steal); }
+    return out;
+  }
+  const pbpWho = x => (['dreb', 'stl', 'lose'].includes(x.e.k) ? (x.sd === 'a' ? 'h' : 'a') : x.sd);
+  function pbpText(x, g) {
+    const me = pname(x.sd === 'a' ? g.a : g.h), th = pname(x.sd === 'a' ? g.h : g.a), e = x.e;
+    switch (e.k) {
+      case 'to': return me + ' turns it over';
+      case 'stl': return th + ' steals it from ' + me + '!';
+      case 'sh': return e.fb ? me + ' races out on the fast break' : e.v === 3 ? me + ' pulls up from three' : me + ' drives to the basket';
+      case 'mk': return e.fb ? me + ' finishes the fast break!' : e.v === 3 ? me + ' drains the three!' : me + ' scores';
+      case 'ms': return me + ' misses the ' + (e.v === 3 ? 'three' : 'shot');
+      case 'fl': return me + ' is fouled on the shot';
+      case 'and1': return 'It goes in! And-one for ' + me;
+      case 'nogo': return 'No good. ' + me + ' goes to the line for ' + e.v;
+      case 'a1m': return me + ' hits the free throw. ' + (e.v + 1) + '-point play!';
+      case 'a1x': return me + ' misses the free throw';
+      case 'ft': return me + ' makes ' + e.m + ' of ' + e.v + ' at the line';
+      case 'oob': return 'Loose ball, out of bounds';
+      case 'oreb': return me + ' grabs the offensive rebound!';
+      case 'dreb': return th + ' pulls down the rebound';
+      case 'keep': return 'Still ' + me + '’s ball';
+      case 'lose': return th + '’s ball';
+      case 'pb': return me + ' puts it back in!';
+      case 'nopb': return me + ' kicks it back out';
+    }
+    return '';
+  }
+  const pbpClock = n => {
+    const pr = L.periodOf(n, D.ru), secs = Math.round(pr.mins * 60 * (1 - pr.k / pr.len));
+    return L.perLabel(pr.per) + ' ' + Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+  };
+  function pbpPanel(gg, live) {
+    const list = pbpOf(gg);
+    if (!list.length) return '';
+    const rows = list.slice().reverse().map(x => '<li class="pbp-' + pbpWho(x) + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-x">' + esc(pbpText(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
+    return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol>' + rows + '</ol></section>'
+      : '<details class="matchup-panel roll-details pbp"><summary>Play-by-play<span>' + list.length + ' plays</span></summary><ol>' + rows + '</ol></details>';
+  }
+
+  /* ---------- the court: a short 1-on-1 court (64 by 46 feet, half court just past the 3-point arcs) ----------
+     Away attacks the right hoop, home the left. The players and the ball move with every die. */
+  const CRT = { L: 64, W: 46, hl: 5.25, hr: 58.75, cy: 23 };
+  const Court = { gid: null, seen: 0, pos: null, plan: null, q: [], busy: false, cap: '', capSd: '' };
+  const hoopX = sd => (sd === 'a' ? CRT.hr : CRT.hl);
+  const spot = (sd, d, deg) => ({ x: hoopX(sd) + (sd === 'a' ? -1 : 1) * d * Math.cos(deg * Math.PI / 180), y: CRT.cy + d * Math.sin(deg * Math.PI / 180) });
+  const rnd = key => { let h = 2166136261; for (const c of String(key)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return ((h >>> 0) % 10000) / 10000; };
+  const sceneStart = () => ({ a: { x: 29, y: 23 }, h: { x: 35, y: 23 }, b: { x: 32, y: 23 }, hold: null });
+  const cloneScene = s => ({ a: Object.assign({}, s.a), h: Object.assign({}, s.h), b: Object.assign({}, s.b), hold: s.hold });
+  // the steps for one play-by-play event, from the scene before it; updates the scene
+  function courtSteps(x, sc, g) {
+    const sd = x.sd, od = sd === 'a' ? 'h' : 'a', e = x.e, r = rnd(g.id + x.key), ang = (r - 0.5) * 100;
+    const steps = [], hoop = { x: hoopX(sd), y: CRT.cy };
+    const go = (ms, f, more) => { f(sc); steps.push(Object.assign({ to: cloneScene(sc), ms }, more || {})); };
+    const cap = pbpText(x, g);
+    // a new roll of the 4 dice: bring the ball up (a long run when the other end had it)
+    if (e.i % 4 === 0) go(e.k === 'sh' && e.fb ? 450 : 700, s => { const at = spot(sd, 23, ang * 0.4), d = spot(sd, e.k === 'sh' && e.fb ? 34 : 18, ang * 0.4); s[sd] = at; s[od] = d; s.hold = sd; });
+    switch (e.k) {
+      case 'sh': go(500, s => { s[sd] = e.fb ? spot(sd, 3, ang) : e.v === 3 ? spot(sd, 24.6, ang) : spot(sd, 8 + r * 6, ang); s[od] = e.fb ? spot(sd, 12, ang) : spot(sd, (e.v === 3 ? 21 : 5), ang); s.hold = sd; }, { cap }); break;
+      case 'mk': case 'and1': case 'pb':
+        if (e.k === 'pb') go(250, s => { s[sd] = spot(sd, 2.5, ang); s.hold = sd; });
+        go(650, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true, fx: '+' + e.p, fxAt: hoop, fxSd: sd }); break;
+      case 'ms': case 'a1x': go(600, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true });
+        go(350, s => { s.b = spot(sd, 6 + r * 4, ang + 40 * (r > 0.5 ? 1 : -1)); }); break;
+      case 'a1m': go(650, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true, fx: '+1', fxAt: hoop, fxSd: sd }); break;
+      case 'ft':
+        if (e.m) go(650, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true, fx: '+' + e.m, fxAt: hoop, fxSd: sd });
+        else { go(600, s => { s.b = Object.assign({}, hoop); s.hold = null; }, { cap, arc: true }); go(300, s => { s.b = spot(sd, 7, 30); }); }
+        break;
+      case 'fl': go(350, s => { s[od] = { x: (s[sd].x + s[od].x) / 2 + (s[sd].x - s[od].x) * 0.3, y: s[sd].y + 1.5 }; }, { cap, fx: 'FOUL', fxAt: sc[sd], fxSd: od }); break;
+      case 'nogo': go(700, s => { s[sd] = spot(sd, 14, 0); s[od] = spot(sd, 9, 75); s.hold = sd; }, { cap }); break;
+      case 'oob': go(450, s => { s.b = { x: s.b.x, y: s.b.y < CRT.cy ? -1.5 : CRT.W + 1.5 }; s.hold = null; }, { cap }); break;
+      case 'keep': go(500, s => { s[sd] = { x: s.b.x, y: s.b.y < 0 ? 1 : CRT.W - 1 }; s.hold = sd; }, { cap }); break;
+      case 'lose': go(500, s => { s[od] = { x: s.b.x, y: s.b.y < 0 ? 1 : CRT.W - 1 }; s.hold = od; }, { cap }); break;
+      case 'oreb': go(450, s => { s[sd] = Object.assign({}, s.b); s.hold = sd; s[od] = spot(sd, 3, -ang); }, { cap }); break;
+      case 'dreb': go(450, s => { s[od] = Object.assign({}, s.b); s.hold = od; }, { cap }); break;
+      case 'nopb': go(550, s => { s[sd] = spot(sd, 20, ang); s.hold = sd; }, { cap }); break;
+      case 'stl': go(400, s => { s[od] = { x: s[sd].x + (s[od].x - s[sd].x) * 0.2, y: s[sd].y - 1 }; s.hold = od; }, { cap, fx: 'STEAL', fxAt: sc[sd], fxSd: od }); break;
+      case 'to': go(450, s => { s.b = { x: s[sd].x, y: s[sd].y < CRT.cy ? -1.5 : CRT.W + 1.5 }; s.hold = null; }, { cap });
+        go(400, s => { s[od] = { x: s.b.x, y: s.b.y < 0 ? 1 : CRT.W - 1 }; s.hold = od; }); break;
+    }
+    return steps;
+  }
+  const PX = 10;   // pixels per foot
+  function courtSvg(g) {
+    const arc = side => { const hx = side === 'l' ? CRT.hl : CRT.hr, s = side === 'l' ? 1 : -1, R = 23.75, cy = CRT.cy, dy = 22, dx = Math.sqrt(R * R - dy * dy);
+      const x0 = side === 'l' ? 0 : CRT.L, xc = hx + s * dx;
+      return '<path class="cl" d="M' + x0 * PX + ' ' + (cy - dy) * PX + ' L' + xc * PX + ' ' + (cy - dy) * PX + ' A' + R * PX + ' ' + R * PX + ' 0 0 ' + (side === 'l' ? 1 : 0) + ' ' + xc * PX + ' ' + (cy + dy) * PX + ' L' + x0 * PX + ' ' + (cy + dy) * PX + '"/>'; };
+    const end = side => { const hx = side === 'l' ? CRT.hl : CRT.hr, s = side === 'l' ? 1 : -1, x0 = side === 'l' ? 0 : CRT.L, ftx = x0 + s * 19;
+      return '<rect class="paint" x="' + Math.min(x0, ftx) * PX + '" y="' + (CRT.cy - 8) * PX + '" width="' + 19 * PX + '" height="' + 16 * PX + '"/>' +
+        '<circle class="cl" cx="' + ftx * PX + '" cy="' + CRT.cy * PX + '" r="' + 6 * PX + '"/>' + arc(side) +
+        '<line class="board" x1="' + (x0 + s * 4) * PX + '" y1="' + (CRT.cy - 3) * PX + '" x2="' + (x0 + s * 4) * PX + '" y2="' + (CRT.cy + 3) * PX + '"/>' +
+        '<circle class="rim" id="rim' + side + '" cx="' + hx * PX + '" cy="' + CRT.cy * PX + '" r="' + 0.75 * PX + '"/>'; };
+    const pl = sd => '<g id="cp' + sd + '" class="cpl cpl-' + sd + '"><circle r="16"/><text dy="4">' + esc(sname(sd === 'a' ? g.a : g.h)) + '</text></g>';
+    return '<svg id="court" class="court" viewBox="-20 -20 ' + (CRT.L * PX + 40) + ' ' + (CRT.W * PX + 40) + '" role="img" aria-label="Live court">' +
+      '<rect class="floor" x="0" y="0" width="' + CRT.L * PX + '" height="' + CRT.W * PX + '" rx="6"/>' + end('l') + end('r') +
+      '<line class="cl" x1="' + CRT.L / 2 * PX + '" y1="0" x2="' + CRT.L / 2 * PX + '" y2="' + CRT.W * PX + '"/><circle class="cl" cx="' + CRT.L / 2 * PX + '" cy="' + CRT.cy * PX + '" r="' + 6 * PX + '"/>' +
+      '<text class="cend" x="' + 8 * PX + '" y="' + (CRT.W - 1.5) * PX + '">' + esc(sname(g.h)) + ' shoots here</text><text class="cend" x="' + (CRT.L - 8) * PX + '" y="' + (CRT.W - 1.5) * PX + '" text-anchor="end">' + esc(sname(g.a)) + ' shoots here</text>' +
+      pl('a') + pl('h') + '<ellipse id="cbs" class="cbs" rx="6" ry="3"/><circle id="cb" class="cball" r="6"/><g id="cfx"></g></svg>';
+  }
+  function courtDraw(sc, lift) {
+    const set = (id, x, y) => { const el = document.getElementById(id); if (el) el.setAttribute('transform', 'translate(' + (x * PX).toFixed(1) + ' ' + (y * PX).toFixed(1) + ')'); };
+    set('cpa', sc.a.x, sc.a.y); set('cph', sc.h.x, sc.h.y);
+    const b = sc.hold ? { x: sc[sc.hold].x + 1.2, y: sc[sc.hold].y + 1 } : sc.b;
+    const ball = document.getElementById('cb'), sh = document.getElementById('cbs');
+    if (ball) { ball.setAttribute('cx', (b.x * PX).toFixed(1)); ball.setAttribute('cy', ((b.y - (lift || 0) * 3.5) * PX).toFixed(1)); ball.setAttribute('r', (6 + (lift || 0) * 5).toFixed(1)); }
+    if (sh) { sh.setAttribute('cx', (b.x * PX).toFixed(1)); sh.setAttribute('cy', (b.y * PX + 4).toFixed(1)); sh.setAttribute('opacity', (0.35 - (lift || 0) * 0.2).toFixed(2)); }
+  }
+  function courtCaption() {
+    const el = document.getElementById('courtCap');
+    if (el) { el.textContent = Court.cap || 'Tip-off'; el.className = 'court-cap' + (Court.capSd ? ' cap-' + Court.capSd : ''); }
+  }
+  function courtFx(st) {
+    const host = document.getElementById('cfx'); if (!host || !st.fx) return;
+    const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    t.setAttribute('x', (st.fxAt.x * PX).toFixed(1)); t.setAttribute('y', ((st.fxAt.y - 2.5) * PX).toFixed(1));
+    t.setAttribute('class', 'cfx cfx-' + st.fxSd); t.textContent = st.fx; host.appendChild(t);
+    setTimeout(() => t.remove(), 1100);
+  }
+  const ease = t => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+  function courtPlay() {
+    if (Court.busy) return;
+    const st = Court.q.shift();
+    if (!st) return;
+    Court.busy = true;
+    if (st.cap) { Court.cap = st.cap; Court.capSd = st.capSd || ''; courtCaption(); }
+    const from = cloneScene(Court.pos), to = st.to, t0 = performance.now();
+    const fast = Court.q.length > 6 || matchMedia('(prefers-reduced-motion: reduce)').matches;   // catch up when far behind
+    const ms = fast ? 0 : st.ms;
+    // the ball goes from where it is (or who holds it) to where it ends up
+    const bAt = s => (s.hold ? { x: s[s.hold].x + 1.2, y: s[s.hold].y + 1 } : s.b);
+    const fb = bAt(from), tb = bAt(to);
+    const frame = now => {
+      const t = ms ? Math.min(1, (now - t0) / ms) : 1, k = ease(t);
+      const mix = (p, q) => ({ x: p.x + (q.x - p.x) * k, y: p.y + (q.y - p.y) * k });
+      Court.pos = { a: mix(from.a, to.a), h: mix(from.h, to.h), b: mix(fb, tb), hold: null };
+      courtDraw(Court.pos, st.arc ? 4 * t * (1 - t) : 0);
+      if (t < 1) return requestAnimationFrame(frame);
+      Court.pos = cloneScene(to);
+      courtDraw(Court.pos, 0);
+      courtFx(st);
+      Court.busy = false;
+      courtPlay();
+    };
+    requestAnimationFrame(frame);
+  }
+  // after the game screen is drawn: put the players where they are, and play anything new
+  function courtSync(g) {
+    if (!document.getElementById('court')) return;
+    const list = pbpOf(g);
+    if (Court.gid !== g.id || list.length < Court.seen) {
+      Court.gid = g.id; Court.q = []; Court.busy = false;
+      const sc = sceneStart();
+      list.forEach(x => courtSteps(x, sc, g));
+      Court.plan = sc; Court.pos = cloneScene(sc); Court.seen = list.length;
+      const last = list[list.length - 1];
+      Court.cap = last ? pbpText(last, g) : ''; Court.capSd = last ? pbpWho(last) : '';
+    }
+    courtDraw(Court.pos, 0); courtCaption();
+    if (list.length > Court.seen) {
+      list.slice(Court.seen).forEach(x => courtSteps(x, Court.plan, g).forEach(st => { if (st.cap) st.capSd = pbpWho(x); Court.q.push(st); }));
+      Court.seen = list.length;
+      courtPlay();
+    }
+  }
+  function courtPanel(g) {
+    return '<section class="matchup-panel courtbox">' + courtSvg(g) + '<div id="courtCap" class="court-cap" aria-live="polite"></div></section>';
+  }
+
+  // entering a roll: all 4 dice are rolled together, then read one at a time; each die tells what happened
   function possEntry(g) {
     const st = g.st, now = possNow(g);
     const side = (sd, w, dice) => {
       const p = sd === 'a' ? g.a : g.h, on = now.side === sd;
       return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm" title="' + esc(pname(p)) + '">' + esc(sname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (on ? ' · has the ball' : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
-        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll both dice' : sd === 'h' ? 'Next' : '') + '</span>') + '</div>' +
+        '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll all 4 dice' : sd === 'h' ? 'Next' : '') + '</span>') + '</div>' +
         (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
     };
-    const cur = now.side ? (now.side === 'a' ? now.wa : now.wh) : null;
-    const fastNow = now.side && (now.side === 'a' ? now.dr.a : now.dr.h).length === 0 && possFast(g, st.n, now.side, now.dr.a);
-    const k1 = now.side ? pdn(now.dr[now.side].length) : 1;   // 1 (big dice) or 3 (small dice)
-    const anyIn = now.dr.a.length || now.dr.pend.length;
+    const sd = now.side, dice = sd ? now.dr[sd] : [], len = dice.length, grp = dice.slice(len - len % 4), next = len % 4 + 1;
+    const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr.a);
+    const anyIn = now.dr.a.length || now.dr.h.length;
+    const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
     return '<div class="entry possentry"><div class="ehead"><span>Roll ' + (st.n + 1) + (st.n < 24 ? ' <small>of 24</small>' : ' <small>overtime</small>') + '</span><span class="num">' + esc(st.nextLabel) + '</span></div>' +
       '<div class="epair">' + side('a', now.wa, now.dr.a) + side('h', now.wh, now.dr.h) + '</div>' +
-      (cur ? '<div class="ppad"><div class="pask"><b>' + esc(pname(now.side === 'a' ? g.a : g.h)) + '</b> · ' + (now.dr.pend.length === 2 ? 'press <b>Enter</b> to log these two dice' : 'roll these two dice') + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + rollBox(now.side, k1, now.dr.pend) +
-        '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(now.side, k1 + now.dr.pend.length)) + '">' +
-        '<div class="chips pk-' + now.side + (k1 + now.dr.pend.length) + '">' +
-        [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>'
-        : '<div class="ppad"><div class="pask">Both possessions are in. Press <b>Enter</b> for the next possession.</div><input type="text" id="pIn" class="pin" inputmode="numeric" autocomplete="off" maxlength="1" placeholder="Press Enter to log" aria-label="Press Enter to log the roll"></div>') +
-      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button><button type="button" class="btn primary big" data-act="log" id="logBtn"' + (now.side && now.dr.pend.length < 2 ? ' disabled' : '') + '>Log possession</button></div>' + autoBtns(g) +
-      tip('<div class="note">Roll the two dice shown, press (or tap) each number, then press Enter (or Log possession) to log them and go on. Backspace takes off the last die, and Undo takes back the last roll.</div>') + '</div>';
+      (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
+        '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
+        '<div class="chips pk-' + sd + next + '">' + [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>' : '') +
+      '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button></div>' + autoBtns(g) +
+      tip('<div class="note">Roll all 4 dice, then press (or tap) the number on the die it asks for. Each die tells you what happened, and the roll logs itself when both possessions are done. Backspace takes off the last die; Undo takes back the last roll.</div>') + '</div>';
   }
   function possDie(v) {
     const g = D.byId[S.sheet.gid];
     if (!g || !editable(g) || g.st.final) return;
     const now = possNow(g);
     if (!now.side) return;
-    const dr = now.dr;
-    if (dr.pend.length >= 2) { toast('Press Enter to log these two dice.'); return; }
-    dr.pend.push(v);   // both dice in: Enter (or Log possession) logs them and the game goes on
-    possSave(g); renderSheet();
-    const box = document.querySelectorAll('#sheetHost .pslot .ps-v')[dr.pend.length - 1];   // a typed number isn't rolled: the die just wiggles a little
-    if (box && !matchMedia('(prefers-reduced-motion: reduce)').matches) box.classList.add('nudge');
+    now.dr[now.side].push(v);
+    if (!possNow(g).side) { logRoll(); return; }   // both possessions are done: the roll logs itself
+    possSave(g); renderSheet(); render();
+    const box = document.querySelector('#sheetHost .pslot.on');
+    const prev = box && box.previousElementSibling ? box.previousElementSibling.querySelector('.ps-v') : null;   // the die just read wiggles a little
+    if (prev && !matchMedia('(prefers-reduced-motion: reduce)').matches) prev.classList.add('nudge');
   }
   document.addEventListener('input', e => {
     if (e.target.id !== 'pIn') return;
@@ -4525,20 +4741,18 @@ const E = (() => {
     if (e.target.id === 'pIn' || e.ctrlKey || e.metaKey || e.altKey || !document.getElementById('pIn')) return;
     if (e.target.closest && e.target.closest('input, select, textarea, [contenteditable]')) return;
     if (/^[1-6]$/.test(e.key)) { e.preventDefault(); possDie(+e.key); }
-    else if (e.key === 'Enter' && !(e.target.closest && e.target.closest('button, a'))) { const b = document.getElementById('logBtn'); if (b && !b.disabled) { e.preventDefault(); b.click(); } }
     else if (e.key === 'Backspace') { const b = document.querySelector('#sheetHost [data-act=pback]'); if (b) { e.preventDefault(); b.click(); } }
   });
   document.addEventListener('keydown', e => {
     if (e.target.id !== 'pIn') return;
-    if (e.key === 'Enter') { e.preventDefault(); const b = document.getElementById('logBtn'); if (b && !b.disabled) b.click(); }
-    else if (e.key === 'Backspace' && !e.target.value) { e.preventDefault(); const b = document.querySelector('#sheetHost [data-act=pback]'); if (b) b.click(); }
+    if (e.key === 'Backspace' && !e.target.value) { e.preventDefault(); const b = document.querySelector('#sheetHost [data-act=pback]'); if (b) b.click(); }
   });
   function possBack() {
     const g = D.byId[S.sheet.gid];
     if (!g) return;
     const dr = possDraft(g);
-    if (dr.pend.length) dr.pend.pop();
-    else { const sd = dr.h.length ? 'h' : 'a', pair = dr[sd].splice(-2); if (pair.length === 2) dr.pend = [pair[0]]; }   // reopen the last pair at its second die
+    dr.pend = [];
+    if (dr.h.length) dr.h.pop(); else dr.a.pop();
     possSave(g); renderSheet(); render();
   }
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
@@ -4629,6 +4843,11 @@ const E = (() => {
       '<div class="eacts"><button type="button" class="btn" data-act="eadd">Add roll</button><button type="button" class="btn" data-act="edrop"' + (S.sheet.edit.length ? '' : ' disabled') + '>Remove last roll</button><span style="flex:1"></span><button type="button" class="btn" data-act="ecancel">Cancel</button><button type="button" class="btn primary" data-act="esave">Save</button></div></div>';
   }
   function renderSheet() {
+    renderSheet1();
+    const g = S.sheet && D && D.byId[S.sheet.gid];
+    if (g && D.ru.poss) courtSync(g);
+  }
+  function renderSheet1() {
     const wasOpen = !!document.querySelector('.sheet');
     const hadP = document.activeElement && document.activeElement.id === 'pIn';
     renderSheet0();
@@ -4696,7 +4915,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? 'Live' : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
@@ -4740,8 +4959,10 @@ const E = (() => {
       '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Times tied</small><strong>' + timesTied(gg.rolls) + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
     // the box score goes at the top (under the dice while the game is being played)
     if (st.n && !S.sheet.edit) main = st.final ? boxScorePanel(gg) + main : main + boxScorePanel(gg);
+    if (D.ru.poss && liveGame && can) main = courtPanel(gg) + main;
+    if (D.ru.poss && liveGame) aside += pbpPanel(gg, true);
     if (st.final && !S.sheet.edit) {
-      main += gameStatsPanel(gg, st) + flowChart(gg, st);
+      main += gameStatsPanel(gg, st) + flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
     }
     if (st.n && !S.sheet.edit) {
       let a = 0, h = 0;
@@ -4947,7 +5168,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll for whoever has the ball: the big dice are the shot (die 1 green home / red away, die 2 cyan home / orange away), the small dice are the rebound or free throws (die 3 dark green / maroon, die 4 lime / orange). Tap each number as it comes up, then press Enter (<b>Log possession</b>).</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened; watch it play out on the court. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
@@ -5066,15 +5287,24 @@ const E = (() => {
       }, 70);
     });
   }
+  const Auto = { t: null };
   function autoRoll() {
     const g0 = D.byId[S.sheet && S.sheet.gid];
     if (!canAuto(g0)) return;
-    if (D.ru.poss) {   // 2.0: roll the two dice in the boxes; Enter logs them, like dice put in by hand
+    if (D.ru.poss) {   // 2.0: roll all 4 dice, then read the ones needed one at a time, so you can watch it happen
+      if (Auto.t) return;
       const now = possNow(g0);
-      if (!now.side) { toast('Both possessions are in. Press Enter for the next possession.'); return; }
-      const from = now.dr.pend.length;
-      while (now.dr.pend.length < 2) now.dr.pend.push(1 + Math.floor(Math.random() * 6));
-      possSave(g0); renderSheet(); rollAnim(from); return;
+      if (!now.side) return;
+      const sd = now.side, n0 = g0.st.n, vals = Array.from({ length: 4 - now.dr[sd].length % 4 }, d6);
+      const step = () => {
+        Auto.t = null;
+        const g = D.byId[g0.id];
+        if (!g || !S.sheet || S.sheet.gid !== g.id || g.st.final || g.st.n !== n0 || possNow(g).side !== sd || !vals.length) return;
+        possDie(vals.shift());
+        const g2 = D.byId[g0.id];
+        if (vals.length && g2.st.n === n0 && possNow(g2).side === sd) Auto.t = setTimeout(step, 1100);
+      };
+      step(); return;
     }
     S.poss = null;
     const g = simRoll(g0);
