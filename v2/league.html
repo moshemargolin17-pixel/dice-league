@@ -2918,7 +2918,7 @@ const E = (() => {
     }
     const st = L.gameState(rows, D.ru);
     const liveToday = S.season.day.active && g.day === S.season.day.cur;
-    if (!st.final && !liveToday) { toast(st.n >= 24 && st.a === st.h ? 'That ends tied. Add overtime rolls until someone wins.' : 'The game needs to end with a winner (24 rolls, or full overtimes).'); return; }
+    if (!st.final && !liveToday) { toast(st.n >= 24 && st.a === st.h ? 'That ends tied. Add overtime rolls until someone wins.' : (D.ru.poss ? 'The game needs to end with a winner (48 possessions, or full overtimes).' : 'The game needs to end with a winner (24 rolls, or full overtimes).')); return; }
     setRolls(g, rows, { keep: true, noLearn: true, keepAtt: true, edited: true });   // hand-edited scores drop the saved possession dice
     S.sheet.edit = null;
     renderSheet(); render();
@@ -3146,16 +3146,15 @@ const E = (() => {
       '<div class="frow"><button type="button" class="btn" data-act="tour">Play tutorial</button></div>' +
       '<div class="howtos">' +
       sec('Logging games', [
-        'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Whoever has the ball rolls all 4 dice at once: two big (the shot) and two small (the rebound or free throws). The game asks for one die at a time by its color and says what happened, at the top of the game and in the play-by-play. When both possessions are done the roll logs itself. <b>Backspace</b> takes off the last die; <b>Undo</b> takes back the last roll.',
-        'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
-        '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
+        'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows both players’ Averages and the season series. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
+        'Whoever has the ball rolls all 4 dice at once: two big (the shot) and two small (the rebound or free throws). The game asks for one die at a time by its color and says what happened, in the scoreboard and in the play-by-play. When both possessions are done the roll logs itself. <b>Backspace</b> takes off the last die; <b>Undo</b> takes back the last roll.',
+        'A game is 48 possessions, 12 a quarter (6 each), the away player first. A tie goes to overtime: 7 possessions, the home player first and last, again until someone wins. The last 3 possessions of every quarter count down (in red in Q4 and overtime). The arrow by a score shows who has the ball. Once a game is out of reach the scoreboard says who wins, and it’s still played out.',
+        '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll’s points, then Save' + (D.ru.poss ? ' (an edited game keeps its score but loses its play-by-play and box score, since the dice no longer match).' : '.'),
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
-      sec('Advantages', [
-        'Better players get calls: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one.',
-        D.ru.skillCalls ? 'Skill runs from 1 star to 5 stars (best). ' + skillCallsText(D.ru) + ' Equal levels get no skill calls. ' + homeCallsText(D.ru) : 'Under this season’s original rules, one skill tier up gets 3 calls; two tiers up gets 6. A 10 gets 3 over a 7 or 8. The home player gets 1 extra call.',
-        (D.ru.lead ? 'Calls must be made 3 or more rolls ahead. Before roll 1, any roll can be called; in overtime, the next roll can. Overtime uses leftover calls only.' : 'A call can be made any time, for the next roll or any roll after it. Overtime uses leftover calls only.'),
-        '<b>Automatic</b> (the default) makes the calls for you; switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen says which die to re-roll: offense first, then defense. Enter the numbers that count.']) +
+      sec('Ratings and types', [
+        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense sets which die 2 numbers go in: 4–5 when within 1 star, 3–5 when 2 stars better, 2–5 when 3 or more better, and 5 only when 2 or more worse. A fast break makes one number easier (2–5 at best).',
+        'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Center</b>. A Guard shoots 3s on a 5 or 6, a Forward on a 6, a Center never. Guards get no offensive rebounds and put back only a 6; Forwards rebound on a 2 (2–3 against a Guard) and put back 5–6; Centers rebound on 2–3 and put back 4–6. Guard against Guard and Center against Center use the regular rebounds.',
+        'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
       sec('Standings and the playoffs', [
         'Clinch marks show only when mathematically certain: ' + markKeys().map(k => '<b>' + k + '</b> ' + MARK_SHORT()[k].toLowerCase()).join(', ') + '.',
         'Clinch and elimination marks count the tiebreakers: a player who can at best tie, and would lose the tiebreaker, is marked out right away.',
@@ -4663,6 +4662,8 @@ const E = (() => {
     if (i >= 48 && (i - 48) % 7 === 0 && st.a === st.h) return 'Start of ' + L.perLabel(possPer(i).per);
     return possWords(i);
   }
+  // a roll by its possessions: "Q1 · 1–2", in overtime "OT · 1–2" ... "OT · 7"
+  const rollLabel = i => { const q = seqOf(i).map(sd => possPer(possIdx(i, sd))); return L.perLabel(q[0].per) + ' · ' + q.map(x => x.k + 1).join('–'); };
   const pbpClock = (n, sd) => { const p = possPer(possIdx(n, sd || seqOf(n)[0])); return L.perLabel(p.per) + ' · ' + (p.k + 1); };   // quarter and possession
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
@@ -4673,6 +4674,13 @@ const E = (() => {
   }
 
   /* ---------- the latest play, in words, at the top of a live game ---------- */
+  // one possession in plain words: what happened, in order (the shot itself and a missed putback aren't repeated)
+  function possSummary(sd, w) {
+    const g = D.byId[S.sheet.gid];
+    // in the box of the player who had the ball: a steal or a lost ball is said from their side
+    const own = { stl: 'Stolen', lose: 'Lost the ball' };
+    return w.ev.filter(e => e.k !== 'sh' && e.k !== 'nopb').map((e, j) => { const t = own[e.k] || pbpAction({ sd, e }, g); return j ? t.charAt(0).toLowerCase() + t.slice(1) : t; }).join(', ');
+  }
   // the possession arrow beside the score of whoever has the ball, pointing at it, in their color
   function possArrow(gg, st, at) {
     if (!D.ru.poss || st.final || S.sheet.edit || !gameStarted(gg) || !editable(gg)) return '';
@@ -4697,7 +4705,7 @@ const E = (() => {
       const p = sd === 'a' ? g.a : g.h;
       return '<div class="pside' + (on ? ' on' : '') + '"><div class="elab"><span class="enm" title="' + esc(pname(p)) + '">' + esc(sname(p)) + '</span><small>' + (sd === 'a' ? 'away' : 'home') + (tag ? ' · ' + tag : '') + '</small><span class="dkey">' + dieKey(sd) + '</span></div>' +
         '<div class="pdice">' + (dice.length ? dice.map((v, i) => '<span class="pd ' + sd + pdn(i) + '">' + v + '</span>').join('') : '<span class="pmuted">' + (on ? 'Roll' : 'Next') + '</span>') + '</div>' +
-        (w && w.text ? '<div class="ptext">' + esc(w.text) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
+        (w && w.ev && w.ev.length ? '<div class="ptext">' + esc(possSummary(sd, w)) + (w.done ? ' · <b>+' + w.pts + '</b>' : '') + '</div>' : '') + '</div>';
     };
     // left: the possession that just ended; right: the one being played. At tip-off, the first two.
     let pair;
@@ -4843,8 +4851,8 @@ const E = (() => {
     const faces = D.ru.faces || Array.from({ length: 13 }, (_, i) => i);
     const sel = (id, v) => '<select id="' + id + '" class="esel">' + faces.concat(faces.includes(v) ? [] : [v]).map(f => '<option value="' + f + '"' + (f === v ? ' selected' : '') + '>' + f + '</option>').join('') + '</select>';
     let a = 0, h = 0;
-    const rows = S.sheet.edit.map((r, i) => { a += r[0]; h += r[1]; const c = g.calls.filter(x => x.r === i).map(x => (x.s === 'a' ? 'A' : 'H') + (x.t === 'o' ? '·off' : '·def')).join(' '); return '<tr><td class="l">' + (i + 1) + '</td><td class="l">' + L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru) + (c ? ' <small class="muted">' + c + '</small>' : '') + '</td><td>' + sel('ea' + i, r[0]) + '</td><td>' + sel('eh' + i, r[1]) + '</td></tr>'; }).join('');
-    return '<div class="editbox"><div class="ehead"><span>Editing the roll log</span>' + tip('<span class="note">Change any roll, then Save.</span>') + '</div>' +
+    const rows = S.sheet.edit.map((r, i) => { a += r[0]; h += r[1]; const c = g.calls.filter(x => x.r === i).map(x => (x.s === 'a' ? 'A' : 'H') + (x.t === 'o' ? '·off' : '·def')).join(' '); return '<tr><td class="l">' + (i + 1) + '</td><td class="l">' + (D.ru.poss ? rollLabel(i) : L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru)) + (c ? ' <small class="muted">' + c + '</small>' : '') + '</td><td>' + sel('ea' + i, r[0]) + '</td><td>' + sel('eh' + i, r[1]) + '</td></tr>'; }).join('');
+    return '<div class="editbox"><div class="ehead"><span>Editing the roll log</span>' + '<span class="note">Change any roll, then Save.' + (D.ru.poss ? ' Saving changes removes this game’s play-by-play and box score (the dice won’t match the new points).' : '') + '</span>' + '</div>' +
       '<div class="rlog" style="max-height:none"><table class="tbl"><tr><th class="l">#</th><th class="l">Clock</th><th>' + esc(sname(g.a)) + '</th><th>' + esc(sname(g.h)) + '</th></tr>' + rows + '</table></div>' +
       '<div class="eacts"><button type="button" class="btn" data-act="eadd">Add roll</button><button type="button" class="btn" data-act="edrop"' + (S.sheet.edit.length ? '' : ' disabled') + '>Remove last roll</button><span style="flex:1"></span><button type="button" class="btn" data-act="ecancel">Cancel</button><button type="button" class="btn primary" data-act="esave">Save</button></div></div>';
   }
@@ -5044,7 +5052,7 @@ const E = (() => {
     const id = 'f' + String(gg.id).replace(/\W/g, '');
     // what the hover shows at each point: the clock and the score after that roll
     let ra = 0, rh = 0;
-    const tips = ['Start · 0–0'].concat(rolls.map((r, i) => { ra += r[0]; rh += r[1]; return L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru) + ' · ' + ra + '–' + rh; }));
+    const tips = ['Start · 0–0'].concat(rolls.map((r, i) => { ra += r[0]; rh += r[1]; return (D.ru.poss ? rollLabel(i) : L.perLabel(L.periodOf(i, D.ru).per) + ' ' + L.clockAfter(i, D.ru)) + ' · ' + ra + '–' + rh; }));
     return '<section class="matchup-panel flow" data-tips="' + esc(JSON.stringify(tips)) + '" data-n="' + n + '" data-total="' + total + '" data-top="' + top + '"><div class="section-heading"><h3 class="h3">Game flow</h3><span class="flow-key"><i class="ka"></i>' + esc(sname(gg.a)) + ' ahead <i class="kh"></i>' + esc(sname(gg.h)) + ' ahead</span></div>' +
       '<svg viewBox="0 0 ' + W + ' ' + H + '" class="flowsvg" role="img" aria-label="Score difference after each roll; biggest lead ' + Math.max(...diffs.map(Math.abs)) + '">' +
       '<defs><clipPath id="' + id + 'u"><rect x="0" y="0" width="' + W + '" height="' + mid + '"/></clipPath><clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + W + '" height="' + mid + '"/></clipPath></defs>' +
@@ -5238,8 +5246,8 @@ const E = (() => {
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
         b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened, play by play. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
-      { view: 'home', t: 'Advantages',
-        b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
+      { view: 'home', t: 'Ratings and types',
+        b: '<p>Every player has <b>Offense</b> and <b>Defense</b> stars and a type: <b>Guard</b>, <b>Forward</b> or <b>Center</b>. Offense against Defense decides how easily shots go in; the type decides 3-pointers and rebounds.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
         b: '<p>The whole schedule as a calendar. It opens on today; tap a day to see its games, and use the arrows for earlier or later days.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
       { view: 'standings', at: 'main .tbl tr', t: 'Standings',
