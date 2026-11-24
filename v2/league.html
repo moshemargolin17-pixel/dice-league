@@ -950,6 +950,11 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .game-main,.game-aside{display:flex;flex-direction:column;gap:16px;min-width:0}
 .game-layout.is-editing{grid-template-columns:1fr}
 .boxscore .tbl td,.boxscore .tbl th{white-space:nowrap}
+.editbox>.ehead{gap:6px 14px;flex-wrap:wrap}
+.edtbl .edice{width:110px;min-height:34px;font:700 15px var(--f-num);letter-spacing:.12em}
+.edtbl .cw-a{color:#D2283C}.edtbl .cw-h{color:#178A3F}
+.edtbl .ed-what{white-space:normal;font-size:13px}
+.edtbl tr.ed-bad td{background:rgba(210,40,60,.07)}.edtbl .ed-need{color:#D2283C;font-weight:700}
 .boxscore .gs-under{margin-top:14px}
 .boxscore .gstbl td.gsboth{vertical-align:middle;font-weight:700;border-left:1px solid var(--line)}
 .matchup-panel{border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0;background:var(--panel)}
@@ -4426,7 +4431,7 @@ const E = (() => {
     // play-by-play: one event per die read: { i (which die in the list), k (what happened), v (2 or 3), fb (fast break), m (free throws made), p (points) }
     const ev = [];
     const say = (k, x) => ev.push(Object.assign({ i: i - 1, k, p: 0 }, x || {}));
-    const out = (done, need) => ({ done, need: need || null, pts, steal, bx, ev, text: parts.join(', ') });
+    const out = (done, need) => ({ done, need: need || null, pts, steal, bx, ev, used: i, text: parts.join(', ') });
     const shot = (v, made) => { bx.fga++; if (v === 3) bx.tpa++; if (made) { bx.fgm++; if (v === 3) bx.tpm++; } };
     for (;;) {
       if (i >= dice.length) return out(false, 'Die 1 · shot or turnover');
@@ -4510,7 +4515,7 @@ const E = (() => {
     const p = possOf(g);
     if (D.ru.poss && !g.rolls.length && gameStarted(g)) { const z0 = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0])); return [z0(), z0()]; }   // tip-off: all zeros
     if (!D.ru.poss || !p.length || p.length < g.rolls.length) return null;
-    if (g._box && g._box.n === g.rolls.length) return g._box.v;
+    if (g._box && g._box.n === g.rolls.length && g._box.p === p) return g._box.v;
     const z = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0]));
     const sides = [z(), z()];
     let fast = false;   // a steal on the possession before gives a fast break
@@ -4523,7 +4528,7 @@ const E = (() => {
         th.drb += b.odrb; th.stl += b.ostl;
       });
     });
-    g._box = { n: g.rolls.length, v: sides };
+    g._box = { n: g.rolls.length, p, v: sides };
     return sides;
   }
   // the possessions being put in for the next roll. They're saved with the day (entry.d), so closing the page keeps them.
@@ -4847,7 +4852,56 @@ const E = (() => {
     }
     return out;
   }
+  // 2.0: edit a finished game by its dice. Every possession in order, worked out as you type.
+  function diceEdit(g) {
+    const ep = S.sheet.editP, rows = [];
+    let a = 0, h = 0, fast = false, missing = null;
+    const own = { stl: 'Stolen', lose: 'Lost the ball' };
+    ep.forEach((pr, n) => seqOf(n).forEach(sd => {
+      const dice = pr[sd === 'a' ? 0 : 1], w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
+      fast = w.steal;
+      if (sd === 'a') a += w.pts; else h += w.pts;
+      if (!w.done && !missing) missing = { n, sd };
+      const what = w.ev.filter(e => e.k !== 'sh' && e.k !== 'nopb').map((e, j) => { const t = own[e.k] || pbpAction({ sd, e }, g); return j ? t.charAt(0).toLowerCase() + t.slice(1) : t; }).join(', ');
+      rows.push({ n, sd, dice, w, what, a, h });
+    }));
+    return { rows, a, h, missing };
+  }
+  function diceEditBlock(g) {
+    const r = diceEdit(g);
+    const body = r.rows.map(x => '<tr class="' + (!x.w.done ? 'ed-bad' : '') + '"><td class="l">' + pbpClock(x.n, x.sd) + '</td><td class="l"><b class="cw-' + x.sd + '">' + esc(sname(x.sd === 'a' ? g.a : g.h)) + '</b></td>' +
+      '<td class="l"><input type="text" inputmode="numeric" class="edice" data-n="' + x.n + '" data-sd="' + x.sd + '" value="' + x.dice.join(' ') + '" aria-label="Dice, possession ' + (possIdx(x.n, x.sd) + 1) + '"></td>' +
+      '<td class="l ed-what">' + esc(x.what) + (!x.w.done ? ' <span class="ed-need">· needs more dice</span>' : x.w.used < x.dice.length ? ' <span class="ed-need">· extra dice left off</span>' : '') + '</td><td>' + (x.w.pts ? '+' + x.w.pts : '') + '</td><td><b>' + x.a + '–' + x.h + '</b></td></tr>').join('');
+    return '<div class="editbox"><div class="ehead"><span>Editing the dice</span><span class="note">Type each possession’s dice in the order they were read, then Save. The score, box score and play-by-play follow the dice.</span></div>' +
+      '<div class="rlog" style="max-height:none"><table class="tbl edtbl"><tr><th class="l">Poss.</th><th class="l">Ball</th><th class="l">Dice</th><th class="l">What happened</th><th>Pts</th><th>Score</th></tr>' + body + '</table></div>' +
+      '<div class="eacts"><button type="button" class="btn" data-act="eadd">Add roll</button><button type="button" class="btn" data-act="edrop"' + (S.sheet.editP.length > 1 ? '' : ' disabled') + '>Remove last roll</button><span style="flex:1"></span><span class="pmuted">' + r.a + '–' + r.h + '</span><button type="button" class="btn" data-act="ecancel">Cancel</button><button type="button" class="btn primary" data-act="esave">Save</button></div></div>';
+  }
+  function saveDiceEdit() {
+    const g = D.byId[S.sheet.gid];
+    if (!g || !S.sheet.editP) return;
+    const r = diceEdit(g);
+    if (r.missing) { toast('Possession ' + (possIdx(r.missing.n, r.missing.sd) + 1) + ' needs more dice.'); return; }
+    // keep only the dice each possession used, and the points of every roll
+    const p = S.sheet.editP.map(pr => [[], []]), rolls = S.sheet.editP.map(() => [0, 0]);
+    r.rows.forEach(x => { const k = x.sd === 'a' ? 0 : 1; p[x.n][k] = x.dice.slice(0, x.w.used); rolls[x.n][k] = x.w.pts; });
+    const st = L.gameState(rolls, D.ru);
+    const liveToday = S.season.day.active && g.day === S.season.day.cur;
+    if (!st.final && !liveToday) { toast(st.n >= 24 && st.a === st.h ? 'That ends tied. Add a roll for overtime and put in its dice.' : 'The game needs to end with a winner (48 possessions, or full overtimes).'); return; }
+    const entry = ensureEntry(g);
+    entry.p = p;
+    setRolls(g, rolls, { keep: true, noLearn: true, keepAtt: true });
+    S.sheet.edit = null; S.sheet.editP = null;
+    renderSheet(); render();
+    toast('Game updated from the dice. Standings and stats are recalculated.');
+  }
+  // redraw the game screen without jumping back to the top
+  function keepSheetScroll(fn) {
+    const sh = document.querySelector('#sheetHost .sheet .sbd') || document.querySelector('#sheetHost .sheet'), y = sh ? sh.scrollTop : 0;
+    fn();
+    const sh2 = document.querySelector('#sheetHost .sheet .sbd') || document.querySelector('#sheetHost .sheet'); if (sh2) sh2.scrollTop = y;
+  }
   function editBlock(g) {
+    if (S.sheet.editP) return diceEditBlock(g);
     const faces = D.ru.faces || Array.from({ length: 13 }, (_, i) => i);
     const sel = (id, v) => '<select id="' + id + '" class="esel">' + faces.concat(faces.includes(v) ? [] : [v]).map(f => '<option value="' + f + '"' + (f === v ? ' selected' : '') + '>' + f + '</option>').join('') + '</select>';
     let a = 0, h = 0;
@@ -5436,11 +5490,17 @@ const E = (() => {
       case 'mode': setMode(el.dataset.v); break;
       case 'call': { const w = document.getElementById('callWhat').value.split(':'), r = +document.getElementById('callRoll').value; manualCall(w[0], w[1], w[2], r); break; }
       case 'callx': cancelCall(+el.dataset.i); break;
-      case 'edit': { const g = D.byId[S.sheet.gid]; if (g) { S.sheet.edit = g.rolls.map(r => r.slice()); renderSheet(); } break; }
+      case 'edit': { const g = D.byId[S.sheet.gid]; if (g) { S.sheet.edit = g.rolls.map(r => r.slice()); const pp = possOf(g); S.sheet.editP = D.ru.poss && g.rolls.length && pp.length >= g.rolls.length ? pp.slice(0, g.rolls.length).map(pr => [pr[0].slice(), pr[1].slice()]) : null; renderSheet(); } break; }
       case 'eadd': case 'edrop': case 'ecancel': case 'esave': {
         if (!S.sheet || !S.sheet.edit) break;
+        if (act === 'ecancel') { S.sheet.edit = null; S.sheet.editP = null; renderSheet(); break; }
+        if (S.sheet.editP) {   // 2.0: editing the dice
+          if (act === 'esave') { saveDiceEdit(); break; }
+          if (act === 'eadd') S.sheet.editP.push([[], []]); else if (S.sheet.editP.length > 1) S.sheet.editP.pop();
+          S.sheet.edit = S.sheet.editP.map(() => [0, 0]);
+          keepSheetScroll(renderSheet); break;
+        }
         if (act === 'esave') { saveEdit(); break; }
-        if (act === 'ecancel') { S.sheet.edit = null; renderSheet(); break; }
         // keep typed values
         S.sheet.edit = S.sheet.edit.map((r, i) => [Number(document.getElementById('ea' + i).value), Number(document.getElementById('eh' + i).value)]);
         if (act === 'eadd') S.sheet.edit.push([0, 0]); else S.sheet.edit.pop();
@@ -5590,6 +5650,12 @@ const E = (() => {
     }
   });
   document.addEventListener('change', e => {
+    if (e.target && e.target.classList && e.target.classList.contains('edice') && S.sheet && S.sheet.editP) {
+      const n = +e.target.dataset.n, k = e.target.dataset.sd === 'a' ? 0 : 1;
+      S.sheet.editP[n][k] = (e.target.value || '').replace(/[^1-6]/g, '').split('').map(Number);
+      keepSheetScroll(renderSheet);
+      return;
+    }
     if (e.target && /^ls(N|Split|Fmt|Po|Pi)$/.test(e.target.id)) {   // League setup choices
       const dr = setupDraft(), v = e.target.value;
       if (e.target.id === 'lsN') dr.n = +v;
