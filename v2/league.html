@@ -1464,8 +1464,8 @@ const L = (() => {
   function periodOf(i, ru) {
     const qm = ru && ru.qMin ? ru.qMin : 12, om = ru && ru.otMin ? ru.otMin : 5;
     if (i < 24) return { per: Math.floor(i / 6) + 1, k: i % 6, len: 6, mins: qm };
-    const o = i - 24;
-    return { per: 5 + Math.floor(o / 3), k: o % 3, len: 3, mins: om };
+    const o = i - 24, ol = ru && ru.poss ? 4 : 3;   // 2.0: an overtime is 4 rolls (7 possessions, home first and last)
+    return { per: 5 + Math.floor(o / ol), k: o % ol, len: ol, mins: om };
   }
   const clockAfter = (i, ru) => { const p = periodOf(i, ru); return fmtClock(p.mins - (p.k + 1) * p.mins / p.len); };
   function perLabel(per) { return per <= 4 ? 'Q' + per : (per === 5 ? 'OT' : (per - 4) + 'OT'); }
@@ -1493,14 +1493,15 @@ const L = (() => {
     });
     // 2.0 counts possessions, not a clock: "Q2 · 3 of 6", and at the end "3 possessions left" ... "Final possession"
     const possText = (k, r) => {
-      const p = periodOf(k, r), end = k < 24 ? 24 : 24 + Math.floor((k - 24) / 3) * 3 + 3, left = end - k;
+      const ol = r && r.poss ? 4 : 3, p = periodOf(k, r), end = k < 24 ? 24 : 24 + Math.floor((k - 24) / ol) * ol + ol, left = end - k;
       if ((k >= 24 || p.per === 4) && left <= 3) return (k >= 24 ? perLabel(p.per) + ' · ' : '') + (left === 1 ? 'Final possession' : left + ' possessions left');
       return perLabel(p.per) + ' · ' + (p.k + 1) + ' of ' + p.len;
     };
     const n = rolls.length;
-    const atEnd = n >= 24 && (n - 24) % 3 === 0;
+    const otLen = ru && ru.poss ? 4 : 3;
+    const atEnd = n >= 24 && (n - 24) % otLen === 0;
     const final = atEnd && a !== h;
-    const ot = n > 24 ? Math.ceil((n - 24) / 3) : 0;
+    const ot = n > 24 ? Math.ceil((n - 24) / otLen) : 0;
     let label, short;
     if (final) { label = 'Final' + (ot ? (ot === 1 ? ' / OT' : ' / ' + ot + 'OT') : ''); short = label; }
     else if (n === 0) { label = 'Not started'; short = 'Upcoming'; }
@@ -3085,8 +3086,9 @@ const E = (() => {
     const z = { a: 0, h: 0 };
     const dr = D.ru.poss && !g.st.final ? possSaved(g) : null;
     if (!dr) return z;
-    const wa = possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
-    if (wa.done) { z.a = wa.pts; const wh = possWalk(dr.h, possFast(g, g.st.n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')); if (wh.done) z.h = wh.pts; }
+    const r = rollWalks(g, dr, g.st.n);
+    if (r.wa && r.wa.done) z.a = r.wa.pts;
+    if (r.wh && r.wh.done) z.h = r.wh.pts;
     return z;
   }
   function gameCard(g) {
@@ -4475,6 +4477,8 @@ const E = (() => {
       say('nopb'); parts.push('offensive rebound'); // keeps the ball and rolls again
     }
   }
+  const seqOf = n => (n < 24 ? ['a', 'h'] : (n - 24) % 4 === 3 ? ['h'] : ['h', 'a']);
+  const sideDice = (pr, sd) => (pr ? pr[sd === 'a' ? 0 : 1] : null);
   // dice of every logged possession: entry.p[roll] = [awayDice, homeDice]
   const possOf = g => (recOf(g) && recOf(g).p) || [];
   // a game keeps the ratings it started with; games logged before ratings existed count as even (3 and 3)
@@ -4482,12 +4486,24 @@ const E = (() => {
   const possEdge = (g, side) => possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
   const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'n' : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
-  function possFast(g, n, side, draftA) {
-    const p = possOf(g);
-    // the possession just before this one, read the way it was played (its own fast break and both types)
-    if (side === 'h') { const prev = draftA || (p[n] && p[n][0]); return !!(prev && possWalk(prev, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).steal); }
-    const prev = n > 0 && p[n - 1] ? p[n - 1][1] : null;
-    return !!(prev && possWalk(prev, possFast(g, n - 1, 'h', p[n - 1][0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')).steal);
+  // is this possession a fast break? (the possession just before it ended in a steal) draftFirst: the dice of the roll's first possession, while it's being put in
+  function possFast(g, n, side, draftFirst) {
+    const p = possOf(g), seq = seqOf(n), at = seq.indexOf(side);
+    let pn, ps, dice;
+    if (at > 0) { pn = n; ps = seq[at - 1]; dice = draftFirst || sideDice(p[n], ps); }
+    else { if (n === 0 || !p[n - 1]) return false; pn = n - 1; const sq = seqOf(n - 1); ps = sq[sq.length - 1]; dice = sideDice(p[n - 1], ps); }
+    return !!(dice && dice.length && possWalk(dice, possFast(g, pn, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps)).steal);
+  }
+  // the possessions of the roll being put in, in order: { wa, wh, side (whose turn, or null when both are done) }
+  function rollWalks(g, dr, n) {
+    const seq = seqOf(n), w = {};
+    let side = null;
+    seq.forEach((sd, j) => {
+      if (side) return;
+      w[sd] = possWalk(dr[sd], possFast(g, n, sd, j ? dr[seq[0]] : undefined), possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
+      if (!w[sd].done) side = sd;
+    });
+    return { wa: w.a || null, wh: w.h || null, side };
   }
   // Box score of a game for both players [away, home], from the dice of every logged possession (null if the dice aren't kept).
   function boxOf(g) {
@@ -4497,17 +4513,16 @@ const E = (() => {
     if (g._box && g._box.n === g.rolls.length) return g._box.v;
     const z = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0]));
     const sides = [z(), z()];
-    let fastA = false;   // a steal by home on the possession before gives away a fast break
-    for (let n = 0; n < g.rolls.length; n++) {
-      const wa = possWalk(p[n][0], fastA, possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
-      const wh = possWalk(p[n][1], wa.steal, possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h'));
-      fastA = wh.steal;
-      [[wa, 0], [wh, 1]].forEach(([w, k]) => {
+    let fast = false;   // a steal on the possession before gives a fast break
+    for (let n = 0; n < g.rolls.length; n++) seqOf(n).forEach(sd => {
+      const w = possWalk(sideDice(p[n], sd), fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
+      fast = w.steal;
+      [[w, sd === 'a' ? 0 : 1]].forEach(([w, k]) => {
         const me = sides[k], th = sides[1 - k], b = w.bx;
         me.pts += w.pts; ['fga', 'fgm', 'tpa', 'tpm', 'fta', 'ftm', 'orb', 'to', 'pb', 'fbp', 'a1'].forEach(x => { me[x] += b[x]; });
         th.drb += b.odrb; th.stl += b.ostl;
       });
-    }
+    });
     g._box = { n: g.rolls.length, v: sides };
     return sides;
   }
@@ -4530,10 +4545,8 @@ const E = (() => {
   // the state of the roll being entered: whose ball, what each possession has so far
   function possNow(g) {
     const dr = possDraft(g), n = g.st.n;
-    if (dr.pend && dr.pend.length) { const wa0 = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')); dr[wa0.done ? 'h' : 'a'].push(...dr.pend); dr.pend = []; }
-    const wa = possWalk(dr.a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a'));
-    const wh = wa.done ? possWalk(dr.h, possFast(g, n, 'h', dr.a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')) : null;
-    return { dr, wa, wh, side: !wa.done ? 'a' : !wh.done ? 'h' : null };
+    if (dr.pend && dr.pend.length) { const r0 = rollWalks(g, dr, n); if (r0.side) dr[r0.side].push(...dr.pend); dr.pend = []; }
+    return Object.assign({ dr }, rollWalks(g, dr, n));
   }
   // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
   const pdn = i => (Math.floor(i / 2) % 2 ? 3 : 1) + i % 2;
@@ -4545,16 +4558,16 @@ const E = (() => {
   /* ---------- play-by-play: every die read, in order, with the clock and the score ---------- */
   function pbpOf(g) {
     const p = possOf(g), out = [];
-    let a = 0, h = 0, fastA = false;
-    const walk = (n, sd, dice, fast) => {
-      const w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
+    let a = 0, h = 0, fast = false;
+    const walk = (n, sd, dice, fb) => {
+      const w = possWalk(dice, fb, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd));
       w.ev.forEach((e, j) => { if (sd === 'a') a += e.p; else h += e.p; if (e.k !== 'nopb') out.push({ key: n + sd + j, n, sd, e, a, h }); });   // a missed putback isn't its own line
       return w;
     };
     let n = 0;
-    for (; n < g.rolls.length && p[n]; n++) { const wa = walk(n, 'a', p[n][0], fastA); const wh = walk(n, 'h', p[n][1], wa.steal); fastA = wh.steal; }
+    for (; n < g.rolls.length && p[n]; n++) seqOf(n).forEach(sd => { fast = walk(n, sd, sideDice(p[n], sd), fast).steal; });
     const dr = !g.st.final && n === g.rolls.length ? possSaved(g) : null;   // the roll being put in
-    if (dr) { const wa = walk(n, 'a', dr.a, fastA); if (wa.done) walk(n, 'h', dr.h, wa.steal); }
+    if (dr) { let on = true; seqOf(n).forEach(sd => { if (!on) return; const w = walk(n, sd, dr[sd], fast); fast = w.steal; on = w.done; }); }
     return out;
   }
   const pbpWho = x => (['dreb', 'stl', 'lose'].includes(x.e.k) ? (x.sd === 'a' ? 'h' : 'a') : x.sd);
@@ -4607,23 +4620,24 @@ const E = (() => {
     }
     return '';
   }
-  // possessions are counted for each player: 12 a quarter (6 each), 48 a game, 6 in an overtime. i = 0-based possession of the game.
-  const possIdx = (n, sd) => 2 * n + (sd === 'h' ? 1 : 0);
+  // possessions are counted for each player: 12 a quarter (6 each), 48 a game, 7 in an overtime (home first and last). i = 0-based possession of the game.
+  const possIdx = (n, sd) => (n < 24 ? 2 * n + (sd === 'h' ? 1 : 0) : 48 + Math.floor((n - 24) / 4) * 7 + 2 * ((n - 24) % 4) + (sd === 'a' ? 1 : 0));
   function possPer(i) {
-    if (i < 48) return { per: Math.floor(i / 12) + 1, k: i % 12, len: 12, end: 48 };
-    const o = i - 48, j = Math.floor(o / 6);
-    return { per: 5 + j, k: o % 6, len: 6, end: 48 + (j + 1) * 6 };
+    if (i < 48) return { per: Math.floor(i / 12) + 1, k: i % 12, len: 12, end: (Math.floor(i / 12) + 1) * 12 };   // end: where this quarter ends
+    const o = i - 48, j = Math.floor(o / 7);
+    return { per: 5 + j, k: o % 7, len: 7, end: 48 + (j + 1) * 7 };
   }
+  // the last 3 possessions of every quarter count down; in Q4 and overtime they're in red (possStakes)
   function possWords(i) {
     const p = possPer(i), left = p.end - i;
-    if ((p.per >= 4) && left <= 3) return (p.per > 4 ? L.perLabel(p.per) + ' · ' : '') + (left === 1 ? 'Final possession' : left + ' possessions left');
+    if (left <= 3) return (p.per !== 4 ? L.perLabel(p.per) + ' · ' : '') + (left === 1 ? 'Final possession' : left + ' possessions left');
     return L.perLabel(p.per) + ' · ' + (p.k + 1) + ' of ' + p.len;
   }
+  const possStakes = label => /left|Final possession/.test(label) && !/^Q[123] /.test(label);
   // which possession of the game is being played now (counting the dice already put in for this roll)
   function curPoss(g) {
-    const dr = possSaved(g);
-    const home = dr && possWalk(dr.a, possFast(g, g.st.n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).done;
-    return possIdx(g.st.n, home ? 'h' : 'a');
+    const dr = possSaved(g) || { a: [], h: [] }, side = rollWalks(g, dr, g.st.n).side || seqOf(g.st.n)[0];
+    return possIdx(g.st.n, side);
   }
   // the words for a game in progress: between quarters, or which possession (with the countdown at the end)
   function liveLabel(g) {
@@ -4631,10 +4645,11 @@ const E = (() => {
     if (!D.ru.poss || st.final) return st.short;
     if (!st.n && !gameStarted(g)) return st.short;
     const i = curPoss(g);
-    if (i > 0 && i % 12 === 0 && i <= 48 && (i < 48 || st.a === st.h)) return i === 24 ? 'Halftime' : i === 48 ? 'Start of OT' : 'Start of Q' + (i / 12 + 1);
+    if (i > 0 && i % 12 === 0 && i < 48) return i === 24 ? 'Halftime' : 'Start of Q' + (i / 12 + 1);
+    if (i >= 48 && (i - 48) % 7 === 0 && st.a === st.h) return 'Start of ' + L.perLabel(possPer(i).per);
     return possWords(i);
   }
-  const pbpClock = (n, sd) => { const p = possPer(possIdx(n, sd || 'a')); return L.perLabel(p.per) + ' · ' + (p.k + 1); };   // quarter and possession
+  const pbpClock = (n, sd) => { const p = possPer(possIdx(n, sd || seqOf(n)[0])); return L.perLabel(p.per) + ' · ' + (p.k + 1); };   // quarter and possession
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
     if (!list.length) return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol><li class="pbp-empty"><span class="pbp-t">' + pbpClock(0) + '</span><span class="pbp-x">Tip-off. Every play shows up here as you roll.</span><span class="pbp-s">0–0</span></li></ol></section>' : '';
@@ -4672,16 +4687,23 @@ const E = (() => {
     };
     // left: the possession that just ended; right: the one being played. At tip-off, the first two.
     let pair;
-    const lastHome = () => { const p0 = possOf(g)[st.n - 1]; if (!p0) return null; const w = possWalk(p0[1], possFast(g, st.n - 1, 'h', p0[0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')); return { w, dice: p0[1] }; };
-    if (now.side === 'h') pair = side('a', now.wa, now.dr.a, false, 'last possession') + side('h', now.wh, now.dr.h, true, 'has the ball');
-    else { const lh = st.n ? lastHome() : null;
-      pair = lh ? side('h', lh.w, lh.dice, false, 'last possession') + side('a', now.wa, now.dr.a, true, 'has the ball')
-        : side('a', now.wa, now.dr.a, true, 'has the ball') + side('h', null, [], false, ''); }
+    const seq = seqOf(st.n), cur = now.side || seq[0], other = cur === 'a' ? 'h' : 'a', curW = cur === 'a' ? now.wa : now.wh;
+    // the possession before this one: earlier in this roll, or the last one of the roll before
+    const prevPoss = () => {
+      const at = seq.indexOf(cur);
+      if (at > 0) { const ps = seq[at - 1]; return { sd: ps, w: ps === 'a' ? now.wa : now.wh, dice: now.dr[ps] }; }
+      const p0 = possOf(g)[st.n - 1]; if (!p0) return null;
+      const sq = seqOf(st.n - 1), ps = sq[sq.length - 1];
+      return { sd: ps, w: possWalk(sideDice(p0, ps), possFast(g, st.n - 1, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps)), dice: sideDice(p0, ps) };
+    };
+    const pv = prevPoss();
+    pair = pv ? side(pv.sd, pv.w, pv.dice, false, 'last possession') + side(cur, curW, now.dr[cur], true, 'has the ball')
+      : side(cur, curW, now.dr[cur], true, 'has the ball') + side(other, null, [], false, '');
     const sd = now.side, dice = sd ? now.dr[sd] : [], len = dice.length, grp = dice.slice(len - len % 4), next = len % 4 + 1;
-    const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr.a);
+    const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr[seqOf(st.n)[0]]);
     const anyIn = now.dr.a.length || now.dr.h.length;
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
-    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (/left|Final possession/.test(possWords(curPoss(g))) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
+    return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (possStakes(possWords(curPoss(g))) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
       (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
@@ -4728,7 +4750,7 @@ const E = (() => {
   // log a roll from its two possessions (the dice are kept for the play-by-play and fast breaks)
   function possLog(g, dice) {
     const n = g.rolls.length;
-    const wa = possWalk(dice[0], possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')), wh = possWalk(dice[1], possFast(g, n, 'h', dice[0]), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h'));
+    const r = rollWalks(g, { a: dice[0], h: dice[1] }, n), wa = r.wa || { pts: 0 }, wh = r.wh || { pts: 0 };   // a side with no possession this roll scores 0
     const entry = ensureEntry(g);
     if (!entry.ty) entry.ty = [possTy(g, 'a'), possTy(g, 'h')];
     if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
@@ -4742,9 +4764,9 @@ const E = (() => {
   // one roll for the simulator: real dice by the same rules
   function possSim(g) {
     const n = g.rolls.length, d6 = () => 1 + Math.floor(Math.random() * 6);
-    const a = []; while (!possWalk(a, possFast(g, n, 'a'), possTy(g, 'a'), possTy(g, 'h'), possEdge(g, 'a')).done) a.push(d6());
-    const h = []; while (!possWalk(h, possFast(g, n, 'h', a), possTy(g, 'h'), possTy(g, 'a'), possEdge(g, 'h')).done) h.push(d6());
-    possLog(g, [a, h]);
+    const dr = { a: [], h: [] };
+    for (let r = rollWalks(g, dr, n); r.side; r = rollWalks(g, dr, n)) dr[r.side].push(d6());
+    possLog(g, [dr.a, dr.h]);
   }
   function entryBlock(g) {
     if (D.ru.poss) return possEntry(g);
@@ -4916,7 +4938,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + possArrow(gg, st, 'a') + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && /left|Final possession/.test(liveLabel(gg)) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && possStakes(liveLabel(gg)) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
@@ -5037,7 +5059,7 @@ const E = (() => {
   function timesTied(rolls) {
     let a = 0, h = 0, n = 0;
     const step = (da, dh) => { const was = a === h; a += da; h += dh; if (a === h && !was && (da || dh)) n++; };
-    rolls.forEach(r => { step(r[0], 0); step(0, r[1]); });
+    rolls.forEach((r, n) => seqOf(n).forEach(sd => { if (sd === 'a') step(r[0], 0); else step(0, r[1]); }));
     return n;
   }
   function unansweredRun(rolls, only) {
