@@ -712,6 +712,10 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .play-cap{font:800 22px/1.25 var(--f-display);min-height:28px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:4px 14px;text-align:center}
 .play-cap .cap-who{padding-right:14px;border-right:2px solid var(--line)}
 .play-cap .cw-a{color:#D2283C}.play-cap .cw-h{color:#178A3F}
+/* 2.0 scoreboard: each score in its player's color, and the possession arrow */
+.scoreboard .board .side:not(.r) .big{color:#D2283C}.scoreboard .board .side.r .big{color:#178A3F}
+.poss-arrow{display:flex;justify-content:center;margin-top:8px}.poss-arrow svg{display:block}
+.poss-arrow.pa-a path{fill:#D2283C}.poss-arrow.pa-h path{fill:#178A3F}
 .play-cap .cap-what{color:var(--ink)}
 @media (max-width:560px){.play-cap{font-size:18px;gap:10px}.play-cap .cap-who{padding-right:10px}}
 .play-cap.cap-a{color:#D2283C}.play-cap.cap-h{color:#178A3F}
@@ -4606,6 +4610,13 @@ const E = (() => {
   }
 
   /* ---------- the latest play, in words, at the top of a live game ---------- */
+  // the possession arrow in the middle of the scoreboard: points at whoever has the ball, in their color
+  function possArrow(gg, st) {
+    if (!D.ru.poss || st.final || S.sheet.edit || !gameStarted(gg) || !editable(gg)) return '';
+    const sd = possNow(gg).side || 'a', who = pname(sd === 'a' ? gg.a : gg.h);
+    const path = sd === 'a' ? 'M30 4 L6 20 L30 36 Z' : 'M6 4 L30 20 L6 36 Z';
+    return '<div class="poss-arrow pa-' + sd + '" role="img" aria-label="' + esc(who) + ' has the ball" title="' + esc(who) + ' has the ball"><svg width="36" height="40" viewBox="0 0 36 40" aria-hidden="true"><path d="' + path + '"/></svg></div>';
+  }
   function playCapSync(g) {
     const el = document.getElementById('playCap');
     if (!el) return;
@@ -4870,7 +4881,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>' + possArrow(gg, st)) +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
