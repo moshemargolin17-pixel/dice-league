@@ -709,8 +709,8 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .pslot.small .ps-v{width:28px;height:28px;font-size:15px}
 .pslot.wait{opacity:.55}
 @media (max-width:560px){.pslots.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.play-cap{font:800 22px/1.25 var(--f-display);min-height:28px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:16px;align-items:baseline}
-.play-cap .cap-who{text-align:right;padding-right:16px;border-right:2px solid var(--line)}
+.play-cap{font:800 22px/1.25 var(--f-display);min-height:28px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:4px 14px;text-align:center}
+.play-cap .cap-who{padding-right:14px;border-right:2px solid var(--line)}
 .play-cap .cw-a{color:#D2283C}.play-cap .cw-h{color:#178A3F}
 .play-cap .cap-what{color:var(--ink)}
 @media (max-width:560px){.play-cap{font-size:18px;gap:10px}.play-cap .cap-who{padding-right:10px}}
@@ -726,14 +726,14 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .xtra .xtra-in>.matchup-panel{border:0;padding:0;background:none}
 .xtra .xtra-in .h3:first-child{display:none}.pbp-full ol{max-height:480px}
 .game-aside .pbp{display:flex;flex-direction:column;min-height:0}.game-aside .pbp[style*=height] ol{flex:1;min-height:0;max-height:none}
-.pbp li{display:grid;grid-template-columns:62px 40px 1fr auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
+.pbp li{display:grid;grid-template-columns:50px auto minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
 .pbp li:first-child{border-top:0}
 .pbp li.pbp-empty .pbp-x{color:var(--muted)}
 .pbp .pbp-t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .pbp li.pts .pbp-x{font-weight:700}
 .pbp .pbp-s{font-variant-numeric:tabular-nums;color:var(--muted)}
 .pbp li.pts .pbp-s{color:var(--ink);font-weight:700}
-.pbp .pbp-w{font-weight:800;font-size:12.5px}.pbp li.pbp-a .pbp-w{color:#D2283C}.pbp li.pbp-h .pbp-w{color:#178A3F}
+.pbp .pbp-w{font-weight:800;font-size:13px;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis}.pbp li.pbp-a .pbp-w{color:#D2283C}.pbp li.pbp-h .pbp-w{color:#178A3F}
 .pbp li.pbp-empty{grid-template-columns:62px 1fr auto}
 .pslots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .pslot{display:flex;align-items:center;gap:8px;min-width:0;padding:10px 12px;border-radius:calc(var(--radius) - 2px);background:var(--panel);border:1px solid var(--border);font-weight:700}
@@ -4600,7 +4600,7 @@ const E = (() => {
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
     if (!list.length) return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol><li class="pbp-empty"><span class="pbp-t">' + pbpClock(0) + '</span><span class="pbp-x">Tip-off. Every play shows up here as you roll.</span><span class="pbp-s">0–0</span></li></ol></section>' : '';
-    const rows = list.slice().reverse().map(x => '<li class="pbp-' + x.sd + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-w">' + esc(sname(x.sd === 'a' ? gg.a : gg.h)) + '</span><span class="pbp-x">' + esc(pbpAction(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
+    const rows = list.slice().reverse().map(x => '<li class="pbp-' + x.sd + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-w">' + esc(pname(x.sd === 'a' ? gg.a : gg.h)) + '</span><span class="pbp-x">' + esc(pbpAction(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
     return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol>' + rows + '</ol></section>'
       : '<details class="matchup-panel roll-details pbp"><summary>Play-by-play<span>' + list.length + ' plays</span></summary><ol>' + rows + '</ol></details>';
   }
