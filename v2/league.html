@@ -757,6 +757,8 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .gstats strong{font-size:18px}
 .gstats .gfull{grid-column:1/-1}
 .game-stats:not(.live-stats) .gstats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.boxscore.game-stats .gstats{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:14px}
+@media (max-width:560px){.boxscore.game-stats .gstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* game screen: the season series lists every game, top to bottom */
 .game-aside .season-series .sarrow,.game-aside .post-series .sarrow{display:none}
 .game-aside .season-series .schips,.game-aside .post-series .schips{flex-direction:column;overflow:visible;gap:6px}
@@ -914,6 +916,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .scoreboard .side.r .teamlink{margin-left:auto}
 .game-layout{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(260px,1fr);gap:18px;align-items:stretch}
 .game-main>:last-child,.game-aside>:last-child{flex-grow:1}
+.game-aside>.pbp[style*=height]{flex-grow:0}
 .game-layout:has(.roll-details[open]) .game-aside>:last-child{flex-grow:0}
 .game-layout:has(.roll-details[open]){align-items:start}
 .startgame{white-space:nowrap}
@@ -4834,13 +4837,12 @@ const E = (() => {
     // before Start Game: the pregame. During the game: live lead stats in place of the series. Once it's final: flow and game stats
     const liveGame = !st.final && (st.n > 0 || gameStarted(gg)) && !S.sheet.edit;
     if (!st.n && !S.sheet.edit && !st.final && !gameStarted(gg)) main += pregamePanel(gg, x);
-    if (liveGame) aside = '<section class="matchup-panel game-stats live-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
-      '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Times tied</small><strong>' + timesTied(gg.rolls) + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
+    if (liveGame) aside = '';
     // the box score goes at the top (under the dice while the game is being played)
-    if (st.n && !S.sheet.edit) main = st.final ? boxScorePanel(gg) + main : main + boxScorePanel(gg);
-    if (D.ru.poss && liveGame) aside = pbpPanel(gg, true) + aside;   // play-by-play first, then the game stats
+    if ((st.n || liveGame) && !S.sheet.edit) main = st.final ? gameBoxPanel(gg, st) + main : main + gameBoxPanel(gg, st);
+    if (D.ru.poss && liveGame) aside = pbpPanel(gg, true) + aside;
     if (st.final && !S.sheet.edit) {
-      main += gameStatsPanel(gg, st) + flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
+      main += flowChart(gg, st) + (D.ru.poss ? pbpPanel(gg, false) : '');
     }
     // no roll log in 2.0: the play-by-play is the log of every roll
     body += '<div class="game-layout' + (S.sheet.edit ? ' is-editing' : '') + '"><div class="game-main">' + main + '</div>' + (S.sheet.edit ? '' : '<aside class="game-aside">' + aside + '</aside>') + '</div>';
@@ -4950,24 +4952,27 @@ const E = (() => {
     [b => b.orb, 'OREB', 'Offensive rebounds'], [b => b.drb, 'DREB', 'Defensive rebounds'], [b => b.orb + b.drb, 'REB', 'Total rebounds'],
     [b => b.to, 'TO', 'Turnovers']
   ];
-  function boxScorePanel(gg) {
+  // Box score and game stats together: the table, then lead changes, times tied, largest leads (and the biggest run once it's final)
+  function gameBoxPanel(gg, st) {
     const bx = boxOf(gg);
-    if (!bx) return '';
-    const th = BOX_COLS.map(([, h, t]) => '<th title="' + esc(t) + '">' + h + '</th>').join('');
+    const th = bx ? BOX_COLS.map(([, h, t]) => '<th title="' + esc(t) + '">' + h + '</th>').join('') : '';
     const row = (p, b) => '<tr><td class="l"><b>' + esc(sname(p)) + '</b></td>' + BOX_COLS.map(([f]) => '<td>' + f(b) + '</td>').join('') + '</tr>';
-    return '<section class="matchup-panel boxscore"><h3 class="h3">Box score</h3><div class="tscroll"><table class="tbl"><tr><th class="l"></th>' + th + '</tr>' + row(gg.a, bx[0]) + row(gg.h, bx[1]) + '</table></div>' + '</section>';
+    return '<section class="matchup-panel boxscore game-stats' + (st.final ? '' : ' live-stats') + '"><h3 class="h3">' + (bx ? 'Box score' : 'Game stats') + '</h3>' +
+      (bx ? '<div class="tscroll"><table class="tbl"><tr><th class="l"></th>' + th + '</tr>' + row(gg.a, bx[0]) + row(gg.h, bx[1]) + '</table></div>' : '') +
+      gameStatsGrid(gg, st) + '</section>';
   }
-  function gameStatsPanel(gg, st) {
+  function gameStatsPanel(gg, st) { return '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3>' + gameStatsGrid(gg, st) + '</section>'; }
+  function gameStatsGrid(gg, st) {
     const name = w => esc(sname(w === 'a' ? gg.a : gg.h));
     const rolls = gg.rolls, n = rolls.length;
     const span = (f, t) => { const p1 = L.perLabel(L.periodOf(f, D.ru).per), p2 = L.perLabel(L.periodOf(t, D.ru).per); return (t - f + 1) + (t === f ? ' roll' : ' rolls') + ' · ' + (p1 === p2 ? p1 : p1 + '–' + p2); };
     const un = unansweredRun(rolls);
     const stat = (lab, val, sub) => '<div><small>' + lab + '</small><strong>' + val + '</strong>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>';
-    return '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
+    return '<div class="gstats">' +
       stat('Lead changes', st.lc) + stat('Times tied', timesTied(rolls)) + stat('Largest lead · ' + esc(sname(gg.a)), st.bigA) + stat('Largest lead · ' + esc(sname(gg.h)), st.bigH) +
-      // biggest run: the most points in a row while the other player scored none
-      stat('Biggest run', un ? name(un.who) + ' ' + un.pts + '–0' : '—', un ? span(un.from, un.to) : '').replace('<div>', '<div class="gfull">') +
-      '</div></section>';
+      // biggest run: the most points in a row while the other player scored none (once the game is over)
+      (st.final ? stat('Biggest run', un ? name(un.who) + ' ' + un.pts + '–0' : '—', un ? span(un.from, un.to) : '').replace('<div>', '<div class="gfull">') : '') +
+      '</div>';
   }
   const mini = (k, v) => '<div><small>' + k + '</small><strong class="num">' + v + '</strong></div>';
 
