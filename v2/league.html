@@ -1481,7 +1481,7 @@ const L = (() => {
     else if (n === 0) { label = 'Not started'; short = 'Upcoming'; }
     else {
       const p = periodOf(n - 1, ru);
-      if (p.k === p.len - 1) { label = perLabel(p.per) === 'Q2' ? 'Halftime' : 'End ' + perLabel(p.per); }
+      if (p.k === p.len - 1) { label = perLabel(p.per) === 'Q2' ? 'Halftime' : 'Start of ' + perLabel(p.per + 1); }   // between quarters: the next one is up
       else { label = perLabel(p.per) + ' ' + fmtClock(p.mins - (p.k + 1) * p.mins / p.len); }
       short = label;
     }
