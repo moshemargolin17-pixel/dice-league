@@ -719,6 +719,7 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .game-aside .pbp{display:flex;flex-direction:column;min-height:0}.game-aside .pbp[style*=height] ol{flex:1;min-height:0;max-height:none}
 .pbp li{display:grid;grid-template-columns:62px 1fr auto;gap:8px;align-items:baseline;padding:6px 2px;border-top:1px solid var(--line);font-size:13.5px}
 .pbp li:first-child{border-top:0}
+.pbp li.pbp-empty .pbp-x{color:var(--muted)}
 .pbp .pbp-t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .pbp li.pts .pbp-x{font-weight:700}
 .pbp .pbp-s{font-variant-numeric:tabular-nums;color:var(--muted)}
@@ -4467,6 +4468,7 @@ const E = (() => {
   // Box score of a game for both players [away, home], from the dice of every logged possession (null if the dice aren't kept).
   function boxOf(g) {
     const p = possOf(g);
+    if (D.ru.poss && !g.rolls.length && gameStarted(g)) { const z0 = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0])); return [z0(), z0()]; }   // tip-off: all zeros
     if (!D.ru.poss || !p.length || p.length < g.rolls.length) return null;
     if (g._box && g._box.n === g.rolls.length) return g._box.v;
     const z = () => Object.fromEntries(BOX_KEYS.map(k => [k, 0]));
@@ -4562,7 +4564,7 @@ const E = (() => {
   };
   function pbpPanel(gg, live) {
     const list = pbpOf(gg);
-    if (!list.length) return '';
+    if (!list.length) return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol><li class="pbp-empty"><span class="pbp-t">' + pbpClock(0) + '</span><span class="pbp-x">Tip-off. Every play shows up here as you roll.</span><span class="pbp-s">0–0</span></li></ol></section>' : '';
     const rows = list.slice().reverse().map(x => '<li class="pbp-' + pbpWho(x) + (x.e.p ? ' pts' : '') + '"><span class="pbp-t">' + pbpClock(x.n) + '</span><span class="pbp-x">' + esc(pbpText(x, gg)) + '</span><span class="pbp-s">' + x.a + '–' + x.h + '</span></li>').join('');
     return live ? '<section class="matchup-panel pbp"><h3 class="h3">Play-by-play</h3><ol>' + rows + '</ol></section>'
       : '<details class="matchup-panel roll-details pbp"><summary>Play-by-play<span>' + list.length + ' plays</span></summary><ol>' + rows + '</ol></details>';
@@ -4820,7 +4822,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? 'Live' : (tipsOn() ? 'Not started' : '')) + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? st.nextLabel : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
