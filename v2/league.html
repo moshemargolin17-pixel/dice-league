@@ -4893,7 +4893,7 @@ const E = (() => {
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
     return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (possStakes(possWords(curPoss(g))) && !decidedSide(g) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
-      (sd && periodWaiting(g) ? '<div class="ppad pstart"><div class="pask">' + esc(liveLabel(g)) + '</div><button type="button" class="btn primary big" data-act="startq" aria-keyshortcuts="Enter">' + periodStartLabel(periodWaiting(g)) + ' <small class="kbd">Enter</small></button></div>' : '') +
+      (sd && periodWaiting(g) ? '<div class="ppad pstart"><div class="pask">' + esc(periodEndLabel(periodWaiting(g))) + '</div><button type="button" class="btn primary big" data-act="startq" aria-keyshortcuts="Enter">' + periodStartLabel(periodWaiting(g)) + ' <small class="kbd">Enter</small></button></div>' : '') +
       (sd && !periodWaiting(g) ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
         '<div class="chips pk-' + sd + next + '">' + [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>' : '') +
@@ -4908,6 +4908,7 @@ const E = (() => {
     const per = possPer(i).per, r = recOf(g);
     return r && (r.qs || 1) >= per ? 0 : per;
   }
+  const periodEndLabel = per => per === 3 ? 'End of the 2nd quarter · Halftime' : per <= 4 ? 'End of the ' + ['', '', '1st', '', '3rd'][per] + ' quarter' : per === 5 ? 'End of regulation · tied' : 'End of ' + L.perLabel(per - 1) + ' · tied';
   const periodStartLabel = per => per <= 4 ? 'Start ' + ['', '1st', '2nd', '3rd', '4th'][per] + ' quarter' : 'Start ' + (per === 5 ? 'overtime' : L.perLabel(per));
   function startPeriod(g) {
     const per = periodWaiting(g); if (!per) return;
