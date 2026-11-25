@@ -2766,7 +2766,7 @@ const E = (() => {
   function startGame(g) {
     if (!g || !onToday(g) || gameStarted(g)) return;
     const e = ensureEntry(g); e.started = true;
-    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.tv2 = true; e.pf1 = true; e.pf2 = true; e.fq2 = true; e.fq3 = true; e.ob6 = true; e.gr1 = true; e.rb2 = true; e.nf3 = true; e.fb1 = true; e.tv3 = true; e.cd1 = true; e.hm1 = true; e.od2 = true; e.od3 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
+    if (D.ru.poss) { e.ft2 = true; e.to2 = true; e.sh2 = true; e.d22 = true; e.ad1 = true; e.tv2 = true; e.pf1 = true; e.pf2 = true; e.fq2 = true; e.fq3 = true; e.ob6 = true; e.gr1 = true; e.rb2 = true; e.nf3 = true; e.fb1 = true; e.tv3 = true; e.cd1 = true; e.hm1 = true; e.hm2 = true; e.fs = [P(g.a).first || 'o', P(g.h).first || 'o']; e.od2 = true; e.od3 = true; e.ty = [P(g.a).type || 'n', P(g.h).type || 'n']; e.rt = [[P(g.a).off || 3, P(g.a).def || 3], [P(g.h).off || 3, P(g.h).def || 3]]; }
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
   }
@@ -3128,7 +3128,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 contact, 5–6 a make. On contact, die 3 decides: 1–2 defensive rebound, 3 out of bounds, 4–5 fouled, 6 made and fouled (a Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled). The shooter’s Offense against the other player’s Defense: 3 or more stars higher makes the shot one number easier (2 or more for the home player); 3 or more stars lower makes it one number harder. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Rebounder on 6) and rebounds. After a miss, die 3: 1–4 defensive rebound, 5 out of bounds, 6 offensive rebound (a Rebounder: 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder: 1–5 defensive, 6 out of bounds). Putbacks: a Guard only on a 6, a Forward 5–6, a Rebounder 4–6. Guard against Guard and Rebounder against Rebounder use the regular rules (putback 5–6). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 contact, 5–6 a make. On contact, die 3 decides: 1–2 defensive rebound, 3 out of bounds, 4–5 fouled, 6 made and fouled (a Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled). The shooter’s Offense against the other player’s Defense: 3 or more stars higher makes the shot one number easier; 3 or more stars lower makes it one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Rebounder on 6) and rebounds. After a miss, die 3: 1–4 defensive rebound, 5 out of bounds, 6 offensive rebound (a Rebounder: 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder: 1–5 defensive, 6 out of bounds). Putbacks: a Guard only on a 6, a Forward 5–6, a Rebounder 4–6. Guard against Guard and Rebounder against Rebounder use the regular rules (putback 5–6). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -3160,7 +3160,7 @@ const E = (() => {
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Ratings and types', [
         'Die 1 is the play: a 1 is a turnover (then die 2: 1–2 a steal, 3 a steal with no fast break, 4–5 out of bounds, 6 a violation), 2–4 a 2-pointer and 5–6 a 3-pointer (a Rebounder: 2–5 a 2-pointer, only 6 a 3-pointer). A steal gives the other player a fast break, except on the last possession of a quarter.',
-        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier (2 or more for the home player), 3 or more stars lower one number harder. Die 2 on a shot: 1–3 a miss, 4 contact (die 3 decides), 5–6 a make; a make ends it (no die 3). A Rebounder’s 3-pointer: 1–4 a miss, 5 contact, 6 a make. The contact number is only contact, and die 3 decides: 1–2 a miss and defensive rebound, 3 out of bounds, 4–5 fouled (free throws on die 4), 6 made and fouled (an and-one on die 4). Out of bounds: on die 4, a 6 keeps it the shooter’s ball (roll all 4 again), 1–5 it’s the other player’s. A Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled. An advantage moves that line by one number. A fast break makes a 2-pointer one number easier (not a 3), and a 3 is one number less likely on die 1 (a Guard or Forward only on a 6, a Rebounder never) (at most 4 makes).',
+        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. Die 2 on a shot: 1–3 a miss, 4 contact (die 3 decides), 5–6 a make; a make ends it (no die 3). A Rebounder’s 3-pointer: 1–4 a miss, 5 contact, 6 a make. The contact number is only contact, and die 3 decides: 1–2 a miss and defensive rebound, 3 out of bounds, 4–5 fouled (free throws on die 4), 6 made and fouled (an and-one on die 4). Out of bounds: on die 4, a 6 keeps it the shooter’s ball (roll all 4 again), 1–5 it’s the other player’s. A Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled. An advantage moves that line by one number. A fast break makes a 2-pointer one number easier (not a 3), and a 3 is one number less likely on die 1 (a Guard or Forward only on a 6, a Rebounder never) (at most 4 makes).',
         'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Rebounder</b>. Guards and Forwards shoot 3s on a 5 or 6, a Rebounder on a 6. After a miss, die 3: 1–4 a defensive rebound, 5 out of bounds, 6 an offensive rebound; a Rebounder 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder 1–5 defensive, 6 out of bounds. Guards put back only a 6, Forwards 5–6, Rebounders 4–6. Guard against Guard and Rebounder against Rebounder use the regular rules. At the line, Guards are one number better and Rebounders one number worse: an and-one goes in on 2–6 for a Guard, 3–6 for a Forward, 4–6 for a Rebounder. Fouled on a 2: 1 none, 2–3 one, 4–6 both (a Guard: 2 one, 3–6 both; a Rebounder: 2–4 one, 5–6 both). Fouled on a 3: 1 none, 2 one, 3 two, 4–6 all three (a Guard: 2 two, 3–6 three; a Rebounder: 2 one, 3–4 two, 5–6 three).',
         'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
       sec('Standings and the playoffs', [
@@ -4320,9 +4320,9 @@ const E = (() => {
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       (L.hasDivs() ? '<div class="frow">' + divList().map(i => '<div class="field"><label for="div' + i + '">Division ' + (i + 1) + (L.confCount() > 1 ? ' (' + confName(L.confOf(L.divIds(i)[0])) + ')' : '') + '</label><input type="text" id="div' + i + '" value="' + esc(c.divNames[i] || 'Division ' + (i + 1)) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       '<div><button type="submit" class="btn primary">Save names</button></div></form></div>';
-    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th></tr>' +
-      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + '<td>' + ratingSel('poff' + p, pl.off, 'Offense of ' + esc(pl.name) + ', in stars') + '</td><td>' + ratingSel('pdef' + p, pl.def, 'Defense of ' + esc(pl.name) + ', in stars') + '</td></tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
-      '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + '<div class="field short"><label for="addOff">Offense</label>' + ratingSel('addOff', 3, 'Offense, in stars') + '</div><div class="field short"><label for="addDef">Defense</label>' + ratingSel('addDef', 3, 'Defense, in stars') + '</div></div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
+    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th><th>Advantage first</th></tr>' +
+      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + '<td>' + ratingSel('poff' + p, pl.off, 'Offense of ' + esc(pl.name) + ', in stars') + '</td><td>' + ratingSel('pdef' + p, pl.def, 'Defense of ' + esc(pl.name) + ', in stars') + '</td><td>' + firstSel('pfst' + p, pl.first, 'Advantage first for ' + esc(pl.name)) + '</td></tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
+      '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + '<div class="field short"><label for="addOff">Offense</label>' + ratingSel('addOff', 3, 'Offense, in stars') + '</div><div class="field short"><label for="addDef">Defense</label>' + ratingSel('addDef', 3, 'Defense, in stars') + '</div><div class="field short"><label for="addFirst">Advantage first</label>' + firstSel('addFirst', 'o', 'Advantage first') + '</div></div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
     out += setupPanel();
     const fin = D.games.filter(g => g.st.final).length;
     out += '<div class="panel"><div class="form"><h3 class="h3">Season</h3>' +
@@ -4570,17 +4570,28 @@ const E = (() => {
   // a game keeps the ratings it started with; games logged before ratings existed count as even (3 and 3)
   const possRt = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.rt ? r.rt[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? [3, 3] : [pl.off || 3, pl.def || 3]; };
   // skill and the advantage that comes first ([stars, 'o' | 'd']), as the game started with
+  // which advantage a player takes first when both are there ('o' offense or 'd' defense), as the game started with
+  const possFirst = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.fs ? r.fs[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'o' : pl.first || 'o'; };
+  // the home player's home-court advantage (2 stars better; 1 star in the final 3 possessions): 'o' (their shots one number easier), 'd' (the away player's shots one number harder) or null
+  // 2 stars better, or 1 star better in the final 3 possessions of the game (of Q4, and of each overtime)
+  const lateGame = (n, sd) => { const i = possIdx(n, sd); return i < 48 ? i >= 45 : (i - 48) % 7 >= 4; };
+  const homeAdv = (g, late) => { const h = possRt(g, 'h'), a = possRt(g, 'a'), need = late ? 1 : 2, o = h[0] - a[1] >= need, d = h[1] - a[0] >= need; return o && d ? possFirst(g, 'h') : o ? 'o' : d ? 'd' : null; };
   const possSk = (g, side) => { const r = recOf(g), pl = P(side === 'a' ? g.a : g.h); return r && r.sk ? r.sk[side === 'a' ? 0 : 1] : [pl.sk || 3, pl.first || 'o']; };
   // which advantage system a game uses: 'od2' (now), 'sk' (the short-lived Skill/First system) or 'old' (raw Offense minus Defense)
   const advMode = g => { const r = recOf(g); if (!(r && r.p && r.p.length) || r.od2) return 'od2'; return r.sk1 ? 'sk' : 'old'; };
   // The shift on a shot by `side`. Skill system: 2 levels better gets one shift on the advantage that comes first (offense: your shots are easier;
   // defense: the other player's are harder); 3 or more levels better gets both. Returned as an edge of +-2 (one shift) or 0.
   // Games played before keep the Offense/Defense stars: the shooter's Offense minus the other player's Defense.
-  const possEdge = (g, side) => {
+  const possEdge = (g, side, n) => {
     const mode = advMode(g);
     // now: the shooter's Offense against the other player's Defense, 3 or more stars either way: one shift easier or harder
     // (games started in the short time it was 2 stars for the easier shift keep that)
-    if (mode === 'od2') { const d = possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1], r = recOf(g), home = side === 'h' && !(r && r.p && r.p.length && !r.hm1), up = r && r.od2 && !r.od3 ? 2 : home ? 2 : 3; return d >= up ? 2 : d <= -3 ? -2 : 0; }
+    if (mode === 'od2') { const d = possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1], r = recOf(g), had = !!(r && r.p && r.p.length), home = side === 'h' && had && r.hm1 && !r.hm2, up = r && r.od2 && !r.od3 ? 2 : home ? 2 : 3;
+      const base = d >= up ? 2 : d <= -3 ? -2 : 0;
+      if (base || (had && !r.hm2)) return base;
+      // home court: 2 stars better (1 in the final 3 possessions) on offense or defense gives the home player one advantage (both: their preset, offense or defense first)
+      const adv = homeAdv(g, n == null ? null : lateGame(n, side));
+      return side === 'h' && adv === 'o' ? 2 : side === 'a' && adv === 'd' ? -2 : 0; }
     if (mode === 'old') return possRt(g, side)[0] - possRt(g, side === 'a' ? 'h' : 'a')[1];
     const me = possSk(g, side), th = possSk(g, side === 'a' ? 'h' : 'a'), d = me[0] - th[0];
     if (d >= 3 || (d === 2 && me[1] === 'o')) return 2;    // the shooter's offense advantage
@@ -4599,7 +4610,7 @@ const E = (() => {
     if (at > 0) { pn = n; ps = seq[at - 1]; dice = draftFirst || sideDice(p[n], ps); }
     else { if (n === 0 || !p[n - 1]) return false; pn = n - 1; const sq = seqOf(n - 1); ps = sq[sq.length - 1]; dice = sideDice(p[n - 1], ps); }
     if (!possOld(g).to && lastOfPeriod(pn, ps)) return false;   // a break between periods: no fast break
-    return !!(dice && dice.length && possWalk(dice, possFast(g, pn, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps), possOld(g)).steal);
+    return !!(dice && dice.length && possWalk(dice, possFast(g, pn, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps, pn), possOld(g)).steal);
   }
   // the possessions of the roll being put in, in order: { wa, wh, side (whose turn, or null when both are done) }
   function rollWalks(g, dr, n) {
@@ -4607,7 +4618,7 @@ const E = (() => {
     let side = null;
     seq.forEach((sd, j) => {
       if (side) return;
-      w[sd] = possWalk(dr[sd], possFast(g, n, sd, j ? dr[seq[0]] : undefined), possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
+      w[sd] = possWalk(dr[sd], possFast(g, n, sd, j ? dr[seq[0]] : undefined), possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd, n), possOld(g));
       if (!w[sd].done) side = sd;
     });
     return { wa: w.a || null, wh: w.h || null, side };
@@ -4622,7 +4633,7 @@ const E = (() => {
     const sides = [z(), z()];
     let fast = false;   // a steal on the possession before gives a fast break
     for (let n = 0; n < g.rolls.length; n++) seqOf(n).forEach(sd => {
-      const w = possWalk(sideDice(p[n], sd), fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
+      const w = possWalk(sideDice(p[n], sd), fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd, n), possOld(g));
       fast = w.steal && (possOld(g).to || !lastOfPeriod(n, sd));
       [[w, sd === 'a' ? 0 : 1]].forEach(([w, k]) => {
         const me = sides[k], th = sides[1 - k], b = w.bx;
@@ -4667,7 +4678,7 @@ const E = (() => {
     const p = possOf(g), out = [];
     let a = 0, h = 0, fast = false;
     const walk = (n, sd, dice, fb) => {
-      const w = possWalk(dice, fb, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
+      const w = possWalk(dice, fb, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd, n), possOld(g));
       w.ev.forEach((e, j) => { if (sd === 'a') a += e.p; else h += e.p; if (e.k !== 'nopb') out.push({ key: n + sd + j, n, sd, e, a, h }); });   // a missed putback isn't its own line
       return w;
     };
@@ -4836,7 +4847,7 @@ const E = (() => {
       if (at > 0) { const ps = seq[at - 1]; return { sd: ps, w: ps === 'a' ? now.wa : now.wh, dice: now.dr[ps] }; }
       const p0 = possOf(g)[st.n - 1]; if (!p0) return null;
       const sq = seqOf(st.n - 1), ps = sq[sq.length - 1];
-      return { sd: ps, w: possWalk(sideDice(p0, ps), possFast(g, st.n - 1, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps), possOld(g)), dice: sideDice(p0, ps) };
+      return { sd: ps, w: possWalk(sideDice(p0, ps), possFast(g, st.n - 1, ps), possTy(g, ps), possTy(g, ps === 'a' ? 'h' : 'a'), possEdge(g, ps, st.n - 1), possOld(g)), dice: sideDice(p0, ps) };
     };
     const pv = prevPoss();
     pair = pv ? side(pv.sd, pv.w, pv.dice, false, 'last possession') + side(cur, curW, now.dr[cur], true, 'has the ball')
@@ -4913,7 +4924,9 @@ const E = (() => {
     if (!n && !entry.tv3) entry.tv3 = true;
     if (!n && !entry.cd1) entry.cd1 = true;
     if (!n && !entry.hm1) entry.hm1 = true;
+    if (!n && !entry.hm2) entry.hm2 = true;
     if (!entry.rt) entry.rt = [possRt(g, 'a'), possRt(g, 'h')];
+    if (!entry.fs) entry.fs = [possFirst(g, 'a'), possFirst(g, 'h')];
     if (!n && !entry.od2 && !entry.sk1) { entry.od2 = true; entry.od3 = true; }
     entry.p = possOf(g).slice(0, n).concat([[dice[0].slice(), dice[1].slice()]]);
     delete entry.d;   // the roll is logged: nothing in progress
@@ -4992,7 +5005,7 @@ const E = (() => {
     let a = 0, h = 0, fast = false, missing = null;
     const own = { stl: 'Stolen', lose: 'Lost the ball' };
     ep.forEach((pr, n) => seqOf(n).forEach(sd => {
-      const dice = pr[sd === 'a' ? 0 : 1], w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd), possOld(g));
+      const dice = pr[sd === 'a' ? 0 : 1], w = possWalk(dice, fast, possTy(g, sd), possTy(g, sd === 'a' ? 'h' : 'a'), possEdge(g, sd, n), possOld(g));
       fast = w.steal && (possOld(g).to || !lastOfPeriod(n, sd));
       if (sd === 'a') a += w.pts; else h += w.pts;
       if (!w.done && !missing) missing = { n, sd };
@@ -5435,7 +5448,7 @@ const E = (() => {
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
         b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened, play by play. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Ratings and types',
-        b: '<p>Every player has <b>Offense</b> and <b>Defense</b> stars and a type: <b>Guard</b>, <b>Forward</b> or <b>Rebounder</b>. When the shooter’s Offense is 3 or more stars above the other player’s Defense (2 or more for the home player), the shot is one number easier; 3 or more below, one number harder. The type decides 3-pointers, rebounds and free throws.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
+        b: '<p>Every player has <b>Offense</b> and <b>Defense</b> stars and a type: <b>Guard</b>, <b>Forward</b> or <b>Rebounder</b>. When the shooter’s Offense is 3 or more stars above the other player’s Defense, the shot is one number easier; 3 or more below, one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. The type decides 3-pointers, rebounds and free throws.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
         b: '<p>The whole schedule as a calendar. It opens on today; tap a day to see its games, and use the arrows for earlier or later days.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
       { view: 'standings', at: 'main .tbl tr', t: 'Standings',
@@ -5741,6 +5754,7 @@ const E = (() => {
         else if (!short || (pl.shortAuto && pl.name !== oldName)) { pl.short = autoShort(pl.name, new Set(c.players.filter(o => o !== pl).map(o => o.short))); pl.shortAuto = true; }
         const ty = document.getElementById('pty' + p); if (ty && !ty.disabled && !typesLocked() && PTYPES[ty.value]) pl.type = ty.value;
         [['off', 'poff'], ['def', 'pdef']].forEach(([k, id]) => { const el = document.getElementById(id + p); if (el) pl[k] = Math.max(1, Math.min(5, parseInt(el.value, 10) || 3)); });
+        const fs = document.getElementById('pfst' + p); if (fs && (fs.value === 'o' || fs.value === 'd')) pl.first = fs.value;
       });
       if (D.ru.skillCalls) {
         const touchedDays = new Set();
@@ -5760,6 +5774,7 @@ const E = (() => {
       const short = (document.getElementById('addShort').value || '').trim().slice(0, 4).toUpperCase();
       const pl = { name, type: document.getElementById('addType').value };
       pl.off = Math.max(1, Math.min(5, parseInt(document.getElementById('addOff').value, 10) || 3)); pl.def = Math.max(1, Math.min(5, parseInt(document.getElementById('addDef').value, 10) || 3));
+      pl.first = document.getElementById('addFirst').value === 'd' ? 'd' : 'o';
       if (short) pl.short = short;
       const tf = document.querySelector('form[data-form=teams]'); if (tf) tf.requestSubmit();   // keep edits typed in the table above
       c.players.push(pl); normPlayers(c);
