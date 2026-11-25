@@ -2597,6 +2597,7 @@ const E = (() => {
     ensureEntry(g).started = true;
     saveDay(g.day, 0);
     refresh(); render(); renderSheet();
+    const a = document.getElementById('rollA'); if (a) a.focus();   // ready to type the first roll
   }
   function dayDoc(day) {
     if (!S.days[day]) S.days[day] = { day, games: {} };
