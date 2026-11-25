@@ -710,7 +710,6 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .pask .die{vertical-align:-1px}
 .pslots.four{grid-template-columns:repeat(4,minmax(0,1fr))}
 .pslots.four .pslot{padding:8px;gap:6px}.pslots.four .ps-n{font-size:13.5px}
-.pslot.small .ps-v{width:28px;height:28px;font-size:15px}
 .pslot.wait{opacity:.55}
 @media (max-width:560px){.pslots.four{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .play-cap{font:800 22px/1.25 var(--f-display);min-height:28px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:4px 14px;text-align:center}
@@ -890,15 +889,13 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .die{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .die.red{background:#D33A2C}.die.blue{background:#2F6FDB}
 /* 2.0 dice: big 1-2 (the shot), small see-through 3-4 (rebound, free throws) */
-.die.h1,.pd.h1{background:#1E9E4A}.die.h2,.pd.h2{background:#0FB5D1}.die.h3,.pd.h3{background:rgba(14,90,44,.78)}.die.h4,.pd.h4{background:rgba(139,212,21,.72)}
-.die.a1,.pd.a1{background:#D2283C}.die.a2,.pd.a2{background:#F07D12}.die.a3,.pd.a3{background:rgba(122,20,36,.78)}.die.a4,.pd.a4{background:rgba(255,150,40,.6)}
-.pd[class*=' h'],.pd[class*=' a']{color:#FFFFFF;border-color:transparent}.pd.h4,.pd.a4{color:#141A26}
-.pd.h3,.pd.h4,.pd.a3,.pd.a4{width:22px;height:22px;border-radius:5px;font-size:12.5px;align-self:center;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
-.die.h3,.die.h4,.die.a3,.die.a4{width:9px;height:9px;border-radius:2px;vertical-align:0}
+.pd[class*=' h'],.pd[class*=' a']{border-color:transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.die[class*=' h'],.die[class*=' a']{box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+.dicecols{display:grid;grid-template-columns:auto repeat(4,minmax(0,1fr));gap:8px 10px;align-items:center}
+.dicecols .dc{display:flex;align-items:center;gap:6px;min-width:0}.dicecols select{min-width:0;max-width:100%}
+@media (max-width:560px){.dicecols{grid-template-columns:repeat(2,minmax(0,1fr))}.dicecols .dlab{grid-column:1/-1}}
 .pdice{align-items:center}.dkey{margin-left:auto;display:inline-flex;align-items:center;gap:3px}.dkey .die{margin:0}
 .pask .die{margin:0 6px 0 0}
-.chips.pk-h1 .chip{border-color:#1E9E4A}.chips.pk-h2 .chip{border-color:#0FB5D1}.chips.pk-h3 .chip{border-color:#0E5A2C}.chips.pk-h4 .chip{border-color:#8BD415}
-.chips.pk-a1 .chip{border-color:#D2283C}.chips.pk-a2 .chip{border-color:#F07D12}.chips.pk-a3 .chip{border-color:#7A1424}.chips.pk-a4 .chip{border-color:#FF9628}
 .chips[class*=pk-] .chip{border-width:2px}
 .ctag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;font-size:10.5px;font-weight:700;border:1px solid var(--line)}
 .ctag.h{color:#178A3F;border-color:#178A3F}.ctag.a{color:#D2283C;border-color:#D2283C}
@@ -4340,6 +4337,10 @@ const E = (() => {
       (S.restore ? '<button type="button" class="btn danger" data-act="restore">' + (S.confirm === 'restore' ? 'Tap again to replace this league' : 'Load ' + esc(S.restore.name) + ' (S' + S.restore.data.cfg.currentSeason + ')') + '</button><button type="button" class="btn" data-act="restorecancel">Cancel</button>' : '') +
       '<input type="file" id="restoreFile" accept=".json,application/json" hidden></div>' +
       '<div class="note">Backup downloads one small file with every season, game and setting. Restore replaces everything here with that file. To move the league to another computer, back up here and restore there.</div></div></div>';
+    const dsel = (sd, i) => '<select id="dc' + sd + i + '" aria-label="' + (sd === 'a' ? 'Away' : 'Home') + ' die ' + (i + 1) + '">' + DIE_COLORS.map(c => '<option value="' + c[0] + '"' + (diceOf(sd)[i] === c[0] ? ' selected' : '') + '>' + c[1] + '</option>').join('') + '</select>';
+    out += '<div class="panel"><form class="form" data-form="dice"><h3 class="h3">Dice colors</h3><div class="dicecols">' +
+      ['a', 'h'].map(sd => '<div class="dlab"><b>' + (sd === 'a' ? 'Away' : 'Home') + '</b></div>' + [0, 1, 2, 3].map(i => '<div class="dc"><span class="die ' + sd + (i + 1) + '"></span>' + dsel(sd, i) + '</div>').join('')).join('') +
+      '</div><div class="note">Die 1 to die 4 for each side. The game asks for each die by its color.</div><div class="frow"><button type="submit" class="btn primary">Save colors</button><button type="button" class="btn" data-act="dicedefault">Default colors</button></div></form></div>';
     out += '<div class="panel"><div class="form"><h3 class="h3">Reset</h3>' +
       '<div class="frow"><button type="button" class="btn danger" data-act="resetseason">' + (S.confirm === 'resetseason' ? 'Tap again to restart Season ' + S.season.n : 'Restart season') + '</button><button type="button" class="btn danger" data-act="reset">' + (S.confirm === 'reset' ? 'Tap again to erase everything' : 'Reset league') + '</button></div><div class="note">Restart season erases the games of Season ' + S.season.n + ' and starts it again from Day 1 with the same schedule; players, settings and earlier seasons stay. Reset league erases all seasons, games and settings and starts a fresh Season 1.</div></div></div>';
     return '<div class="stack" style="gap:16px">' + out + '</div>';
@@ -4703,8 +4704,26 @@ const E = (() => {
   }
   // which die a number was rolled on: 1 and 2 are the big dice (the shot), 3 and 4 the small see-through dice (rebound or free throws)
   const pdn = i => (Math.floor(i / 2) % 2 ? 3 : 1) + i % 2;
-  const DIE_NAMES = { h: ['Green die', 'Cyan die', 'Small dark green die', 'Small lime die'], a: ['Red die', 'Orange die', 'Small maroon die', 'Small orange die'] };
-  const dieName = (sd, n) => DIE_NAMES[sd][n - 1];
+  // dice colors: set in Settings (cfg.dice), one color for each of the 4 dice of each side
+  const DIE_COLORS = [
+    ['red', 'Red', '#D2283C'], ['orange', 'Orange', '#F07D12'], ['gold', 'Gold', '#F2B705'], ['yellow', 'Yellow', '#F5DD2A'], ['maroon', 'Maroon', '#7A1424'],
+    ['pink', 'Pink', '#E0559A'], ['purple', 'Purple', '#7C3AED'], ['blue', 'Blue', '#2F6FDB'], ['navy', 'Navy', '#1E3A8A'], ['cyan', 'Cyan', '#0FB5D1'],
+    ['teal', 'Teal', '#0F766E'], ['green', 'Green', '#1E9E4A'], ['darkgreen', 'Dark green', '#0E5A2C'], ['lime', 'Lime', '#8BD415'], ['brown', 'Brown', '#8B5A2B'],
+    ['black', 'Black', '#1F2430'], ['gray', 'Gray', '#6B7280'], ['white', 'White', '#F6F7F9']
+  ];
+  const DICE_DEFAULT = { h: ['green', 'cyan', 'darkgreen', 'lime'], a: ['red', 'orange', 'maroon', 'gold'] };
+  const dieCol = k => DIE_COLORS.find(c => c[0] === k) || DIE_COLORS[0];
+  const diceOf = sd => { const d = (S.cfg && S.cfg.dice && S.cfg.dice[sd]) || []; return [0, 1, 2, 3].map(i => (DIE_COLORS.some(c => c[0] === d[i]) ? d[i] : DICE_DEFAULT[sd][i])); };
+  const inkOn = hex => { const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255; return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#141A26' : '#FFFFFF'; };
+  function applyDice() {
+    let css = '';
+    ['a', 'h'].forEach(sd => diceOf(sd).forEach((k, i) => { const c = dieCol(k)[2], x = sd + (i + 1);
+      css += '.die.' + x + ',.pd.' + x + ',.ps-v.' + x + '{background:' + c + ';color:' + inkOn(c) + '}.chips.pk-' + x + ' .chip{border-color:' + c + '}'; }));
+    let el = document.getElementById('diceCss');
+    if (!el) { el = document.createElement('style'); el.id = 'diceCss'; document.head.appendChild(el); }
+    el.textContent = css;
+  }
+  const dieName = (sd, n) => dieCol(diceOf(sd)[n - 1])[1] + ' die';
   const dieKey = sd => [1, 2, 3, 4].map(n => '<span class="die ' + sd + n + '" title="' + dieName(sd, n) + '"></span>').join('');
   const d6 = () => 1 + Math.floor(Math.random() * 6);
 
@@ -4890,7 +4909,7 @@ const E = (() => {
     const sd = now.side, dice = sd ? now.dr[sd] : [], len = dice.length, grp = dice.slice(len - len % 4), next = len % 4 + 1;
     const fastNow = sd && len === 0 && possFast(g, st.n, sd, now.dr[seqOf(st.n)[0]]);
     const anyIn = now.dr.a.length || now.dr.h.length;
-    const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
+    const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
     return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (possStakes(possWords(curPoss(g))) && !decidedSide(g) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
       (sd && periodWaiting(g) ? '<div class="ppad pstart"><div class="pask">' + esc(periodEndLabel(periodWaiting(g))) + '</div><button type="button" class="btn primary big" data-act="startq" aria-keyshortcuts="Enter">' + periodStartLabel(periodWaiting(g)) + ' <small class="kbd">Enter</small></button></div>' : '') +
@@ -5720,6 +5739,7 @@ const E = (() => {
       case 'log': logRoll(); break;
       case 'undo': undoRoll(); break;
       case 'theme': S.cfg.theme = el.dataset.v; applyTheme(S.cfg.theme); saveCfg(); render(); break;
+      case 'dicedefault': delete S.cfg.dice; applyDice(); saveCfg(); render(); toast('Dice colors back to the default.'); break;
       case 'restartday': {
         const day = +el.dataset.v, s = S.season;
         if (!s || s.phase !== 'reg' || s.day.active || day >= s.day.cur) break;
@@ -5804,6 +5824,10 @@ const E = (() => {
       confList().forEach(i => { const el = document.getElementById('conf' + i); if (el) c.confNames[i] = (el.value || '').trim() || c.confNames[i]; });
       divList().forEach(i => { const el = document.getElementById('div' + i); if (el) c.divNames[i] = (el.value || '').trim() || c.divNames[i]; });
       saveCfg(); render(); toast('Names saved.');
+    } else if (f.dataset.form === 'dice') {
+      const pick = sd => [0, 1, 2, 3].map(i => { const el = document.getElementById('dc' + sd + i); return el && DIE_COLORS.some(c => c[0] === el.value) ? el.value : DICE_DEFAULT[sd][i]; });
+      S.cfg.dice = { a: pick('a'), h: pick('h') }; applyDice(); saveCfg(); render(); toast('Dice colors saved.');
+      return;
     } else if (f.dataset.form === 'teams') {
       const oldSkills = c.players.map(pl => pl.skillLevel);
       c.players.forEach((pl, p) => {
@@ -5915,7 +5939,7 @@ const E = (() => {
       if (Store.pending() || S.sheet) return;
       S.cfg = normPlayers(cfg); S.season = season; S.days = {}; list.forEach(x => { S.days[x.day] = x; });
       await upgradeSkillRules();
-      applyTheme(cfg.theme); refresh(); healDay(); render();
+      applyTheme(cfg.theme); applyDice(); refresh(); healDay(); render();
     } catch (e) { /* keep what is on screen */ }
   }
   /* ---------- backup / restore ---------- */
@@ -5996,7 +6020,7 @@ const E = (() => {
       S.cfg = cfg; S.season = cur.season; S.days = {}; cur.days.forEach(x => { S.days[x.day] = x; });
       await upgradeSkillRules();
       S.past = {}; S.restore = null; S.sheet = null;
-      applyTheme(cfg.theme); refresh(); healDay(); S.view = 'home'; render(); window.scrollTo(0, 0);
+      applyTheme(cfg.theme); applyDice(); refresh(); healDay(); S.view = 'home'; render(); window.scrollTo(0, 0);
       toast('League restored: Season ' + cfg.currentSeason + ', Day ' + S.season.day.cur + '.');
     } catch (e) {
       console.error(e);
@@ -6081,7 +6105,7 @@ const E = (() => {
       app.innerHTML = '<div class="wrap"><div class="loading">Couldn’t load the league. Check your connection and reopen the page.</div></div>';
       return;
     }
-    applyTheme(S.cfg.theme);
+    applyTheme(S.cfg.theme); applyDice();
     refresh();
     healDay();
     S.ready = true;
