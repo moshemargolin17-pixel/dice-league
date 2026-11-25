@@ -4341,7 +4341,7 @@ const E = (() => {
       '<input type="file" id="restoreFile" accept=".json,application/json" hidden></div>' +
       '<div class="note">Backup downloads one small file with every season, game and setting. Restore replaces everything here with that file. To move the league to another computer, back up here and restore there.</div></div></div>';
     out += '<div class="panel"><div class="form"><h3 class="h3">Reset</h3>' +
-      '<div class="frow"><button type="button" class="btn danger" data-act="reset">' + (S.confirm === 'reset' ? 'Tap again to erase everything' : 'Reset league') + '</button></div><div class="note">Reset erases all seasons, games and settings and starts a fresh Season 1.</div></div></div>';
+      '<div class="frow"><button type="button" class="btn danger" data-act="resetseason">' + (S.confirm === 'resetseason' ? 'Tap again to restart Season ' + S.season.n : 'Restart season') + '</button><button type="button" class="btn danger" data-act="reset">' + (S.confirm === 'reset' ? 'Tap again to erase everything' : 'Reset league') + '</button></div><div class="note">Restart season erases the games of Season ' + S.season.n + ' and starts it again from Day 1 with the same schedule; players, settings and earlier seasons stay. Reset league erases all seasons, games and settings and starts a fresh Season 1.</div></div></div>';
     return '<div class="stack" style="gap:16px">' + out + '</div>';
   }
   // who plays this season: 30 seats, 5 to a division. Choosing someone already seated swaps the two.
@@ -5722,6 +5722,9 @@ const E = (() => {
       case 'reset':
         if (armConfirm('reset')) resetLeague();
         break;
+      case 'resetseason':
+        if (armConfirm('resetseason')) resetSeason();
+        break;
       case 'backup': backupLeague(); break;
       case 'restorepick': { const f = document.getElementById('restoreFile'); if (f) { f.value = ''; f.click(); } break; }
       case 'restorecancel': S.restore = null; S.confirm = null; render(); break;
@@ -5959,6 +5962,18 @@ const E = (() => {
       console.error(e);
       toast(e && e.name === 'QuotaExceededError' ? 'This browser is out of storage space.' : 'Restore failed. Your backup file is unchanged; try again.');
     }
+  }
+  // restart the current season: erase its games and start again from Day 1 (same number, players, league setup and schedule)
+  async function resetSeason() {
+    const n = S.season.n, roster = S.season.roster, shape = S.season.shape;
+    const list = await Store.list(seasonPath(n) + '/days').catch(() => []);
+    for (const d of list) await Store.del(dayPath(n, d.day)).catch(() => {});
+    if (S.cfg.history) delete S.cfg.history[n];
+    const sched = S.season.sched, total = S.season.totalDays;
+    S.season = newSeasonDoc(n, roster, shape); S.season.sched = sched; S.season.totalDays = total; S.days = {};
+    await Store.write('league/config', S.cfg);
+    await Store.write(seasonPath(n), S.season);
+    refresh(); S.view = 'home'; render(); window.scrollTo(0, 0); toast('Season ' + n + ' restarted. Press Start Day 1 when you are.');
   }
   async function resetLeague() {
     const ns = S.cfg.seasons.slice();
