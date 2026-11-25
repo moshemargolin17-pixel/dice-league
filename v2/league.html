@@ -4863,9 +4863,11 @@ const E = (() => {
     const st = g.st;
     if (!D.ru.poss || st.final) return st.short;
     if (!st.n && !gameStarted(g)) return st.short;
-    const i = curPoss(g);
-    if (i > 0 && i % 12 === 0 && i < 48) return i === 24 ? 'Halftime' : 'Start of Q' + (i / 12 + 1);
-    if (i >= 48 && (i - 48) % 7 === 0 && st.a === st.h) return 'Start of ' + L.perLabel(possPer(i).per);
+    const i = curPoss(g), w = periodWaiting(g), now = possNow(g), fresh = !now.dr.a.length && !now.dr.h.length;
+    // a quarter just ended (its Start button is waiting), then the next one is started but not rolled yet
+    if (w) return w <= 4 ? 'End of Q' + (w - 1) : w === 5 ? 'End of regulation' : 'End of ' + L.perLabel(w - 1);
+    if (i === 0 && fresh) return 'Tip-off';
+    if (fresh && (i < 48 ? i % 12 === 0 : (i - 48) % 7 === 0)) return 'Start of ' + L.perLabel(possPer(i).per);
     return possWords(i);
   }
   // a roll by its possessions: "Q1 · 1–2", in overtime "OT · 1–2" ... "OT · 7"
@@ -5267,7 +5269,7 @@ const E = (() => {
     const curPer = L.periodOf(st.n, D.ru).per;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + (st.a + live.a) + possArrow(gg, st, 'a') + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && possStakes(liveLabel(gg)) && !decidedSide(gg) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : (tipsOn() ? 'Not started' : '')) + '</span>' + (decidedSide(gg) ? '<div class="decided dc-' + decidedSide(gg) + '">' + esc(pname(decidedSide(gg) === 'a' ? gg.a : gg.h)) + ' wins</div>' : '')) +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st' + (!st.final && possStakes(liveLabel(gg)) && !decidedSide(gg) ? ' stakes' : '') + '">' + esc(st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.n || gameStarted(gg) ? liveLabel(gg) : 'Not started') + '</span>' + (decidedSide(gg) ? '<div class="decided dc-' + decidedSide(gg) + '">' + esc(pname(decidedSide(gg) === 'a' ? gg.a : gg.h)) + ' wins</div>' : '')) +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
