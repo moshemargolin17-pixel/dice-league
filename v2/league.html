@@ -3558,7 +3558,7 @@ const E = (() => {
             '</button>';
         }).join('') + '</div></section>';
     });
-    const bench = S.cfg.players.map((_, id) => id).filter(id => seatOf(id) < 0);
+    const bench = S.cfg.players.map((_, id) => id).filter(id => seatOf(id) < 0 && !S.cfg.players[id].deleted);
     if (bench.length) out += '<section class="section"><h3 class="h3 pmuted" style="color:var(--page-ink)">Not playing this season</h3><div class="tgrid">' + bench.map(id => {
       const t = careerOf(id).t;
       return '<button type="button" class="tcard" data-act="team" data-p="' + id + '"><b>' + esc(nm(id)) + '</b><div class="trow"><span>Career ' + t.w + '–' + t.l + '</span></div></button>';
@@ -3880,7 +3880,7 @@ const E = (() => {
   // pick an opponent: records and scoring against them, across all seasons
   function playerHistory(id) {
     const b = S.histOpp != null && S.histOpp !== id && S.cfg.players[S.histOpp] ? S.histOpp : null;
-    const opts = S.cfg.players.map((_, q) => q).filter(q => q !== id).sort((x, y) => nm(x).localeCompare(nm(y)));
+    const opts = S.cfg.players.map((_, q) => q).filter(q => q !== id && !S.cfg.players[q].deleted).sort((x, y) => nm(x).localeCompare(nm(y)));
     let body = '';
     if (b != null) {
       const datas = allSeasonData();
@@ -4320,8 +4320,8 @@ const E = (() => {
       (L.confCount() > 1 ? '<div class="frow">' + confList().map(i => '<div class="field"><label for="conf' + i + '">Conference ' + (i + 1) + '</label><input type="text" id="conf' + i + '" value="' + esc(c.confNames[i] || (i ? 'West' : 'East')) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       (L.hasDivs() ? '<div class="frow">' + divList().map(i => '<div class="field"><label for="div' + i + '">Division ' + (i + 1) + (L.confCount() > 1 ? ' (' + confName(L.confOf(L.divIds(i)[0])) + ')' : '') + '</label><input type="text" id="div' + i + '" value="' + esc(c.divNames[i] || 'Division ' + (i + 1)) + '" maxlength="24"></div>').join('') + '</div>' : '') +
       '<div><button type="submit" class="btn primary">Save names</button></div></form></div>';
-    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th></tr>' +
-      c.players.map((pl, p) => { const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + '<td>' + ratingSel('poff' + p, pl.off, 'Offense of ' + esc(pl.name) + ', in stars') + '</td><td>' + ratingSel('pdef' + p, pl.def, 'Defense of ' + esc(pl.name) + ', in stars') + '</td></tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
+    out += '<div class="panel"><form class="form" data-form="teams"><div class="shead"><h3 class="h3">Players</h3>' + tip('<span class="note">' + RATINGS_TIP + '</span>') + '</div><div class="tscroll"><table class="tbl stick2"><tr><th class="l">#</th><th class="l">Name</th><th class="l">Short name</th><th class="l">This season</th><th class="l">Type</th><th>Offense</th><th>Defense</th><th></th></tr>' +
+      c.players.map((pl, p) => { if (pl.deleted) return ''; const seat = seatOf(p); return '<tr><td class="l">' + (p + 1) + '</td><td class="l"><input type="text" class="nm" id="pn' + p + '" value="' + esc(pl.name) + '" maxlength="28" aria-label="Name of player ' + (p + 1) + '"></td><td class="l"><input type="text" class="sh" id="psh' + p + '" value="' + esc(pl.short) + '" maxlength="4" aria-label="Short name of player ' + (p + 1) + '"></td><td class="l">' + (seat >= 0 ? (groupLabel(seat) || 'Playing') : '<span class="muted">Not playing</span>') + '</td><td class="l">' + typeSel('pty' + p, pl.type, 'Type of ' + esc(pl.name), typesLocked()) + '</td>' + '<td>' + ratingSel('poff' + p, pl.off, 'Offense of ' + esc(pl.name) + ', in stars') + '</td><td>' + ratingSel('pdef' + p, pl.def, 'Defense of ' + esc(pl.name) + ', in stars') + '</td><td>' + (seat < 0 ? '<button type="button" class="linkbtn" data-act="delplayer" data-v="' + p + '">' + (S.confirm === 'del' + p ? 'Tap again to delete' : 'Delete') + '</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' + (typesLocked() ? '<div class="note">Types are locked until Season ' + s.n + ' is over. Ratings and names can change any time.</div>' : '<div class="note">Set each player’s type now: types lock when Day 1 starts and stay until the season is over.</div>') + '<button type="submit" class="btn primary">Save players</button></form>' +
       '<form class="form addplayer" data-form="addplayer"><h3 class="h3">Add a player</h3><div class="frow"><div class="field"><label for="addName">Name</label><input type="text" id="addName" maxlength="28"></div><div class="field short"><label for="addShort">Short name</label><input type="text" id="addShort" maxlength="4" placeholder="Auto"></div><div class="field short"><label for="addType">Type</label>' + typeSel('addType', 'n', 'Type') + '</div>' + '<div class="field short"><label for="addOff">Offense</label>' + ratingSel('addOff', 3, 'Offense, in stars') + '</div><div class="field short"><label for="addDef">Defense</label>' + ratingSel('addDef', 3, 'Defense, in stars') + '</div></div><div><button type="submit" class="btn">Add player</button></div><div class="note">Up to 4 letters for the short name, like GSW. New players keep their profile for good and can play starting next season.</div></form></div>';
     out += setupPanel();
     const fin = D.games.filter(g => g.st.final).length;
@@ -4350,7 +4350,7 @@ const E = (() => {
   function rosterFor(n, base) {
     const out = [];
     (base || []).forEach(id => { if (out.length < n && !out.includes(id) && S.cfg.players[id]) out.push(id); });
-    for (let id = 0; out.length < n && id < S.cfg.players.length; id++) if (!out.includes(id)) out.push(id);
+    for (let id = 0; out.length < n && id < S.cfg.players.length; id++) if (!out.includes(id) && !S.cfg.players[id].deleted) out.push(id);
     while (out.length < n) { S.cfg.players.push({ name: 'Player ' + (S.cfg.players.length + 1) }); out.push(S.cfg.players.length - 1); }
     normPlayers(S.cfg);
     return out;
@@ -4366,7 +4366,7 @@ const E = (() => {
     const u = S.setup;
     if (!u) { S.view = 'settings'; return viewSettings(); }
     const n = u.next ? S.season.n + 1 : S.season.n;
-    const ids = S.cfg.players.map((_, id) => id).sort((x, y) => nm(x).localeCompare(nm(y)));
+    const ids = S.cfg.players.map((_, id) => id).filter(id => !S.cfg.players[id].deleted).sort((x, y) => nm(x).localeCompare(nm(y)));
     const bench = ids.filter(id => !u.roster.includes(id));
     const grs = seatGroups();
     const per = grs[0].ids.length;
@@ -5719,6 +5719,9 @@ const E = (() => {
           toast('Saved who’s playing this season.');
         }
         break;
+      case 'delplayer':
+        if (armConfirm('del' + el.dataset.v)) deletePlayer(+el.dataset.v);
+        break;
       case 'reset':
         if (armConfirm('reset')) resetLeague();
         break;
@@ -5962,6 +5965,21 @@ const E = (() => {
       console.error(e);
       toast(e && e.name === 'QuotaExceededError' ? 'This browser is out of storage space.' : 'Restore failed. Your backup file is unchanged; try again.');
     }
+  }
+  // delete a player who has never played: they're hidden for good (their number stays taken, so no other player's record moves)
+  async function deletePlayer(id) {
+    const pl = S.cfg.players[id];
+    if (!pl || pl.deleted) return;
+    if (seatOf(id) >= 0) { toast(pl.name + ' is playing this season.'); return; }
+    for (const n of S.cfg.seasons) {
+      if (n === S.season.n) continue;
+      const d = await loadPast(n).catch(() => null);
+      if (!d) { toast('Couldn’t check Season ' + n + '. Try again.'); return; }
+      if (seatIn(d, id) >= 0) { toast(pl.name + ' played in Season ' + n + ', so they stay. Leave them out with Not playing.'); S.confirm = null; render(); return; }
+    }
+    pl.deleted = true; S.confirm = null;
+    await Store.write('league/config', S.cfg);
+    render(); toast(pl.name + ' deleted.');
   }
   // restart the current season: erase its games and start again from Day 1 (same number, players, league setup and schedule)
   async function resetSeason() {
