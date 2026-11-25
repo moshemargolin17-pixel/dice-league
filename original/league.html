@@ -4328,7 +4328,7 @@ const E = (() => {
     const x = gg.sid ? (D.season.post.series || []).find(s => s.id === gg.sid) : null;
     const head = (gg.type === 'reg' ? (D.cur ? '' : 'Season ' + D.season.n + ' · ') + 'Day ' + gg.day : esc(roundName(gg.round)) + (x && x.bo > 1 ? ' · Game ' + gg.no : '') + ' · Day ' + gg.day);
     let body = '<div class="scoreboard"><div class="board"><div class="side">' + teamLink(gg.a, gg) + '<small>' + recStreak(gg, gg.a) + '</small><div class="big">' + st.a + '</div></div>' +
-      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? 'Tip-off' : 'Not started') + '</span>') +
+      '<div class="mid">' + (!st.n && onToday(gg) && !gameStarted(gg) ? '<button type="button" class="btn primary startgame" data-act="startgame">Start Game</button>' : '<span class="mid-st">' + esc(st.n ? (st.final ? 'Final' + (st.ot ? (st.ot === 1 ? ' / OT' : ' / ' + st.ot + 'OT') : '') : st.label) : gameStarted(gg) ? 'Tip-off' : (tipsOn() ? 'Not started' : '')) + '</span>') +
       // series wins as of this game, each on its player's side: away left, home right
       // in a series, each player's series wins sit on the outside of the line score: away left, home right
       (() => {
