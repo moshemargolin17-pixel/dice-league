@@ -2269,8 +2269,8 @@ const E = (() => {
   const nm = id => (S.cfg.players[id] && S.cfg.players[id].name) || 'Player ' + (id + 1);
   const snm = id => (S.cfg.players[id] && S.cfg.players[id].short) || 'P' + (id + 1);
   const P = p => S.cfg.players[pid(p)];
-  // 2.0 player types: they decide which shots are 3-pointers on die 1 (b = Rebounder, n = Forward, s = Guard)
-  const PTYPES = { b: 'Rebounder', n: 'Forward', s: 'Guard' };
+  // 2.0 player types: they decide which shots are 3-pointers on die 1 (b = Rebounder, n = All-Rounder, s = Shooter)
+  const PTYPES = { b: 'Rebounder', n: 'All-Rounder', s: 'Shooter' };
   // Types are set before a season begins and stay until it's over: locked once Day 1 has started.
   const typesLocked = () => { const s = S.season; return !!s && s.phase !== 'done' && (s.day.active || s.day.cur > 1 || Object.values(S.days).some(d => Object.keys(d.games || {}).length)); };
   const firstSel = (id, v, label) => '<select id="' + id + '" aria-label="' + label + '">' + [['o', 'Offense'], ['d', 'Defense']].map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
@@ -3128,7 +3128,7 @@ const E = (() => {
   // 2.0 ratings are stored as stars (5 best): options from 5 stars down to 1
   const ratingSel = (id, v, label) => '<select id="' + id + '" class="rsel" aria-label="' + label + '">' + [5, 4, 3, 2, 1].map(n => '<option value="' + n + '"' + (v === n ? ' selected' : '') + ' aria-label="' + n + (n === 1 ? ' star' : ' stars') + '">' + '★'.repeat(n) + '☆'.repeat(5 - n) + '</option>').join('') + '</select>';
   const typeSel = (id, v, label, off) => '<select id="' + id + '" aria-label="' + label + '"' + (off ? ' disabled title="Locked until the season is over"' : '') + '>' + Object.entries(PTYPES).map(([k, t]) => '<option value="' + k + '"' + (v === k ? ' selected' : '') + '>' + t + '</option>').join('') + '</select>';
-  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 contact, 5–6 a make. On contact, die 3 decides: 1–2 defensive rebound, 3 out of bounds, 4–5 fouled, 6 made and fouled (a Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled). The shooter’s Offense against the other player’s Defense: 3 or more stars higher makes the shot one number easier; 3 or more stars lower makes it one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. Type decides which shots are 3-pointers on die 1 (a Guard or Forward on 5 or 6, a Rebounder on 6) and rebounds. After a miss, die 3: 1–4 defensive rebound, 5 out of bounds, 6 offensive rebound (a Rebounder: 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder: 1–5 defensive, 6 out of bounds). Putbacks: a Guard only on a 6, a Forward 5–6, a Rebounder 4–6. Guard against Guard and Rebounder against Rebounder use the regular rules (putback 5–6). Types are set before a season begins and can’t change until it’s over.';
+  const RATINGS_TIP = 'Offense and Defense are in stars, 5 is best. Die 2 on a shot: 1–3 a miss, 4 contact, 5–6 a make. On contact, die 3 decides: 1–2 defensive rebound, 3 out of bounds, 4–5 fouled, 6 made and fouled (a Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled). The shooter’s Offense against the other player’s Defense: 3 or more stars higher makes the shot one number easier; 3 or more stars lower makes it one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. Type decides which shots are 3-pointers on die 1 (a Shooter or All-Rounder on 5 or 6, a Rebounder on 6) and rebounds. After a miss, die 3: 1–4 defensive rebound, 5 out of bounds, 6 offensive rebound (a Rebounder: 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder: 1–5 defensive, 6 out of bounds). Putbacks: a Shooter only on a 6, an All-Rounder 5–6, a Rebounder 4–6. Shooter against Shooter and Rebounder against Rebounder use the regular rules (putback 5–6). Types are set before a season begins and can’t change until it’s over.';
   const skillCallsText = ru => ru.skillOdd
     ? 'The better player gets 1 call for a gap of 1 star (2 calls for 3 stars vs 2 stars), 3 for a gap of 2, 5 for a gap of 3 and 6 for a gap of 4.'
     : 'The better player gets ' + ru.skillCalls.slice(1, 4).join(', ') + ' or ' + ru.skillCalls[4] + ' calls for a gap of 1, 2, 3 or 4 stars.';
@@ -3160,8 +3160,8 @@ const E = (() => {
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> (or the 7 key) rolls the die the game is asking for, one press per die. Auto-rolled games count like any other.']) +
       sec('Ratings and types', [
         'Die 1 is the play: a 1 is a turnover (then die 2: 1–2 a steal, 3 a steal with no fast break, 4–5 out of bounds, 6 a violation), 2–4 a 2-pointer and 5–6 a 3-pointer (a Rebounder: 2–5 a 2-pointer, only 6 a 3-pointer). A steal gives the other player a fast break, except on the last possession of a quarter.',
-        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. Die 2 on a shot: 1–3 a miss, 4 contact (die 3 decides), 5–6 a make; a make ends it (no die 3). A Rebounder’s 3-pointer: 1–4 a miss, 5 contact, 6 a make. The contact number is only contact, and die 3 decides: 1–2 a miss and defensive rebound, 3 out of bounds, 4–5 fouled (free throws on die 4), 6 made and fouled (an and-one on die 4). Out of bounds: on die 4, a 6 keeps it the shooter’s ball (roll all 4 again), 1–5 it’s the other player’s. A Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled. An advantage moves that line by one number. A fast break makes a 2-pointer one number easier (not a 3), and a 3 is one number less likely on die 1 (a Guard or Forward only on a 6, a Rebounder never) (at most 4 makes).',
-        'Every player is a <b>Guard</b>, <b>Forward</b> or <b>Rebounder</b>. Guards and Forwards shoot 3s on a 5 or 6, a Rebounder on a 6. After a miss, die 3: 1–4 a defensive rebound, 5 out of bounds, 6 an offensive rebound; a Rebounder 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder 1–5 defensive, 6 out of bounds. Guards put back only a 6, Forwards 5–6, Rebounders 4–6. Guard against Guard and Rebounder against Rebounder use the regular rules. At the line, Guards are one number better and Rebounders one number worse: an and-one goes in on 2–6 for a Guard, 3–6 for a Forward, 4–6 for a Rebounder. Fouled on a 2: 1 none, 2–3 one, 4–6 both (a Guard: 2 one, 3–6 both; a Rebounder: 2–4 one, 5–6 both). Fouled on a 3: 1 none, 2 one, 3 two, 4–6 all three (a Guard: 2 two, 3–6 three; a Rebounder: 2 one, 3–4 two, 5–6 three).',
+        'Every player has <b>Offense</b> and <b>Defense</b> stars (5 is best). On a shot, the shooter’s Offense against the other player’s Defense: 3 or more stars higher makes it one number easier, 3 or more stars lower one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. Die 2 on a shot: 1–3 a miss, 4 contact (die 3 decides), 5–6 a make; a make ends it (no die 3). A Rebounder’s 3-pointer: 1–4 a miss, 5 contact, 6 a make. The contact number is only contact, and die 3 decides: 1–2 a miss and defensive rebound, 3 out of bounds, 4–5 fouled (free throws on die 4), 6 made and fouled (an and-one on die 4). Out of bounds: on die 4, a 6 keeps it the shooter’s ball (roll all 4 again), 1–5 it’s the other player’s. A Rebounder’s 3: 1–3 defensive rebound, 4 out of bounds, 5–6 fouled. An advantage moves that line by one number. A fast break makes a 2-pointer one number easier (not a 3), and a 3 is one number less likely on die 1 (a Shooter or All-Rounder only on a 6, a Rebounder never) (at most 4 makes).',
+        'Every player is a <b>Shooter</b>, <b>All-Rounder</b> or <b>Rebounder</b>. Shooters and All-Rounders shoot 3s on a 5 or 6, a Rebounder on a 6. After a miss, die 3: 1–4 a defensive rebound, 5 out of bounds, 6 an offensive rebound; a Rebounder 1–3 defensive, 4 out of bounds, 5–6 offensive; against a Rebounder 1–5 defensive, 6 out of bounds. Shooters put back only a 6, All-Rounders 5–6, Rebounders 4–6. Shooter against Shooter and Rebounder against Rebounder use the regular rules. At the line, Shooters are one number better and Rebounders one number worse: an and-one goes in on 2–6 for a Shooter, 3–6 for an All-Rounder, 4–6 for a Rebounder. Fouled on a 2: 1 none, 2–3 one, 4–6 both (a Shooter: 2 one, 3–6 both; a Rebounder: 2–4 one, 5–6 both). Fouled on a 3: 1 none, 2 one, 3 two, 4–6 all three (a Shooter: 2 two, 3–6 three; a Rebounder: 2 one, 3–4 two, 5–6 three).',
         'Types are set in Settings before a season and stay until it’s over. Ratings can change any time; a game keeps the ratings and types it started with.']) +
       sec('Standings and the playoffs', [
         'Clinch marks show only when mathematically certain: ' + markKeys().map(k => '<b>' + k + '</b> ' + MARK_SHORT()[k].toLowerCase()).join(', ') + '.',
@@ -4415,18 +4415,18 @@ const E = (() => {
        Miss, two dice: first 1 out of bounds, 2 offensive rebound, 3–6 defensive rebound (second die not used);
               second, on an offensive rebound 1–4 no putback (keeps the ball, rolls again), 5–6 putback for 2;
               on out of bounds 1 the shooter's ball (rolls again), 2–6 the other player's. */
-  // rebounds by type (b = Rebounder, n = Forward, s = Guard). Die 3 offensive rebounds run from 2 up to orebTop:
-  //   Guard shooting: 2 (games played before: none) · Rebounder shooting: 2-3 · Forward shooting: 2-3 against a Guard, otherwise 2.
-  // Die 4 putback: Guard 6 only, Forward 5-6, Rebounder 4-6.
-  //   Guard on Guard and Rebounder on Rebounder play the regular (Forward) rebound rules.
+  // rebounds by type (b = Rebounder, n = All-Rounder, s = Shooter). Die 3 offensive rebounds run from 2 up to orebTop:
+  //   Shooter shooting: 2 (games played before: none) · Rebounder shooting: 2-3 · All-Rounder shooting: 2-3 against a Shooter, otherwise 2.
+  // Die 4 putback: Shooter 6 only, All-Rounder 5-6, Rebounder 4-6.
+  //   Shooter on Shooter and Rebounder on Rebounder play the regular (All-Rounder) rebound rules.
   const rebType = (type, opp) => (type === opp && type !== 'n' ? 'n' : type) || 'n';
   const orebTop = (type, opp, old) => { const t = rebType(type, opp); return t === 's' ? (old && old.gr ? 1 : 2) : t === 'b' ? 3 : opp === 's' && type !== 's' ? 3 : 2; };
   const PUTBACK = { b: 4, n: 5, s: 6 };
-  // free throws by type (die 4): Guard (s) one number better, Rebounder (b) one number worse, Forward (n) in between
+  // free throws by type (die 4): Shooter (s) one number better, Rebounder (b) one number worse, All-Rounder (n) in between
   const AND1_MAKE = { s: 2, n: 3, b: 4 };
   const FT2 = { s: [0, 1, 1, 2, 2, 2], n: [0, 1, 1, 1, 2, 2], b: [0, 0, 1, 1, 1, 2] };   // games played before FT2N
-  // fouled on a 2 (die 4): 1 none, 2-3 one, 4-6 both; a Guard 2 one, 3-6 both; a Rebounder 2-4 one, 5-6 both
-  // fouled on a 3 (die 4): 1 none, 2 one, 3 two, 4-6 three; a Guard 2 two, 3-6 three; a Rebounder 2 one, 3-4 two, 5-6 three
+  // fouled on a 2 (die 4): 1 none, 2-3 one, 4-6 both; a Shooter 2 one, 3-6 both; a Rebounder 2-4 one, 5-6 both
+  // fouled on a 3 (die 4): 1 none, 2 one, 3 two, 4-6 three; a Shooter 2 two, 3-6 three; a Rebounder 2 one, 3-4 two, 5-6 three
   const FT3N = { s: [0, 2, 3, 3, 3, 3], n: [0, 1, 2, 3, 3, 3], b: [0, 1, 2, 2, 3, 3] };
   const FT2N = { s: [0, 1, 2, 2, 2, 2], n: [0, 1, 1, 2, 2, 2], b: [0, 1, 1, 1, 2, 2] };
   const FT3 = { s: [0, 1, 2, 3, 3, 3], n: [0, 1, 2, 2, 3, 3], b: [0, 0, 1, 2, 2, 3] };
@@ -4466,8 +4466,8 @@ const E = (() => {
         if (old && old.tv ? t2 >= 4 : t2 <= 3) { bx.ostl++; say('stl'); parts.push('turnover (stolen)'); steal = true; return out(true); }
         say('dead'); parts.push('turnover (dead ball)'); return out(true);
       }
-      // 3-pointers on die 1. Now: Guard and Forward 5-6, Rebounder 6. Games played before (old.sh): Guard 5-6, Forward 6, Rebounder none
-      const fb = first && fast, fb1 = fb && !(old && old.fbs);   // a fast break: one number fewer for a 3 (Guard and Forward only on a 6, a Rebounder never)
+      // 3-pointers on die 1. Now: Shooter and All-Rounder 5-6, Rebounder 6. Games played before (old.sh): Shooter 5-6, All-Rounder 6, Rebounder none
+      const fb = first && fast, fb1 = fb && !(old && old.fbs);   // a fast break: one number fewer for a 3 (Shooter and All-Rounder only on a 6, a Rebounder never)
       const val = old && old.sh ? (type === 's' ? (d1 >= 5 ? 3 : 2) : type === 'b' ? 2 : (d1 === 6 ? 3 : 2)) : (type === 'b' ? (d1 === 6 && !fb1 ? 3 : 2) : (d1 >= (fb1 ? 6 : 5) ? 3 : 2));
       first = false;
       say('sh', { v: val, fb });
@@ -4528,7 +4528,7 @@ const E = (() => {
         if (i >= dice.length) return out(false, 'Free throws');
         const f2 = dice[i++];
         if (f1 === 6) {
-          const ft = f2 >= AND1_MAKE[ftOld ? 'n' : type || 'n'] ? 1 : 0;   // free throws by type: Guards better, Rebounders worse (not in games played before that rule)
+          const ft = f2 >= AND1_MAKE[ftOld ? 'n' : type || 'n'] ? 1 : 0;   // free throws by type: Shooters better, Rebounders worse (not in games played before that rule)
           say(ft ? 'a1m' : 'a1x', { p: ft, v: val });
           pts += ft;
           shot(val, true); bx.fta++; bx.ftm += ft; bx.a1++; if (fb) bx.fbp += val + ft;
@@ -4598,8 +4598,8 @@ const E = (() => {
     if (d <= -3 || (d === -2 && th[1] === 'd')) return -2; // the other player's defense advantage
     return 0;
   };
-  // games logged before free throws went by type keep the old free throws (all like a Forward)
-  // games logged before a rule change keep the rules they were played with: ft (free throws all like a Forward), to (die 1 = 2 a steal)
+  // games logged before free throws went by type keep the old free throws (all like an All-Rounder)
+  // games logged before a rule change keep the rules they were played with: ft (free throws all like an All-Rounder), to (die 1 = 2 a steal)
   const possOld = g => { const r = recOf(g), had = !!(r && r.p && r.p.length); return { ft: had && !r.ft2, to: had && !r.to2, sh: had && !r.sh2, d2: had && !r.d22, adv: had && !r.ad1, tv: had && !r.tv2, pf: had && !r.pf1, p2: had && !r.pf2, f2: had && !r.fq2, f3: had && !r.fq3, ob: had && !r.ob6, gr: had && !r.gr1, rb: had && !r.rb2, fb3: had && !r.nf3, fbs: had && !r.fb1, t3: had && !r.tv3, cd: had && !r.cd1 }; };
   const possTy = (g, side) => { const r = recOf(g); return (r && r.ty ? r.ty[side === 'a' ? 0 : 1] : r && r.p && r.p.length ? 'n' : P(side === 'a' ? g.a : g.h).type) || 'n'; };
   // is this possession a fast break? (the possession before it ended in a steal)
@@ -5448,7 +5448,7 @@ const E = (() => {
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
         b: '<p>Tap a game to open it and press <b>Start Game</b>. Whoever has the ball rolls all 4 dice at once. The game asks for one die at a time by its color and tells you what happened, play by play. The roll logs itself when both possessions are done.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Ratings and types',
-        b: '<p>Every player has <b>Offense</b> and <b>Defense</b> stars and a type: <b>Guard</b>, <b>Forward</b> or <b>Rebounder</b>. When the shooter’s Offense is 3 or more stars above the other player’s Defense, the shot is one number easier; 3 or more below, one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. The type decides 3-pointers, rebounds and free throws.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
+        b: '<p>Every player has <b>Offense</b> and <b>Defense</b> stars and a type: <b>Shooter</b>, <b>All-Rounder</b> or <b>Rebounder</b>. When the shooter’s Offense is 3 or more stars above the other player’s Defense, the shot is one number easier; 3 or more below, one number harder. Home court: if the home player is 2 stars better on Offense (their Offense above the away player’s Defense) or on Defense (their Defense above the away player’s Offense), or 1 star better in the final 3 possessions of the game, they get one advantage: their shots one number easier, or the away player’s shots one number harder. Better on both: their preset in Settings (Advantage first) picks which. The type decides 3-pointers, rebounds and free throws.</p><p>Set them in <b>Settings → Players</b>. Types lock when a season starts.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
         b: '<p>The whole schedule as a calendar. It opens on today; tap a day to see its games, and use the arrows for earlier or later days.</p><p>Pick a name under <b>Player schedule</b> to see one player’s whole season.</p>' },
       { view: 'standings', at: 'main .tbl tr', t: 'Standings',
