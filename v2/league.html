@@ -4520,7 +4520,7 @@ const E = (() => {
           //   (a Rebounder's 3: 1-4 defensive rebound, 5 out of bounds, 6 fouled). Games played before: the older contact table.
           const c3n = val === 3 && !(old && old.c3);
           if (c3n ? !c3 && f >= 5 && d1 === 6 && old && old.a3 : !c3 && f === 6) {   // a 3 and-one: only in games played before (now a foul on a 3 is always 3 free throws)
-            pts += val; say('and1', { v: val, p: val }); shot(val, true); if (fb) bx.fbp += val;
+            pts += val; say('and1', { v: val, p: val, q: 1 }); shot(val, true); if (fb) bx.fbp += val;
             parts.push((fb ? 'fast break, ' : '') + 'made ' + val + ' and fouled');
             if (i >= dice.length) return out(false, 'And-one free throw');
             const ft = dice[i++] >= AND1_MAKE[ftType] ? 1 : 0;
@@ -4532,7 +4532,7 @@ const E = (() => {
           else if (f < (c3 ? 5 : 4)) rk = f === (c3 ? 4 : 3) ? 'b' : 'd';
         }
         if (d2 === low - 1 && !rk) {
-          say('flm', { v: val });
+          say('flm', { v: val, q: ct ? 1 : 0 });   // q: after contact (already said as a miss): just 'Fouled'
           if (i >= dice.length) return out(false, 'Free throws');
           const made = (val === 3 ? (old && old.f3 ? FT3 : FT3N) : old && old.f2 ? FT2 : FT2N)[ftType][dice[i++] - 1];
           pts += made; say('ft', { v: val, m: made, p: made });
@@ -4562,7 +4562,7 @@ const E = (() => {
         return out(true);
       }
       if (old && old.d2 && d2 >= makeLow(edge, fb)) { pts += val; say('mk', { v: val, fb, p: val }); shot(val, true); if (fb) bx.fbp += val; parts.push((fb ? 'fast break, ' : '') + 'made ' + val); return out(true); }
-      shot(val, false); say('ms', { v: val });
+      shot(val, false); if (!rk) say('ms', { v: val });   // after contact the miss was already said
       parts.push((fb ? 'fast break, ' : '') + (rk ? 'no foul, ' : '') + 'missed ' + val);
       if (!rk && i >= dice.length) return out(false, 'Rebound');
       const r1 = rk ? 0 : dice[i++], rb = rk || (old && old.rb ? (r1 > orebTop(type, opp, old) ? 'd' : r1 === 1 ? 'b' : 'o')
@@ -4767,9 +4767,9 @@ const E = (() => {
       case 'mk': return me + ' makes the ' + shot(e.v);
       case 'ms': return me + ' misses the ' + shot(e.v);
       case 'fl': return th + ' fouls ' + me;
-      case 'flq': return 'Contact on ' + me + '’s shot';
-      case 'flm': return th + ' fouls ' + me + ', misses the shot';
-      case 'and1': return me + ' makes the ' + shot(e.v) + ', and-one';
+      case 'flq': return me + ' misses the ' + shot(e.v);
+      case 'flm': return e.q ? th + ' fouls ' + me : th + ' fouls ' + me + ', misses the shot';
+      case 'and1': return e.q ? th + ' fouls ' + me + ', the shot counts, and-one' : me + ' makes the ' + shot(e.v) + ', and-one';
       case 'nogo': return me + ' misses the shot, ' + e.v + ' free throws';
       case 'a1m': return me + ' makes the free throw';
       case 'a1x': return me + ' misses the free throw';
@@ -4797,10 +4797,10 @@ const E = (() => {
       case 'mk': return 'Makes the ' + shot(e.v);
       case 'ms': return 'Misses the ' + shot(e.v);
       case 'fl': return 'Fouled';
-      case 'flq': return 'Contact on the shot';
-      case 'flm': return 'Fouled, misses the shot';
+      case 'flq': return 'Misses the ' + shot(e.v);
+      case 'flm': return e.q ? 'Fouled' : 'Fouled, misses the shot';
       case 'a1f': return 'Fouled, and-one';
-      case 'and1': return 'Makes the ' + shot(e.v) + ', and-one';
+      case 'and1': return e.q ? 'Fouled, the shot counts, and-one' : 'Makes the ' + shot(e.v) + ', and-one';
       case 'nogo': return 'Misses the shot, ' + e.v + ' free throws';
       case 'a1m': return 'Makes the free throw';
       case 'a1x': return 'Misses the free throw';
