@@ -4190,6 +4190,13 @@ const E = (() => {
     const l = al.lvl ? al.lvl[side] : 0;
     return l === 2 ? 'Double advantage' : l === 1 ? 'Single advantage' : 'No advantage';
   }
+  // Enter starts what's waiting: the game (in an open game) or the day
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.repeat || (typeof Tour !== 'undefined' && Tour.cur)) return;
+    if (e.target.closest && e.target.closest('input, select, textarea, [contenteditable]' + (S.sheet && !e.target.closest('#sheetHost') ? '' : ', button, a, .gcard, .grow'))) return;
+    const b = S.sheet ? document.querySelector('#sheetHost [data-act=startgame]') : document.querySelector('[data-act=start]');
+    if (b && !b.disabled) { e.preventDefault(); e.stopImmediatePropagation(); b.click(); }
+  }, true);
   document.addEventListener('keydown', e => {
     const card = e.target.closest('.gcard, .grow');
     if (card && e.target === card && ['Enter', ' '].includes(e.key)) { e.preventDefault(); card.click(); }

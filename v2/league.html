@@ -4400,6 +4400,13 @@ const E = (() => {
     const l = al.lvl ? al.lvl[side] : 0;
     return l === 2 ? 'Double advantage' : l === 1 ? 'Single advantage' : 'No advantage';
   }
+  // Enter starts what's waiting: the quarter (or overtime), the game, or the day
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.repeat || (typeof Tour !== 'undefined' && Tour.cur)) return;
+    if (e.target.closest && e.target.closest('input:not(#pIn), select, textarea, [contenteditable]' + (S.sheet && !e.target.closest('#sheetHost') ? '' : ', button, a, .gcard, .grow'))) return;
+    const b = S.sheet ? document.querySelector('#sheetHost [data-act=startq], #sheetHost [data-act=startgame]') : document.querySelector('[data-act=start]');
+    if (b && !b.disabled) { e.preventDefault(); e.stopImmediatePropagation(); b.click(); }
+  }, true);
   document.addEventListener('keydown', e => {
     const card = e.target.closest('.gcard, .grow');
     if (card && e.target === card && ['Enter', ' '].includes(e.key)) { e.preventDefault(); card.click(); }
@@ -4876,14 +4883,30 @@ const E = (() => {
     const slots = sd ? '<div class="pslots four">' + [1, 2, 3, 4].map(n => { const v = grp[n - 1]; return '<div class="pslot' + (n === next ? ' on' : '') + (n > 2 ? ' small' : '') + (v == null && n !== next ? ' wait' : '') + '"><span class="die ' + sd + n + '"></span><span class="ps-n" title="' + dieName(sd, n) + '">' + dieName(sd, n).replace(/^Small (.)/, (m, c) => c.toUpperCase()).replace(/ die$/, '') + '</span><span class="pd ps-v' + (v != null ? ' ' + sd + n : '') + '">' + (v != null ? v : '') + '</span></div>'; }).join('') + '</div>' : '';
     return '<div class="entry possentry"><div class="ehead"><span>Possession ' + (curPoss(g) + 1) + (curPoss(g) < 48 ? ' <small>of 48</small>' : ' <small>overtime</small>') + '</span><span class="num' + (possStakes(possWords(curPoss(g))) && !decidedSide(g) ? ' stakes' : '') + '">' + esc(possWords(curPoss(g))) + '</span></div>' +
       '<div class="epair">' + pair + '</div>' +
-      (sd ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
+      (sd && periodWaiting(g) ? '<div class="ppad pstart"><div class="pask">' + esc(liveLabel(g)) + '</div><button type="button" class="btn primary big" data-act="startq" aria-keyshortcuts="Enter">' + periodStartLabel(periodWaiting(g)) + ' <small class="kbd">Enter</small></button></div>' : '') +
+      (sd && !periodWaiting(g) ? '<div class="ppad"><div class="pask"><b>' + esc(pname(sd === 'a' ? g.a : g.h)) + '</b> · ' + (len % 4 === 0 ? 'roll all 4 dice. ' : '') + 'What’s the <span class="die ' + sd + next + '"></span><b>' + dieName(sd, next).toLowerCase() + '</b>?' + (fastNow ? ' <span class="fbtag">Fast break</span>' : '') + '</div>' + slots +
         '<input type="text" id="pIn" class="pin" inputmode="numeric" pattern="[1-6]*" autocomplete="off" maxlength="1" placeholder="Press a number" aria-label="' + esc(dieName(sd, next)) + '">' +
         '<div class="chips pk-' + sd + next + '">' + [1, 2, 3, 4, 5, 6].map(v => '<button type="button" class="chip" data-act="pdie" data-v="' + v + '">' + v + '</button>').join('') + '</div></div>' : '') +
       '<div class="eacts"><button type="button" class="btn" data-act="' + (anyIn ? 'pback' : 'undo') + '"' + (anyIn || st.n ? '' : ' disabled') + '>' + (anyIn ? 'Back' : 'Undo') + '</button>' + (canAuto(g) ? '<button type="button" class="btn" data-act="autoroll" aria-keyshortcuts="7">Auto roll <small class="kbd">7</small></button>' : '') + '</div>' + '</div>';
   }
+  // between quarters (and before each overtime) the next one waits for its Start button: which period is waiting, or 0
+  function periodWaiting(g) {
+    if (!D.ru.poss || !g || g.st.final || !gameStarted(g)) return 0;
+    const now = possNow(g); if (!now.side || now.dr.a.length || now.dr.h.length) return 0;
+    const i = curPoss(g); if (!i) return 0;
+    const first = i < 48 ? i % 12 === 0 : (i - 48) % 7 === 0; if (!first) return 0;
+    const per = possPer(i).per, r = recOf(g);
+    return r && (r.qs || 1) >= per ? 0 : per;
+  }
+  const periodStartLabel = per => per <= 4 ? 'Start ' + ['', '1st', '2nd', '3rd', '4th'][per] + ' quarter' : 'Start ' + (per === 5 ? 'overtime' : L.perLabel(per));
+  function startPeriod(g) {
+    const per = periodWaiting(g); if (!per) return;
+    ensureEntry(g).qs = per; saveDay(g.day, 0);
+    renderSheet(); render();
+  }
   function possDie(v) {
     const g = D.byId[S.sheet.gid];
-    if (!g || !editable(g) || g.st.final) return;
+    if (!g || !editable(g) || g.st.final || periodWaiting(g)) return;
     const now = possNow(g);
     if (!now.side) return;
     now.dr[now.side].push(v);
@@ -5636,6 +5659,7 @@ const E = (() => {
       case 'tskip': tourSkip(); break;
       case 'tdone': tourEnd(); break;
       case 'startgame': startGame(D.byId[S.sheet.gid]); break;
+      case 'startq': startPeriod(D.byId[S.sheet.gid]); break;
       case 'pdie': possDie(+el.dataset.v); break;
       case 'pback': possBack(); break;
       case 'sertab': S.serTab = { gid: S.sheet && S.sheet.gid, v: el.dataset.v }; renderSheet(); break;
