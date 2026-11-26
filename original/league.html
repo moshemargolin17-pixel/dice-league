@@ -4189,20 +4189,24 @@ const E = (() => {
     const l = al.lvl ? al.lvl[side] : 0;
     return l === 2 ? 'Double advantage' : l === 1 ? 'Single advantage' : 'No advantage';
   }
-  // Backspace in an open game: close it and go back to the home page (in a box with something typed, it deletes as usual)
+  // Backspace in an open game: clear a half-typed roll first, then undo the last roll
   document.addEventListener('keydown', e => {
     if (e.key !== 'Backspace' || e.ctrlKey || e.metaKey || e.altKey || !S.sheet || S.sheet.edit) return;
     const t = e.target;
     if (t.closest && t.closest('select, textarea, [contenteditable]')) return;
     if (t.tagName === 'INPUT' && (t.value || !['rollA', 'rollH'].includes(t.id))) return;
     const typed = ['rollA', 'rollH'].map(id => document.getElementById(id)).find(x => x && x.value);
-    if (typed) { e.preventDefault(); typed.value = ''; typed.dispatchEvent(new Event('input', { bubbles: true })); typed.focus(); return; }   // half a roll typed: clear it first
-    e.preventDefault(); e.stopImmediatePropagation(); S.sheet = null; S.view = 'home'; renderSheet(); render(); window.scrollTo(0, 0);
+    if (typed) { e.preventDefault(); typed.value = ''; typed.dispatchEvent(new Event('input', { bubbles: true })); typed.focus(); return; }
+    const u = document.querySelector('#sheetHost [data-act=undo]');
+    if (u && !u.disabled) { e.preventDefault(); e.stopImmediatePropagation(); u.click(); const a = document.getElementById('rollA'); if (a) a.focus(); }
   }, true);
   // Enter starts what's waiting: the game (in an open game) or the day; once the day is going, it opens the next game
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.repeat || (typeof Tour !== 'undefined' && Tour.cur)) return;
     if (e.target.closest && e.target.closest('input, select, textarea, [contenteditable]' + (S.sheet && !e.target.closest('#sheetHost') ? '' : ', button, a, .gcard, .grow'))) return;
+    // a finished game: Enter goes back to the home page
+    const og = S.sheet && S.sheet.gid && !S.sheet.edit && D && D.byId[S.sheet.gid];
+    if (og && og.st.final) { e.preventDefault(); e.stopImmediatePropagation(); S.sheet = null; S.view = 'home'; renderSheet(); render(); window.scrollTo(0, 0); return; }
     const b = S.sheet ? document.querySelector('#sheetHost [data-act=startgame]') : document.querySelector('[data-act=start]');
     if (b && !b.disabled) { e.preventDefault(); e.stopImmediatePropagation(); b.click(); return; }
     // the day is under way: Enter opens the next game to play (one in progress first, then the next not started)
