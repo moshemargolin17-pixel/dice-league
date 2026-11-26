@@ -4473,17 +4473,14 @@ const E = (() => {
     }
     return '<section class="matchup-panel pregame"><h3 class="h3">Pregame</h3><table class="pgt"><tr><td class="pgn">' + esc(sname(gg.a)) + '</td><th></th><td class="pgn">' + esc(sname(gg.h)) + '</td></tr>' + rows + '</table></section>';
   }
-  // Game stats, under the game flow: lead changes, largest leads, the biggest run and most unanswered points
+  // Game stats, under the game flow: lead changes and largest leads
   function gameStatsPanel(gg, st) {
     const name = w => esc(sname(w === 'a' ? gg.a : gg.h));
     const rolls = gg.rolls, n = rolls.length;
     const span = (f, t) => { const p1 = L.perLabel(L.periodOf(f, D.ru).per), p2 = L.perLabel(L.periodOf(t, D.ru).per); return (t - f + 1) + (t === f ? ' roll' : ' rolls') + ' · ' + (p1 === p2 ? p1 : p1 + '–' + p2); };
-    const un = unansweredRun(rolls);
     const stat = (lab, val, sub) => '<div><small>' + lab + '</small><strong>' + val + '</strong>' + (sub ? '<span>' + sub + '</span>' : '') + '</div>';
     return '<section class="matchup-panel game-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
       stat('Lead changes', st.lc) + stat('Largest lead · ' + esc(sname(gg.a)), st.bigA) + stat('Largest lead · ' + esc(sname(gg.h)), st.bigH) +
-      // biggest run: the most points in a row while the other player scored none
-      stat('Biggest run', un ? name(un.who) + ' ' + un.pts + '–0' : '—', un ? span(un.from, un.to) : '').replace('<div>', '<div class="gfull">') +
       '</div></section>';
   }
   const mini = (k, v) => '<div><small>' + k + '</small><strong class="num">' + v + '</strong></div>';
