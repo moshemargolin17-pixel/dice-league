@@ -4207,7 +4207,7 @@ const E = (() => {
     // a finished game: Enter goes back to the home page
     const og = S.sheet && S.sheet.gid && !S.sheet.edit && D && D.byId[S.sheet.gid];
     if (og && og.st.final) { e.preventDefault(); e.stopImmediatePropagation(); S.sheet = null; S.view = 'home'; renderSheet(); render(); window.scrollTo(0, 0); return; }
-    const b = S.sheet ? document.querySelector('#sheetHost [data-act=startgame]') : document.querySelector('[data-act=start]');
+    const b = S.sheet ? document.querySelector('#sheetHost [data-act=startgame]') : document.querySelector('[data-act=start], [data-act=end]');   // Start Day, or End Day once every game is final
     if (b && !b.disabled) { e.preventDefault(); e.stopImmediatePropagation(); b.click(); return; }
     // the day is under way: Enter opens the next game to play (one in progress first, then the next not started)
     if (!S.sheet && D && D.cur && S.season.day.active) {
