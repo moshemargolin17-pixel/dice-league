@@ -4364,11 +4364,11 @@ const E = (() => {
       else msg = 'This game was not played.';
       main += tip('<div class="note">' + msg + '</div>');
     }
-    // before Start Game: the pregame. During the game: live lead stats in place of the series. Once it's final: flow and game stats
+    // before Start Game: the pregame. During the game: live lead stats with the series under them. Once it's final: flow and game stats
     const liveGame = !st.final && (st.n > 0 || gameStarted(gg)) && !S.sheet.edit;
     if (!st.n && !S.sheet.edit && !st.final && !gameStarted(gg)) main += pregamePanel(gg, x);
     if (liveGame) aside = '<section class="matchup-panel game-stats live-stats"><h3 class="h3">Game stats</h3><div class="gstats">' +
-      '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>';
+      '<div><small>Lead changes</small><strong>' + st.lc + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.a)) + '</small><strong>' + st.bigA + '</strong></div><div><small>Largest lead · ' + esc(sname(gg.h)) + '</small><strong>' + st.bigH + '</strong></div></div></section>' + series;   // with the season (or playoff) series under it
     if (st.final && !S.sheet.edit) {
       main += gameStatsPanel(gg, st) + flowChart(gg, st);
     }
