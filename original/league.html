@@ -639,9 +639,9 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .flow .section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .flow-key{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .flow-key i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-left:6px}
-.flow-key .ka{background:#141414}.flow-key .kh{background:#FFFFFF;box-shadow:inset 0 0 0 1px #7C828C}
+.flow-key .ka{background:#D33A2C}.flow-key .kh{background:#2E6BD8}
 .flowsvg{width:100%;height:auto;display:block}
-.flowsvg .fa{fill:#141414;opacity:.3}.flowsvg .fh{fill:#C3C7CE;opacity:.7}
+.flowsvg .fa{fill:#D33A2C;opacity:.28}.flowsvg .fh{fill:#2E6BD8;opacity:.28}
 .flowsvg .fline{fill:none;stroke:var(--ink);stroke-width:2;stroke-linejoin:round}
 .flowsvg .f0{stroke:var(--muted);stroke-width:1}
 .flowsvg .fq{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
@@ -767,9 +767,9 @@ html[data-design="chalk"] .board .big{font-weight:400}
 .callform{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .callform select{min-height:38px;max-width:100%}
 .die{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
-.die.blk{background:#141414;box-shadow:inset 0 0 0 1px rgba(255,255,255,.45)}.die.wht{background:#FFFFFF;box-shadow:inset 0 0 0 1px #7C828C}
+.die.red{background:#D33A2C}.die.blue{background:#2F6FDB}
 .ctag{display:inline-block;margin-left:6px;padding:0 5px;border-radius:3px;font-size:10.5px;font-weight:700;border:1px solid var(--line)}
-.ctag.h{color:#141414;background:#FFFFFF;border-color:#7C828C}.ctag.a{color:#FFFFFF;background:#141414;border-color:#141414}
+.ctag.h{color:#2F6FDB;border-color:#2F6FDB}.ctag.a{color:#D33A2C;border-color:#D33A2C}
 .shbtns{display:flex;gap:8px;align-items:center}
 .editbox{display:flex;flex-direction:column;gap:8px}
 .esel{min-height:34px;width:64px}
@@ -2957,7 +2957,7 @@ const E = (() => {
       '<div class="howtos">' +
       sec('Logging games', [
         'Press <b>Start Day</b> (bottom left) to open a game night, then open a game and press <b>Start Game</b> (between the two scores) to start logging it. Until then the game shows its pregame. <b>End Day</b> appears once every game is final. A day also ends by itself 12 hours after the last final.',
-        'Roll the black die for the away player and the white die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
+        'Roll the red die for the away player and the blue die for the home player. A rolled 1 counts as 0. Tap a number on each side, then <b>Log roll</b> (or type and press Enter).',
         'A game is 24 rolls, 6 per 9-minute quarter. A tie after 24 goes to overtime, 3 rolls at a time, until someone wins.',
         '<b>Undo</b> removes the last roll. Finished games have <b>Edit</b>: change any roll, then Save.',
         '<b>Auto roll</b> (turn it on in Settings) lets the site roll for you: <b>Auto roll</b> rolls the next roll for you. Auto-rolled games count like any other.']) +
@@ -4175,10 +4175,10 @@ const E = (() => {
   }
 
   /* ---------- sheet ---------- */
-  const SIDE_TXT = { a: 'Away · black die', h: 'Home · white die' };
+  const SIDE_TXT = { a: 'Away · red die', h: 'Home · blue die' };
   function callText(g, c) {
     const who = esc(pname(c.s === 'a' ? g.a : g.h));
-    const myDie = c.s === 'a' ? 'black' : 'white', oppDie = c.s === 'a' ? 'white' : 'black';
+    const myDie = c.s === 'a' ? 'red' : 'blue', oppDie = c.s === 'a' ? 'blue' : 'red';
     const tag = (c.k === 'x' ? 'home call, ' : '') + (c.t === 'o' ? 'offense' : 'defense');
     const how = c.t === 'o' ? 're-roll the ' + myDie + ' die, keep the higher' : 're-roll the ' + oppDie + ' die, keep the lower';
     return { who, tag, how };
@@ -4213,7 +4213,7 @@ const E = (() => {
     const faces = ru.faces || Array.from({ length: 13 }, (_, i) => i);
     const pad = (id, side) => {
       const p = side === 'a' ? g.a : g.h;
-      return '<div class="eside"><div class="elab"><span class="die ' + (side === 'a' ? 'blk' : 'wht') + '"></span><span class="enm">' + esc(pname(p)) + '</span><small>' + (side === 'a' ? 'away · black' : 'home · white') + '</small></div>' +
+      return '<div class="eside"><div class="elab"><span class="die ' + (side === 'a' ? 'red' : 'blue') + '"></span><span class="enm">' + esc(pname(p)) + '</span><small>' + (side === 'a' ? 'away · red' : 'home · blue') + '</small></div>' +
         '<input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="' + id + '" maxlength="' + (ru.faces ? 2 : 2) + '" placeholder="–" aria-label="' + esc(pname(p)) + ' points">' +
         '<div class="chips' + (faces.length > 6 ? ' many' : '') + '">' + faces.map(i => '<button type="button" class="chip" data-act="chip" data-t="' + id + '" data-v="' + i + '">' + i + '</button>').join('') + '</div></div>';
     };
@@ -4492,7 +4492,7 @@ const E = (() => {
     try { localStorage.setItem(LSK + 'theme', t); } catch (e) { /* ignore */ }
   }
   function brandMark() {
-    return '<svg class="logo" width="38" height="38" viewBox="0 0 44 44" aria-hidden="true"><rect x="17" y="3" width="24" height="24" rx="6" fill="#FFFFFF" stroke="#141414" stroke-width="2"></rect><g fill="#141414"><circle cx="23" cy="9" r="2.4"></circle><circle cx="29" cy="15" r="2.4"></circle><circle cx="35" cy="21" r="2.4"></circle></g><rect x="3" y="17" width="24" height="24" rx="6" fill="#141414" stroke="#FFFFFF" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="9" cy="23" r="2.4"></circle><circle cx="21" cy="23" r="2.4"></circle><circle cx="15" cy="29" r="2.4"></circle><circle cx="9" cy="35" r="2.4"></circle><circle cx="21" cy="35" r="2.4"></circle></g></svg>';
+    return '<svg class="logo" width="38" height="38" viewBox="0 0 44 44" aria-hidden="true"><rect x="17" y="3" width="24" height="24" rx="6" fill="#2F6FDB" stroke="#2F6FDB" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="23" cy="9" r="2.4"></circle><circle cx="29" cy="15" r="2.4"></circle><circle cx="35" cy="21" r="2.4"></circle></g><rect x="3" y="17" width="24" height="24" rx="6" fill="#D33A2C" stroke="#FFFFFF" stroke-width="2"></rect><g fill="#FFFFFF"><circle cx="9" cy="23" r="2.4"></circle><circle cx="21" cy="23" r="2.4"></circle><circle cx="15" cy="29" r="2.4"></circle><circle cx="9" cy="35" r="2.4"></circle><circle cx="21" cy="35" r="2.4"></circle></g></svg>';
   }
   function render() {
     if (!S.ready) return;
@@ -4552,7 +4552,7 @@ const E = (() => {
       { view: 'home', at: '.daybar .wrap', t: 'Game nights',
         b: '<p>Each day on the schedule is one game night. Press <b>Start Day</b> to open it, then log the games. <b>End Day</b> appears once every game is final.</p><p>If you forget, the day ends by itself 12 hours after the last game finishes.</p>' },
       { view: 'home', at: 'main .ggrid .gcard', t: 'Logging a game',
-        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll the <b>black die</b> for the away player and the <b>white die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
+        b: '<p>Tap a game to open it and press <b>Start Game</b>. Roll the <b>red die</b> for the away player and the <b>blue die</b> for the home player, enter both numbers, and press <b>Log roll</b>. A rolled 1 counts as 0.</p><p>A game is 24 rolls, 6 per quarter. If it’s tied after 24, overtime adds 3 rolls at a time until someone wins. <b>Undo</b> fixes a typo, and finished games can still be edited.</p>' },
       { view: 'home', t: 'Advantages',
         b: '<p>Better players get <b>calls</b>: a re-roll on a chosen roll. <b>Offense</b> re-rolls your own die and keeps the higher number. <b>Defense</b> re-rolls the opponent’s die and keeps the lower one. The home player gets extra calls too.</p><p>On <b>Automatic</b> (the default), the site makes the calls. Switch a game to <b>Manual</b> to make them yourself. When a call comes up, the game screen tells you which die to re-roll.</p>' },
       { view: 'games', at: 'main .cal', t: 'Games',
