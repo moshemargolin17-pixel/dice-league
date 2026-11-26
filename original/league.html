@@ -4189,12 +4189,18 @@ const E = (() => {
     const l = al.lvl ? al.lvl[side] : 0;
     return l === 2 ? 'Double advantage' : l === 1 ? 'Single advantage' : 'No advantage';
   }
-  // Enter starts what's waiting: the game (in an open game) or the day
+  // Enter starts what's waiting: the game (in an open game) or the day; once the day is going, it opens the next game
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey || e.repeat || (typeof Tour !== 'undefined' && Tour.cur)) return;
     if (e.target.closest && e.target.closest('input, select, textarea, [contenteditable]' + (S.sheet && !e.target.closest('#sheetHost') ? '' : ', button, a, .gcard, .grow'))) return;
     const b = S.sheet ? document.querySelector('#sheetHost [data-act=startgame]') : document.querySelector('[data-act=start]');
-    if (b && !b.disabled) { e.preventDefault(); e.stopImmediatePropagation(); b.click(); }
+    if (b && !b.disabled) { e.preventDefault(); e.stopImmediatePropagation(); b.click(); return; }
+    // the day is under way: Enter opens the next game to play (one in progress first, then the next not started)
+    if (!S.sheet && D && D.cur && S.season.day.active) {
+      const today = D.games.filter(g => g.day === S.season.day.cur && !g.st.final);
+      const next = today.find(g => gameStarted(g)) || today[0];
+      if (next) { e.preventDefault(); e.stopImmediatePropagation(); S.sheet = { gid: next.id, n: S.season.n, back: null }; renderSheet(); }
+    }
   }, true);
   document.addEventListener('keydown', e => {
     const card = e.target.closest('.gcard, .grow');
