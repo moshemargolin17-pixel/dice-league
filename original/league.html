@@ -4189,20 +4189,15 @@ const E = (() => {
     const l = al.lvl ? al.lvl[side] : 0;
     return l === 2 ? 'Double advantage' : l === 1 ? 'Single advantage' : 'No advantage';
   }
-  // Backspace in an open game: undo the last roll while it's being played (when the roll boxes are empty), or go back home once it's final
+  // Backspace in an open game: close it and go back to the home page (in a box with something typed, it deletes as usual)
   document.addEventListener('keydown', e => {
-    if (e.key !== 'Backspace' || e.ctrlKey || e.metaKey || e.altKey || !S.sheet || !S.sheet.gid || S.sheet.edit) return;
+    if (e.key !== 'Backspace' || e.ctrlKey || e.metaKey || e.altKey || !S.sheet || S.sheet.edit) return;
     const t = e.target;
     if (t.closest && t.closest('select, textarea, [contenteditable]')) return;
-    if (t.tagName === 'INPUT' && !['rollA', 'rollH'].includes(t.id)) return;
-    if (['rollA', 'rollH'].some(id => { const x = document.getElementById(id); return x && x.value; })) {   // half a roll typed in: Backspace clears it, it doesn't undo
-      if (!t.value) { const x = document.getElementById(t.id === 'rollH' ? 'rollA' : 'rollH'); if (x && x.value) { e.preventDefault(); x.value = ''; x.dispatchEvent(new Event('input', { bubbles: true })); x.focus(); } }
-      return;
-    }
-    const g = D && D.byId[S.sheet.gid]; if (!g) return;
-    if (g.st.final) { e.preventDefault(); e.stopImmediatePropagation(); S.sheet = null; S.view = 'home'; renderSheet(); render(); window.scrollTo(0, 0); return; }
-    const u = document.querySelector('#sheetHost [data-act=undo]');
-    if (u && !u.disabled) { e.preventDefault(); e.stopImmediatePropagation(); u.click(); const a = document.getElementById('rollA'); if (a) a.focus(); }
+    if (t.tagName === 'INPUT' && (t.value || !['rollA', 'rollH'].includes(t.id))) return;
+    const typed = ['rollA', 'rollH'].map(id => document.getElementById(id)).find(x => x && x.value);
+    if (typed) { e.preventDefault(); typed.value = ''; typed.dispatchEvent(new Event('input', { bubbles: true })); typed.focus(); return; }   // half a roll typed: clear it first
+    e.preventDefault(); e.stopImmediatePropagation(); S.sheet = null; S.view = 'home'; renderSheet(); render(); window.scrollTo(0, 0);
   }, true);
   // Enter starts what's waiting: the game (in an open game) or the day; once the day is going, it opens the next game
   document.addEventListener('keydown', e => {
